@@ -58,7 +58,6 @@ runs:
           echo "No replace directive found for kubevela, using default"
           echo "repository=oam-dev/kubevela" >> $GITHUB_OUTPUT
           echo "ref=master" >> $GITHUB_OUTPUT
-          echo "is_commit=false" >> $GITHUB_OUTPUT
         else
           echo "Found replace directive: $REPLACE_LINE"
           
@@ -73,7 +72,7 @@ runs:
           VERSION=$(echo "$REPLACEMENT" | awk '{print $2}')
           
           # Extract commit SHA from pseudo-version (v0.0.0-YYYYMMDDHHMMSS-commitsha)
-          # The commit SHA is the last part after the last hyphen
+          # The commit SHA is the last part after the last hyphen (12 chars, but git can resolve it)
           COMMIT_SHA=$(echo "$VERSION" | sed 's/.*-//')
           
           echo "Extracted repository: $REPO"
@@ -82,7 +81,6 @@ runs:
           
           echo "repository=$REPO" >> $GITHUB_OUTPUT
           echo "ref=$COMMIT_SHA" >> $GITHUB_OUTPUT
-          echo "is_commit=true" >> $GITHUB_OUTPUT
         fi
 
     - name: Clone KubeVela repository and checkout commit
@@ -90,28 +88,16 @@ runs:
       run: |
         REPO="${{ steps.extract-vela-info.outputs.repository }}"
         REF="${{ steps.extract-vela-info.outputs.ref }}"
-        IS_COMMIT="${{ steps.extract-vela-info.outputs.is_commit }}"
         
         echo "Cloning repository: $REPO"
         echo "Target ref: $REF"
-        echo "Is commit SHA: $IS_COMMIT"
         
-        # Initialize empty repo and add remote
-        mkdir -p kubevela-source
+        # Clone the full repository (needed to checkout specific commits)
+        git clone "https://github.com/${REPO}.git" kubevela-source
         cd kubevela-source
-        git init
-        git remote add origin "https://github.com/${REPO}.git"
         
-        if [ "$IS_COMMIT" = "true" ]; then
-          echo "Fetching specific commit: $REF"
-          # Fetch the specific commit directly
-          git fetch --depth 1 origin "$REF"
-          git checkout FETCH_HEAD
-        else
-          echo "Fetching branch: $REF"
-          git fetch --depth 1 origin "$REF"
-          git checkout FETCH_HEAD
-        fi
+        # Checkout the specific commit or branch
+        git checkout "$REF"
         
         echo "Checkout complete"
         git log -1 --oneline
