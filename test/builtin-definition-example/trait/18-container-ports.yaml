@@ -1,10 +1,10 @@
 apiVersion: core.oam.dev/v1beta1
 kind: Application
 metadata:
-  name: busybox
+  name: container-ports
 spec:
   components:
-    - name: busybox
+    - name: container-ports
       type: webservice
       properties:
         cpu: "0.5"
@@ -24,7 +24,7 @@ spec:
             # you can use container-ports to control multiple containers by filling `containers`
             # NOTE: in containers, you must set the container name for each container
             containers:
-              - containerName: busybox
+              - containerName: container-ports
                 ports:
                   - containerPort: 80
                     protocol: TCP
