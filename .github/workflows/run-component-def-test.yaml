@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       repository:
-        description: 'Repository to clone (e.g., oam-dev/kubevela or roguepikachu/kubevela)'
+        description: 'Repository to clone'
         required: true
         default: 'oam-dev/kubevela'
       branch:
@@ -55,7 +55,11 @@ jobs:
         run: |
           echo "Cloning repository: ${{ github.event.inputs.repository }}"
           echo "Branch: ${{ github.event.inputs.branch }}"
-          git clone --depth 1 --branch ${{ github.event.inputs.branch }} https://github.com/${{ github.event.inputs.repository }}.git kubevela-source
+          git clone https://github.com/${{ github.event.inputs.repository }}.git kubevela-source
+          cd kubevela-source
+          git fetch --all
+          git checkout ${{ github.event.inputs.branch }}
+          git log -1 --oneline
 
       - name: Build Vela CLI from source
         working-directory: kubevela-source
