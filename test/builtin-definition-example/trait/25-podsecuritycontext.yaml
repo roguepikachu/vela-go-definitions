@@ -1,10 +1,10 @@
 apiVersion: core.oam.dev/v1beta1
 kind: Application
 metadata:
-  name: podtato-head
+  name: pod-sec-context
 spec:
   components:
-    - name: podtato-head-frontend
+    - name: pod-sec-context-frontend
       type: webservice
       properties:
         image: ghcr.io/podtato-head/podtato-server:v0.3.1
