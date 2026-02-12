@@ -103,12 +103,12 @@ jobs:
       - name: List definitions from vela-definitions module
         run: |
           echo "Listing definitions from vela-definitions module..."
-          kubevela-source/bin/vela def list-module vela-definitions
+          kubevela-source/bin/vela def list-module .
 
       - name: Install definitions from defkit
         run: |
           echo "Installing definitions from vela-definitions module..."
-          kubevela-source/bin/vela def apply-module vela-definitions --conflict=overwrite
+          kubevela-source/bin/vela def apply-module . --conflict=overwrite
           echo "Definitions installed successfully"
 
       - name: Verify installed definitions
