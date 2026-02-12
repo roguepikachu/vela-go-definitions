@@ -20,17 +20,20 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+
+	"github.com/oam-dev/kubevela/apis/core.oam.dev/v1beta1"
 )
 
 var _ = Describe("Component Definition E2E Tests", Label("components"), func() {
-	var ctx context.Context
-
-	BeforeEach(func() {
-		ctx = context.Background()
-	})
+	ctx := context.Background()
 
 	Context("when testing component definitions", func() {
 		testDataPath := filepath.Join(getTestDataPath(), "components")
@@ -42,40 +45,77 @@ var _ = Describe("Component Definition E2E Tests", Label("components"), func() {
 			GinkgoWriter.Printf("Found %d component test files\n", len(files))
 		})
 
-		// Dynamic test generation for each component file
+		// Dynamic parallel test generation for each component file
 		When("applying component applications", func() {
-			BeforeEach(func() {
-				// Ensure we're in a clean state
-			})
+			for _, file := range func() []string {
+				testPath := filepath.Join(getTestDataPath(), "components")
+				f, _ := listYAMLFiles(testPath)
+				return f
+			}() {
+				file := file
 
-			It("should successfully apply and run all component applications", func() {
-				files, err := listYAMLFiles(testDataPath)
-				Expect(err).NotTo(HaveOccurred())
+				It(fmt.Sprintf("should run %s", filepath.Base(file)), func() {
+					app, err := readAppFromFile(file)
+					Expect(err).NotTo(HaveOccurred(), "Failed to read application from %s", file)
 
-				for _, file := range files {
-					By(fmt.Sprintf("Testing %s", filepath.Base(file)))
+					// Each app has unique name, so namespace based on app name is unique per test
+					// This allows all tests to run in parallel without conflicts
+					appNameSanitized := sanitizeForNamespace(app.Name)
+					uniqueNs := fmt.Sprintf("e2e-%s", appNameSanitized)
 
-					// Clean up first using the same file
-					_ = deleteApplicationByFile(ctx, file)
+					app.SetNamespace(uniqueNs)
+
+					// Update namespace references inside component properties (e.g., ref-objects)
+					updateAppNamespaceReferences(app, uniqueNs)
+
+					GinkgoWriter.Printf("[Parallel Process %d] Creating namespace %s...\n", GinkgoParallelProcess(), uniqueNs)
+					ns := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: uniqueNs}}
+					err = k8sClient.Create(ctx, ns)
+					if err != nil && !errors.IsAlreadyExists(err) {
+						Expect(err).NotTo(HaveOccurred(), "Failed to create namespace")
+					}
+
+					// Ensure clean slate - delete app if exists
+					GinkgoWriter.Printf("[Parallel Process %d] Cleaning up any existing application %s/%s...\n", GinkgoParallelProcess(), uniqueNs, app.Name)
+					_ = k8sClient.Delete(ctx, app)
+
+					// Wait for deletion
+					Eventually(func() bool {
+						err := k8sClient.Get(ctx, types.NamespacedName{Namespace: uniqueNs, Name: app.Name}, &v1beta1.Application{})
+						return errors.IsNotFound(err)
+					}, 30*time.Second, 2*time.Second).Should(BeTrue(),
+						fmt.Sprintf("Application %s should be fully deleted before test", app.Name))
+
+					// Check if this file has prerequisite resources (like ref-objects.yaml)
+					// If so, apply them first before the Application
+					if hasPrerequisiteResources(file) {
+						GinkgoWriter.Printf("[Parallel Process %d] Applying prerequisite resources from %s...\n", GinkgoParallelProcess(), filepath.Base(file))
+						err = applyPrerequisiteResources(ctx, file, uniqueNs)
+						Expect(err).NotTo(HaveOccurred(), "Failed to apply prerequisite resources")
+
+						// Give time for resources to be ready
+						time.Sleep(2 * time.Second)
+					}
 
 					// Apply application
-					err = applyApplication(ctx, file)
-					Expect(err).NotTo(HaveOccurred(), "Failed to apply %s", file)
-
-					// Get app name for status check
-					appName, namespace, err := extractAppNameFromFile(file)
-					Expect(err).NotTo(HaveOccurred())
+					GinkgoWriter.Printf("[Parallel Process %d] Applying application %s/%s...\n", GinkgoParallelProcess(), uniqueNs, app.Name)
+					Expect(k8sClient.Create(ctx, app)).Should(Succeed())
 
 					// Wait for running status
-					err = waitForApplicationRunning(ctx, appName, namespace)
-					Expect(err).NotTo(HaveOccurred(), "Application %s did not reach running state", appName)
+					Eventually(func(g Gomega) {
+						currentApp := &v1beta1.Application{}
+						g.Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: uniqueNs, Name: app.Name}, currentApp)).Should(Succeed())
+						GinkgoWriter.Printf("[Parallel Process %d] Application %s status: %s\n", GinkgoParallelProcess(), app.Name, currentApp.Status.Phase)
+						g.Expect(string(currentApp.Status.Phase)).Should(Equal("running"))
+					}, AppRunningTimeout, PollInterval).Should(Succeed())
 
-					// Clean up after test using the same file
-					_ = deleteApplicationByFile(ctx, file)
+					GinkgoWriter.Printf("[Parallel Process %d] ✅ %s passed\n", GinkgoParallelProcess(), filepath.Base(file))
 
-					GinkgoWriter.Printf("✅ %s passed\n", filepath.Base(file))
-				}
-			})
+					// Clean up namespace after test
+					GinkgoWriter.Printf("[Parallel Process %d] Deleting namespace %s...\n", GinkgoParallelProcess(), uniqueNs)
+					_ = k8sClient.Delete(ctx, ns)
+				})
+			}
 		})
 	})
 })
