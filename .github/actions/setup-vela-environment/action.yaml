@@ -111,8 +111,8 @@ runs:
     - name: Prepare Go module dependencies
       shell: bash
       run: |
-        echo "Running go mod tidy..."
-        go mod tidy
+        echo "Running make tidy..."
+        make tidy
         echo "Go dependencies updated"
 
     - name: List definitions from vela-definitions module
@@ -140,6 +140,6 @@ runs:
     - name: Install Ginkgo
       shell: bash
       run: |
-        go install github.com/onsi/ginkgo/v2/ginkgo@latest
+        make install-ginkgo
         echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
 
