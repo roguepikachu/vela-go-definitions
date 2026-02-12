@@ -10,11 +10,12 @@ GINKGO=$(shell which ginkgo 2>/dev/null || echo "go run github.com/onsi/ginkgo/v
 # Test data path
 TESTDATA_PATH ?= test/builtin-definition-example
 
-# Vela CLI path (can be overridden)
-VELA_CLI ?= vela
 
 # Timeout for E2E tests
 E2E_TIMEOUT ?= 30m
+
+# Number of parallel processes for Ginkgo (can be overridden)
+PROCS ?= 4
 
 .PHONY: tidy install-ginkgo test-e2e test-e2e-components test-e2e-traits test-e2e-policies test-e2e-workflowsteps help
 
@@ -33,23 +34,23 @@ test-e2e: test-e2e-components test-e2e-traits test-e2e-policies test-e2e-workflo
 	@echo "All E2E tests completed!"
 
 test-e2e-components:
-	@echo "Running E2E tests for component definitions..."
-	TESTDATA_PATH=$(TESTDATA_PATH) VELA_CLI=$(VELA_CLI) \
-		$(GINKGO) -v --timeout=$(E2E_TIMEOUT) --label-filter="components" ./test/e2e/...
+	@echo "Running E2E tests for component definitions in parallel ($(PROCS) processes)..."
+	TESTDATA_PATH=$(TESTDATA_PATH) \
+		$(GINKGO) -v --timeout=$(E2E_TIMEOUT) --label-filter="components" --procs=$(PROCS) ./test/e2e/...
 
 test-e2e-traits:
 	@echo "Running E2E tests for trait definitions..."
-	TESTDATA_PATH=$(TESTDATA_PATH) VELA_CLI=$(VELA_CLI) \
+	TESTDATA_PATH=$(TESTDATA_PATH) \
 		$(GINKGO) -v --timeout=$(E2E_TIMEOUT) --label-filter="traits" ./test/e2e/...
 
 test-e2e-policies:
 	@echo "Running E2E tests for policy definitions..."
-	TESTDATA_PATH=$(TESTDATA_PATH) VELA_CLI=$(VELA_CLI) \
+	TESTDATA_PATH=$(TESTDATA_PATH) \
 		$(GINKGO) -v --timeout=$(E2E_TIMEOUT) --label-filter="policies" ./test/e2e/...
 
 test-e2e-workflowsteps:
 	@echo "Running E2E tests for workflowstep definitions..."
-	TESTDATA_PATH=$(TESTDATA_PATH) VELA_CLI=$(VELA_CLI) \
+	TESTDATA_PATH=$(TESTDATA_PATH) \
 		$(GINKGO) -v --timeout=$(E2E_TIMEOUT) --label-filter="workflowsteps" ./test/e2e/...
 
 ## Help
@@ -58,13 +59,18 @@ help:
 	@echo "  tidy                   - Tidy go.mod dependencies"
 	@echo "  install-ginkgo         - Install Ginkgo CLI for running E2E tests"
 	@echo "  test-e2e               - Run all E2E tests"
-	@echo "  test-e2e-components    - Run E2E tests for component definitions"
+	@echo "  test-e2e-components    - Run E2E tests for component definitions (parallel)"
 	@echo "  test-e2e-traits        - Run E2E tests for trait definitions"
 	@echo "  test-e2e-policies      - Run E2E tests for policy definitions"
 	@echo "  test-e2e-workflowsteps - Run E2E tests for workflowstep definitions"
 	@echo ""
 	@echo "Environment variables:"
 	@echo "  TESTDATA_PATH - Path to test data (default: test/builtin-definition-example)"
-	@echo "  VELA_CLI      - Path to vela CLI (default: vela)"
 	@echo "  E2E_TIMEOUT   - Timeout for E2E tests (default: 30m)"
+	@echo "  PROCS         - Number of parallel processes for Ginkgo (default: 4)"
+	@echo ""
+	@echo "Examples:"
+	@echo "  make test-e2e-components                    # Run with 4 processes (default)"
+	@echo "  make test-e2e-components PROCS=8            # Run with 8 processes"
+	@echo "  make test-e2e-components PROCS=2            # Run with 2 processes"
 

@@ -27,3 +27,8 @@ func TestE2E(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "E2E Definition Test Suite")
 }
+
+var _ = BeforeSuite(func() {
+	err := initK8sClient()
+	Expect(err).NotTo(HaveOccurred(), "Failed to initialize K8s client")
+})
