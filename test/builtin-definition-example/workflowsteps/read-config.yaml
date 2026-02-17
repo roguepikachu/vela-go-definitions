@@ -33,11 +33,12 @@
 #
 # ============================================================================
 
+# Note: The Secret must be in the same namespace as the Application
+# During e2e tests, both are deployed to the same test namespace
 apiVersion: v1
 kind: Secret
 metadata:
   name: my-app-config
-  namespace: default
   labels:
     config.oam.dev/catalog: velacore-config
     config.oam.dev/type: ""
@@ -51,7 +52,6 @@ apiVersion: core.oam.dev/v1beta1
 kind: Application
 metadata:
   name: read-config-example
-  namespace: default
 spec:
   components:
     - name: export2config-demo-server
@@ -62,12 +62,11 @@ spec:
 
   workflow:
     steps:
-      # Step 1: Read the config by name
+      # Step 1: Read the config by name (uses app's namespace by default)
       - name: read-app-config
         type: read-config
         properties:
           name: my-app-config
-          namespace: default
         outputs:
           - name: db-host
             valueFrom: "output.config.database_host"
