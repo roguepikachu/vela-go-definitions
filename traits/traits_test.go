@@ -225,9 +225,9 @@ func TestHPATrait(t *testing.T) {
 	// Metrics array: static CPU, conditional memory, iterated custom
 	assert.Contains(t, cue, `metrics:`)
 	assert.Contains(t, cue, `name: "cpu"`)
-	assert.Contains(t, cue, `if parameter.mem != _|_`)
+	assert.Contains(t, cue, `if parameter["mem"] != _|_`)
 	assert.Contains(t, cue, `name: "memory"`)
-	assert.Contains(t, cue, `if parameter.podCustomMetrics != _|_ for m in parameter.podCustomMetrics`)
+	assert.Contains(t, cue, `if parameter["podCustomMetrics"] != _|_ for m in parameter.podCustomMetrics`)
 	assert.Contains(t, cue, `type: "Pods"`)
 
 	// Conditional target type for CPU/memory
@@ -274,9 +274,9 @@ func TestInitContainerTrait(t *testing.T) {
 	assert.Contains(t, cue, `initContainers:`)
 	assert.Contains(t, cue, `parameter.image`)
 	assert.Contains(t, cue, `parameter.imagePullPolicy`)
-	assert.Contains(t, cue, `if parameter.cmd != _|_`)
-	assert.Contains(t, cue, `if parameter.args != _|_`)
-	assert.Contains(t, cue, `if parameter.env != _|_`)
+	assert.Contains(t, cue, `if parameter["cmd"] != _|_`)
+	assert.Contains(t, cue, `if parameter["args"] != _|_`)
+	assert.Contains(t, cue, `if parameter["env"] != _|_`)
 
 	// Array concatenation for volumeMounts
 	assert.Contains(t, cue, `] + parameter.extraVolumeMounts`)
@@ -523,6 +523,37 @@ func TestAffinityTrait(t *testing.T) {
 	assert.Contains(t, cue, `#podAffinityTerm`)
 	assert.Contains(t, cue, `#nodeSelectorTerm`)
 	assert.Contains(t, cue, `matchExpressions?: [...#nodeSelector]`)
+}
+
+func TestHostAliasTrait(t *testing.T) {
+	cue := HostAlias().ToCue()
+
+	// Metadata
+	assert.Contains(t, cue, `hostalias: {`)
+	assert.Contains(t, cue, `type: "trait"`)
+	assert.Contains(t, cue, `description: "Add host aliases on K8s pod for your workload which follows the pod spec in path 'spec.template'."`)
+	assert.Contains(t, cue, `podDisruptive: false`)
+	assert.Contains(t, cue, `"deployments.apps"`)
+	assert.Contains(t, cue, `"statefulsets.apps"`)
+	assert.Contains(t, cue, `"daemonsets.apps"`)
+	assert.Contains(t, cue, `"jobs.batch"`)
+
+	// Patch block: patchKey annotation and direct array assignment (no wrapping)
+	assert.Contains(t, cue, `// +patchKey=ip`)
+	assert.Contains(t, cue, `hostAliases: parameter.hostAliases`)
+	// Should NOT wrap in array brackets
+	assert.NotContains(t, cue, `[parameter.hostAliases]`)
+
+	// Parameter block: hostAliases should be required (no ?)
+	assert.Contains(t, cue, "hostAliases: [...{")
+	assert.NotContains(t, cue, "hostAliases?: [...{")
+
+	// Struct fields inside hostAliases
+	assert.Contains(t, cue, `ip: string`)
+	assert.Contains(t, cue, `hostnames: [...string]`)
+
+	// Description
+	assert.Contains(t, cue, `// +usage=Specify the hostAliases to add`)
 }
 
 func TestAllTraitsRegistered(t *testing.T) {
