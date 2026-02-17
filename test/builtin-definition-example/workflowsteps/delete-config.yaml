@@ -7,7 +7,14 @@ spec:
   components: []
   workflow:
     steps:
+      - name: create-config
+        type: create-config
+        properties:
+          name: test-to-delete
+          config:
+            key1: value1
+            key2: value2
       - name: delete-config
         type: delete-config
         properties:
-          name: test
+          name: test-to-delete

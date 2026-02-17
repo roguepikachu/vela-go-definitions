@@ -17,11 +17,5 @@ spec:
             key3: true
             key4:
             key5: value5
-      - name: wait
-        type: suspend
-        properties:
-          duration: "10s"
-      - name: delete-config
-        type: delete-config
-        properties:
-          name: test
+
+

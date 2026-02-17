@@ -1,16 +1,75 @@
-kind: Application
-apiVersion: core.oam.dev/v1beta1
+# ============================================================================
+# READ-CONFIG WORKFLOW STEP EXAMPLE
+# ============================================================================
+#
+# WHAT DOES read-config DO?
+# -------------------------
+# The read-config workflow step reads a configuration from KubeVela's config
+# management system. It retrieves config data by name and namespace.
+#
+# PARAMETERS:
+# -----------
+# | Parameter  | Required | Description                                     |
+# |------------|----------|-------------------------------------------------|
+# | name       | Yes      | The name of the config to read                  |
+# | namespace  | No       | Namespace of the config (default: app namespace)|
+#
+# OUTPUT:
+# -------
+# Returns: output.config - The config data (key-value pairs)
+#
+# ============================================================================
+# HOW TO TEST THIS EXAMPLE:
+# ============================================================================
+#
+# Step 1: Apply the Secret and Application:
+#   kubectl apply -f read-config.yaml
+#
+# Step 2: Check application status:
+#   vela status read-config-example
+#
+# Step 3: Clean up (optional):
+#   vela delete read-config-example
+#
+# ============================================================================
+
+apiVersion: v1
+kind: Secret
 metadata:
-  name: test-config
-  namespace: "config-e2e-test"
+  name: my-app-config
+  namespace: default
+  labels:
+    config.oam.dev/catalog: velacore-config
+    config.oam.dev/type: ""
+type: Opaque
+stringData:
+  input-properties: |
+    {"database_host":"mysql.default.svc.cluster.local","database_port":"3306","cache_enabled":"true"}
+
+---
+apiVersion: core.oam.dev/v1beta1
+kind: Application
+metadata:
+  name: read-config-example
+  namespace: default
 spec:
   components: []
+
   workflow:
     steps:
-      - name: read-config
+      # Step 1: Read the config by name
+      - name: read-app-config
         type: read-config
         properties:
-          name: test
+          name: my-app-config
+          namespace: default
         outputs:
-          - fromKey: config
-            name: read-config
+          - name: db-host
+            valueFrom: "output.config.database_host"
+
+      # Step 2: Print the config to verify
+      - name: print-config
+        type: print-message-in-status
+        inputs:
+          - from: db-host
+            parameterKey: message

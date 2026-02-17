@@ -2,7 +2,7 @@ apiVersion: core.oam.dev/v1beta1
 kind: Application
 metadata:
   name: another-app
-  namespace: gokarna
+  namespace: default
 spec:
   components:
   - name: express-server8
@@ -15,7 +15,7 @@ apiVersion: core.oam.dev/v1beta1
 kind: Application
 metadata:
   name: first-vela-workflow
-  namespace: gokarna
+  namespace: default
 spec:
   components:
   - name: express-server
@@ -29,8 +29,8 @@ spec:
       type: depends-on-app
       properties:
         name: another-app
-        namespace: gokarna
+        namespace: default
     - name: webservice-apply
       type: apply-component
       properties:
-        component:: express-server
+        component: express-server

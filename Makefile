@@ -15,9 +15,9 @@ TESTDATA_PATH ?= test/builtin-definition-example
 E2E_TIMEOUT ?= 30m
 
 # Number of parallel processes for Ginkgo (can be overridden)
-PROCS ?= 4
+PROCS ?= 40
 
-.PHONY: tidy install-ginkgo test-e2e test-e2e-components test-e2e-traits test-e2e-policies test-e2e-workflowsteps help
+.PHONY: tidy install-ginkgo test-e2e test-e2e-components test-e2e-traits test-e2e-policies test-e2e-workflowsteps cleanup-e2e-namespaces force-cleanup-e2e-namespaces help
 
 ## Dependency management
 tidy:
@@ -53,6 +53,21 @@ test-e2e-workflowsteps:
 	TESTDATA_PATH=$(TESTDATA_PATH) \
 		$(GINKGO) -v --timeout=$(E2E_TIMEOUT) --label-filter="workflowsteps" --procs=$(PROCS) ./test/e2e/...
 
+## Cleanup E2E test namespaces
+cleanup-e2e-namespaces:
+	@echo "Deleting all namespaces starting with 'e2e'..."
+	@kubectl get namespaces --no-headers -o custom-columns=":metadata.name" | grep "^e2e" | xargs -r kubectl delete namespace --wait=false || true
+	@echo "Cleanup complete!"
+
+## Force cleanup E2E test namespaces (removes finalizers for stuck namespaces)
+force-cleanup-e2e-namespaces:
+	@echo "Force deleting all namespaces starting with 'e2e'..."
+	@for ns in $$(kubectl get namespaces --no-headers -o custom-columns=":metadata.name" | grep "^e2e"); do \
+		echo "Force deleting namespace: $$ns"; \
+		kubectl get namespace $$ns -o json | jq '.spec.finalizers = []' | kubectl replace --raw "/api/v1/namespaces/$$ns/finalize" -f - || true; \
+	done
+	@echo "Force cleanup complete!"
+
 ## Help
 help:
 	@echo "Available targets:"
@@ -63,6 +78,8 @@ help:
 	@echo "  test-e2e-traits        - Run E2E tests for trait definitions (parallel)"
 	@echo "  test-e2e-policies      - Run E2E tests for policy definitions (parallel)"
 	@echo "  test-e2e-workflowsteps - Run E2E tests for workflowstep definitions (parallel)"
+	@echo "  cleanup-e2e-namespaces       - Delete all namespaces starting with 'e2e'"
+	@echo "  force-cleanup-e2e-namespaces - Force delete stuck terminating namespaces starting with 'e2e'"
 	@echo ""
 	@echo "Environment variables:"
 	@echo "  TESTDATA_PATH - Path to test data (default: test/builtin-definition-example)"
