@@ -53,7 +53,12 @@ metadata:
   name: read-config-example
   namespace: default
 spec:
-  components: []
+  components:
+    - name: export2config-demo-server
+      type: webservice
+      properties:
+        image: oamdev/hello-world
+        port: 8000
 
   workflow:
     steps:
