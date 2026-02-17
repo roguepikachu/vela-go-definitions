@@ -34,9 +34,10 @@ func ContainerImage() *defkit.TraitDefinition {
 				DefaultToContextName: true,
 				AllowMultiple:        true,
 				ContainersParam:      "containers",
+				ContainersDescription: "Specify the container image for multiple containers",
 				PatchFields: []defkit.PatchContainerField{
-					{ParamName: "image", TargetField: "image", PatchStrategy: "retainKeys"},
-					{ParamName: "imagePullPolicy", TargetField: "imagePullPolicy", PatchStrategy: "retainKeys", Condition: "!= \"\""},
+					{ParamName: "image", TargetField: "image", PatchStrategy: "retainKeys", Description: "Specify the image of the container"},
+					{ParamName: "imagePullPolicy", TargetField: "imagePullPolicy", PatchStrategy: "retainKeys", Condition: "!= \"\"", Description: "Specify the image pull policy of the container"},
 				},
 			})
 		})
