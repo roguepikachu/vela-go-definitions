@@ -76,6 +76,7 @@ func Affinity() *defkit.TraitDefinition {
 					"spec.template.spec.affinity.podAffinity.requiredDuringSchedulingIgnoredDuringExecution",
 					defkit.From(defkit.ParamPath("podAffinity.required")).Map(defkit.FieldMap{
 						"labelSelector":     defkit.Optional("labelSelector"),
+						"namespace":         defkit.Optional("namespace"),
 						"namespaces":        defkit.Optional("namespaces"),
 						"topologyKey":       defkit.F("topologyKey"),
 						"namespaceSelector": defkit.Optional("namespaceSelector"),
@@ -95,6 +96,7 @@ func Affinity() *defkit.TraitDefinition {
 					"spec.template.spec.affinity.podAntiAffinity.requiredDuringSchedulingIgnoredDuringExecution",
 					defkit.From(defkit.ParamPath("podAntiAffinity.required")).Map(defkit.FieldMap{
 						"labelSelector":     defkit.Optional("labelSelector"),
+						"namespace":         defkit.Optional("namespace"),
 						"namespaces":        defkit.Optional("namespaces"),
 						"topologyKey":       defkit.F("topologyKey"),
 						"namespaceSelector": defkit.Optional("namespaceSelector"),
@@ -153,6 +155,7 @@ func labelSelectorHelper() defkit.Param {
 func podAffinityTermHelper() defkit.Param {
 	return defkit.Struct("podAffinityTerm").Fields(
 		defkit.Field("labelSelector", defkit.ParamTypeStruct).WithSchemaRef("labelSelector"),
+		defkit.Field("namespace", defkit.ParamTypeString),
 		defkit.Field("namespaces", defkit.ParamTypeArray).ArrayOf(defkit.ParamTypeString),
 		defkit.Field("topologyKey", defkit.ParamTypeString).Required(),
 		defkit.Field("namespaceSelector", defkit.ParamTypeStruct).WithSchemaRef("labelSelector"),
