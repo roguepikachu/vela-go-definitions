@@ -589,6 +589,40 @@ func TestAllTraitsRegistered(t *testing.T) {
 	}
 }
 
+func TestK8sUpdateStrategyTrait(t *testing.T) {
+	trait := K8sUpdateStrategy()
+
+	assert.Equal(t, "k8s-update-strategy", trait.GetName())
+	assert.Equal(t, "Set k8s update strategy for Deployment/DaemonSet/StatefulSet", trait.GetDescription())
+
+	cue := trait.ToCue()
+
+	// Three separate conditional blocks for each workload type
+	assert.Contains(t, cue, `parameter.targetKind == "Deployment" && parameter.strategy.type != "OnDelete"`)
+	assert.Contains(t, cue, `parameter.targetKind == "StatefulSet" && parameter.strategy.type != "Recreate"`)
+	assert.Contains(t, cue, `parameter.targetKind == "DaemonSet" && parameter.strategy.type != "Recreate"`)
+
+	// Three patchStrategy annotations
+	assert.Equal(t, 3, strings.Count(cue, "// +patchStrategy=retainKeys"))
+
+	// Deployment uses "strategy", StatefulSet/DaemonSet use "updateStrategy"
+	assert.Contains(t, cue, "strategy: {")
+	assert.Contains(t, cue, "updateStrategy: {")
+
+	// Inner RollingUpdate condition
+	assert.Contains(t, cue, `parameter.strategy.type == "RollingUpdate"`)
+
+	// Correct field assignments
+	assert.Contains(t, cue, "maxSurge:       parameter.strategy.rollingStrategy.maxSurge")
+	assert.Contains(t, cue, "maxUnavailable: parameter.strategy.rollingStrategy.maxUnavailable")
+	assert.Contains(t, cue, "partition: parameter.strategy.rollingStrategy.partition")
+
+	// Parameters
+	assert.Contains(t, cue, `targetAPIVersion: *"apps/v1" | string`)
+	assert.Contains(t, cue, `targetKind: *"Deployment" | "StatefulSet" | "DaemonSet"`)
+	assert.Contains(t, cue, `type: *"RollingUpdate" | "Recreate" | "OnDelete"`)
+}
+
 // trait wraps a TraitDefinition for testing
 type trait struct {
 	def interface {
