@@ -14,6 +14,8 @@ require (
 	sigs.k8s.io/yaml v1.4.0
 )
 
+// Add kubevela replace directive for local development here 
+
 require (
 	cuelang.org/go v0.14.1 // indirect
 	dario.cat/mergo v1.0.0 // indirect
