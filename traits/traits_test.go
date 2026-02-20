@@ -638,6 +638,59 @@ func TestSecurityContextTrait(t *testing.T) {
 	assert.Contains(t, cue, `errs: [for c in patch.spec.template.spec.containers if c.err != _|_ {c.err}]`)
 }
 
+func TestTopologySpreadConstraintsTrait(t *testing.T) {
+	trait := TopologySpreadConstraints()
+
+	assert.Equal(t, "topologyspreadconstraints", trait.GetName())
+
+	cue := trait.ToCue()
+
+	// Metadata
+	assert.Contains(t, cue, `type: "trait"`)
+	assert.Contains(t, cue, `podDisruptive: true`)
+	assert.Contains(t, cue, `"deployments.apps"`)
+	assert.Contains(t, cue, `"statefulsets.apps"`)
+	assert.Contains(t, cue, `"daemonsets.apps"`)
+	assert.Contains(t, cue, `"jobs.batch"`)
+
+	// Bug 1 fix: constraints array should be required (no ?)
+	assert.Contains(t, cue, "constraints: [...{",
+		"constraints should be required, not optional")
+	assert.NotContains(t, cue, "constraints?: [...{",
+		"constraints should NOT be optional")
+
+	// Bug 2 fix: labelSelector should be required (no ?)
+	assert.Contains(t, cue, "labelSelector: {",
+		"labelSelector should be required, not optional")
+
+	// Bug 3 fix: nodeAffinityPolicy and nodeTaintsPolicy should be optional WITH default
+	assert.Contains(t, cue, `nodeAffinityPolicy?: *"Honor" | "Ignore"`,
+		"nodeAffinityPolicy should be optional with *Honor default")
+	assert.Contains(t, cue, `nodeTaintsPolicy?: *"Honor" | "Ignore"`,
+		"nodeTaintsPolicy should be optional with *Honor default")
+	// Must NOT be required (without ?)
+	assert.NotContains(t, cue, `nodeAffinityPolicy: *"Honor"`,
+		"nodeAffinityPolicy should NOT be required")
+	assert.NotContains(t, cue, `nodeTaintsPolicy: *"Honor"`,
+		"nodeTaintsPolicy should NOT be required")
+
+	// Other parameter fields
+	assert.Contains(t, cue, `maxSkew: int`)
+	assert.Contains(t, cue, `topologyKey: string`)
+	assert.Contains(t, cue, `whenUnsatisfiable: *"DoNotSchedule" | "ScheduleAnyway"`)
+	assert.Contains(t, cue, `minDomains?: int`)
+	assert.Contains(t, cue, `matchLabelKeys?: [...string]`)
+	assert.Contains(t, cue, `matchLabels?: [string]: string`)
+	assert.Contains(t, cue, `operator: *"In" | "NotIn" | "Exists" | "DoesNotExist"`)
+	assert.Contains(t, cue, `values?: [...string]`)
+
+	// Template: conditional field guards for optional fields
+	assert.Contains(t, cue, `if v.nodeAffinityPolicy != _|_`)
+	assert.Contains(t, cue, `if v.nodeTaintsPolicy != _|_`)
+	assert.Contains(t, cue, `if v.minDomains != _|_`)
+	assert.Contains(t, cue, `if v.matchLabelKeys != _|_`)
+}
+
 func TestAllTraitsRegistered(t *testing.T) {
 	// Test that all traits can be created and produce valid CUE
 	traits := []struct {
