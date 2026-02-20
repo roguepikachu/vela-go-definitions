@@ -799,6 +799,38 @@ func TestTopologySpreadConstraintsTrait(t *testing.T) {
 	assert.Contains(t, cue, `if v.matchLabelKeys != _|_`)
 }
 
+func TestServiceBindingTrait(t *testing.T) {
+	trait := ServiceBinding()
+
+	assert.Equal(t, "service-binding", trait.GetName())
+
+	cue := trait.ToCue()
+
+	// Header and attributes
+	assert.Contains(t, cue, `type: "trait"`)
+	assert.Contains(t, cue, `"ui-hidden": "true"`)
+	assert.Contains(t, cue, `"deployments.apps"`)
+	assert.NotContains(t, cue, `podDisruptive:`, "podDisruptive: false should not be emitted")
+
+	// Template: patch with patchKey annotations
+	assert.Contains(t, cue, `// +patchKey=name`)
+	assert.Contains(t, cue, `name: context.name`)
+
+	// List comprehension over envMappings
+	assert.Contains(t, cue, `for envName, v in parameter.envMappings`)
+	assert.Contains(t, cue, `valueFrom: secretKeyRef:`)
+	assert.Contains(t, cue, `if v["key"] != _|_`)
+	assert.Contains(t, cue, `if v["key"] == _|_`)
+
+	// Fluent parameter
+	assert.Contains(t, cue, `envMappings: [string]: #KeySecret`)
+
+	// Fluent helper definition
+	assert.Contains(t, cue, `#KeySecret:`)
+	assert.Contains(t, cue, `key?:`)
+	assert.Contains(t, cue, `secret: string`)
+}
+
 func TestAllTraitsRegistered(t *testing.T) {
 	// Test that all traits can be created and produce valid CUE
 	traits := []struct {
@@ -817,6 +849,7 @@ func TestAllTraitsRegistered(t *testing.T) {
 		{"init-container", func() *trait { return &trait{InitContainer()} }},
 		{"service-account", func() *trait { return &trait{ServiceAccount()} }},
 		{"gateway", func() *trait { return &trait{Gateway()} }},
+		{"service-binding", func() *trait { return &trait{ServiceBinding()} }},
 	}
 
 	for _, tc := range traits {
