@@ -567,16 +567,30 @@ func TestResourceTrait(t *testing.T) {
 
 	cue := trait.ToCue()
 
-	// Verify key elements are present
+	// Header and attributes
 	assert.Contains(t, cue, `type: "trait"`)
 	assert.Contains(t, cue, `podDisruptive: true`)
+	assert.Contains(t, cue, `"cronjobs.batch"`)
+
+	// Parameters
 	assert.Contains(t, cue, `cpu?:`)
-	// memory has a default value (*"2048Mi") so it's generated as 'memory:' not 'memory?:'
-	assert.Contains(t, cue, `memory:`)
+	assert.Contains(t, cue, `memory?:`)
 	assert.Contains(t, cue, `*"2048Mi"`)
+	assert.Contains(t, cue, `=~"^([1-9][0-9]{0,63})(E|P|T|G|M|K|Ei|Pi|Ti|Gi|Mi|Ki)$"`)
 	assert.Contains(t, cue, `requests?:`)
 	assert.Contains(t, cue, `limits?:`)
-	assert.Contains(t, cue, `"cronjobs.batch"`)
+
+	// Template: let binding for DRY container element
+	assert.Contains(t, cue, `let resourceContent =`)
+	assert.Contains(t, cue, `containers: [resourceContent]`)
+
+	// PatchStrategy annotations on requests/limits
+	assert.Contains(t, cue, `// +patchStrategy=retainKeys`)
+
+	// Two-level context guards
+	assert.Contains(t, cue, `context.output.spec != _|_`)
+	assert.Contains(t, cue, `context.output.spec.template != _|_`)
+	assert.Contains(t, cue, `context.output.spec.jobTemplate != _|_`)
 }
 
 func TestAffinityTrait(t *testing.T) {
