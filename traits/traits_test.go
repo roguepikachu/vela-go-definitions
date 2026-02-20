@@ -433,6 +433,20 @@ func TestSidecarTrait(t *testing.T) {
 	assert.Contains(t, cue, `#HealthProbe`)
 	assert.Contains(t, cue, `livenessProbe?:`)
 	assert.Contains(t, cue, `readinessProbe?:`)
+
+	// #HealthProbe exec.command should have string element type
+	assert.Contains(t, cue, `command: [...string]`,
+		"exec.command should be typed as [...string], not untyped [...]")
+	assert.NotContains(t, cue, "command: [...]",
+		"exec.command should NOT be untyped [...]")
+
+	// #HealthProbe httpGet.httpHeaders should have structured elements
+	assert.Contains(t, cue, `httpHeaders?: [...{`,
+		"httpHeaders should be an array of structs")
+	assert.Contains(t, cue, "name:  string",
+		"httpHeaders elements should have a name field")
+	assert.Contains(t, cue, "value: string",
+		"httpHeaders elements should have a value field")
 }
 
 func TestEnvTrait(t *testing.T) {
