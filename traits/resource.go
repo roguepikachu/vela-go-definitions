@@ -22,10 +22,16 @@ import (
 
 // Resource creates the resource trait definition.
 // This trait adds resource requests and limits on K8s pods.
+//
+// The template uses SetRawPatchBlock because it requires:
+// - A let binding (let resourceContent) to DRY the container element across two patch paths
+// - patchStrategy=retainKeys annotations on requests/limits fields
+// - Chained if conditions for two-level context guards (spec != _|_ if spec.template != _|_)
+// Parameters are still defined fluently.
 func Resource() *defkit.TraitDefinition {
 	// Shorthand parameters for simple cases - using custom schema for union types
 	cpu := defkit.Map("cpu").WithSchema(`*1 | number | string`).Description("Specify the amount of cpu for requests and limits")
-	memory := defkit.String("memory").Default("2048Mi").Description("Specify the amount of memory for requests and limits")
+	memory := defkit.Map("memory").WithSchema(`*"2048Mi" | =~"^([1-9][0-9]{0,63})(E|P|T|G|M|K|Ei|Pi|Ti|Gi|Mi|Ki)$"`).Description("Specify the amount of memory for requests and limits")
 
 	// Explicit requests parameter - using custom schema for the structured type
 	requests := defkit.Map("requests").Description("Specify the resources in requests").WithSchema(`{
@@ -49,41 +55,52 @@ func Resource() *defkit.TraitDefinition {
 		PodDisruptive(true).
 		Params(cpu, memory, requests, limits).
 		Template(func(tpl *defkit.Template) {
-			// Build container element with conditional resources
-			container := defkit.NewArrayElement()
+			tpl.SetRawPatchBlock(`patch: {
+	let resourceContent = {
+		resources: {
+			if parameter.cpu != _|_ if parameter.memory != _|_ if parameter.requests == _|_ if parameter.limits == _|_ {
+				// +patchStrategy=retainKeys
+				requests: {
+					cpu:    parameter.cpu
+					memory: parameter.memory
+				}
+				// +patchStrategy=retainKeys
+				limits: {
+					cpu:    parameter.cpu
+					memory: parameter.memory
+				}
+			}
 
-			// Shorthand: when cpu AND memory are set but requests AND limits are NOT set
-			// Using parameter-as-variable pattern: params are used directly in conditions and values
-			shorthandCond := defkit.AllConditions(
-				cpu.IsSet(),
-				memory.IsSet(),
-				defkit.Not(requests.IsSet()),
-				defkit.Not(limits.IsSet()),
-			)
-			container.SetIf(shorthandCond, "resources.requests.cpu", cpu)
-			container.SetIf(shorthandCond, "resources.requests.memory", memory)
-			container.SetIf(shorthandCond, "resources.limits.cpu", cpu)
-			container.SetIf(shorthandCond, "resources.limits.memory", memory)
+			if parameter.requests != _|_ {
+				// +patchStrategy=retainKeys
+				requests: {
+					cpu:    parameter.requests.cpu
+					memory: parameter.requests.memory
+				}
+			}
+			if parameter.limits != _|_ {
+				// +patchStrategy=retainKeys
+				limits: {
+					cpu:    parameter.limits.cpu
+					memory: parameter.limits.memory
+				}
+			}
+		}
+	}
 
-			// Explicit requests - using Field() to access nested fields
-			container.SetIf(requests.IsSet(), "resources.requests.cpu", requests.Field("cpu"))
-			container.SetIf(requests.IsSet(), "resources.requests.memory", requests.Field("memory"))
-
-			// Explicit limits - using Field() to access nested fields
-			container.SetIf(limits.IsSet(), "resources.limits.cpu", limits.Field("cpu"))
-			container.SetIf(limits.IsSet(), "resources.limits.memory", limits.Field("memory"))
-
-			// Patch for Deployment/StatefulSet/DaemonSet/Job (spec.template)
-			tpl.Patch().
-				If(defkit.ContextOutputExists("spec.template")).
-				PatchKey("spec.template.spec.containers", "name", container).
-				EndIf()
-
-			// Patch for CronJob (spec.jobTemplate.spec.template)
-			tpl.Patch().
-				If(defkit.ContextOutputExists("spec.jobTemplate")).
-				PatchKey("spec.jobTemplate.spec.template.spec.containers", "name", container).
-				EndIf()
+	if context.output.spec != _|_ if context.output.spec.template != _|_ {
+		spec: template: spec: {
+			// +patchKey=name
+			containers: [resourceContent]
+		}
+	}
+	if context.output.spec != _|_ if context.output.spec.jobTemplate != _|_ {
+		spec: jobTemplate: spec: template: spec: {
+			// +patchKey=name
+			containers: [resourceContent]
+		}
+	}
+}`)
 		})
 }
 

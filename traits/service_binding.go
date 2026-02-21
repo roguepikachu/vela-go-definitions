@@ -23,47 +23,48 @@ import (
 // ServiceBinding creates the service-binding trait definition.
 // This trait binds secrets of cloud resources to component env.
 // DEPRECATED: please use 'storage' instead.
-// Uses RawCUE for the template content as it requires:
-// - Dynamic map parameter [string]: #KeySecret
-// - List comprehension over envMappings map
-// - Helper definition #KeySecret referenced in parameter
+//
+// The template uses SetRawPatchBlock because it requires a list comprehension
+// with conditional struct body (for envName, v in parameter.envMappings { ... })
+// that cannot be expressed in the fluent field tree model.
+// Parameters and helper definitions are defined fluently.
 func ServiceBinding() *defkit.TraitDefinition {
+	envMappings := defkit.Map("envMappings").Required().WithSchema("[string]: #KeySecret").Description("The mapping of environment variables to secret")
+
+	keySecretHelper := defkit.Struct("KeySecret").Fields(
+		defkit.Field("key", defkit.ParamTypeString),
+		defkit.Field("secret", defkit.ParamTypeString).Required(),
+	)
+
 	return defkit.NewTrait("service-binding").
 		Description("Binding secrets of cloud resources to component env. This definition is DEPRECATED, please use 'storage' instead.").
 		AppliesTo("deployments.apps", "statefulsets.apps", "daemonsets.apps", "jobs.batch").
 		Labels(map[string]string{"ui-hidden": "true"}).
-		RawCUE(`
-	patch: spec: template: spec: {
+		Params(envMappings).
+		Helper("KeySecret", keySecretHelper).
+		Template(func(tpl *defkit.Template) {
+			tpl.SetRawPatchBlock(`patch: spec: template: spec: {
+	// +patchKey=name
+	containers: [{
+		name: context.name
 		// +patchKey=name
-		containers: [{
-			name: context.name
-			// +patchKey=name
-			env: [
-				for envName, v in parameter.envMappings {
-					name: envName
-					valueFrom: secretKeyRef: {
-						name: v.secret
-						if v["key"] != _|_ {
-							key: v.key
-						}
-						if v["key"] == _|_ {
-							key: envName
-						}
+		env: [
+			for envName, v in parameter.envMappings {
+				name: envName
+				valueFrom: secretKeyRef: {
+					name: v.secret
+					if v["key"] != _|_ {
+						key: v.key
 					}
-				},
-			]
-		}]
-	}
-
-	parameter: {
-		// +usage=The mapping of environment variables to secret
-		envMappings: [string]: #KeySecret
-	}
-	#KeySecret: {
-		key?:   string
-		secret: string
-	}
-`)
+					if v["key"] == _|_ {
+						key: envName
+					}
+				}
+			},
+		]
+	}]
+}`)
+		})
 }
 
 func init() {

@@ -3,7 +3,7 @@ module github.com/oam-dev/vela-go-definitions
 go 1.23.8
 
 require (
-	github.com/oam-dev/kubevela v1.10.5-0.20260218142457-3cd345c24307
+	github.com/oam-dev/kubevela v1.10.5-0.20260220220911-4010da6765ba
 	github.com/onsi/ginkgo/v2 v2.23.3
 	github.com/onsi/gomega v1.36.2
 	github.com/stretchr/testify v1.10.0
@@ -14,7 +14,7 @@ require (
 	sigs.k8s.io/yaml v1.4.0
 )
 
-// Add kubevela replace directive for local development here 
+// Add kubevela replace directive for local development here
 
 require (
 	cuelang.org/go v0.14.1 // indirect
