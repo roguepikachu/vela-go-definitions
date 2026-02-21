@@ -77,7 +77,7 @@ func Daemon() *defkit.ComponentDefinition {
 	ports := defkit.Array("ports").
 		Description("Which ports do you want customer traffic sent to, defaults to 80").
 		WithFields(
-			defkit.Int("port").Description("Number of port to expose on the pod's IP address"),
+			defkit.Int("port").Required().Description("Number of port to expose on the pod's IP address"),
 			defkit.String("name").Description("Name of the port"),
 			defkit.Enum("protocol").Values("TCP", "UDP", "SCTP").Default("TCP").Description("Protocol for port. Must be UDP, TCP, or SCTP"),
 			defkit.Bool("expose").Default(false).Description("Specify if the port should be exposed"),
@@ -124,13 +124,11 @@ func Daemon() *defkit.ComponentDefinition {
 			defkit.List("pvc").Description("Mount PVC type volume").WithFields(
 				defkit.String("name").Required(),
 				defkit.String("mountPath").Required(),
-				defkit.String("subPath"),
 				defkit.String("claimName").Required().Description("The name of the PVC"),
 			),
 			defkit.List("configMap").Description("Mount ConfigMap type volume").WithFields(
 				defkit.String("name").Required(),
 				defkit.String("mountPath").Required(),
-				defkit.String("subPath"),
 				defkit.Int("defaultMode").Default(420),
 				defkit.String("cmName").Required(),
 				defkit.List("items").WithFields(
@@ -142,7 +140,6 @@ func Daemon() *defkit.ComponentDefinition {
 			defkit.List("secret").Description("Mount Secret type volume").WithFields(
 				defkit.String("name").Required(),
 				defkit.String("mountPath").Required(),
-				defkit.String("subPath"),
 				defkit.Int("defaultMode").Default(420),
 				defkit.String("secretName").Required(),
 				defkit.List("items").WithFields(
@@ -154,13 +151,11 @@ func Daemon() *defkit.ComponentDefinition {
 			defkit.List("emptyDir").Description("Mount EmptyDir type volume").WithFields(
 				defkit.String("name").Required(),
 				defkit.String("mountPath").Required(),
-				defkit.String("subPath"),
 				defkit.Enum("medium").Values("", "Memory").Default(""),
 			),
 			defkit.List("hostPath").Description("Mount HostPath type volume").WithFields(
 				defkit.String("name").Required(),
 				defkit.String("mountPath").Required(),
-				defkit.String("subPath"),
 				defkit.Enum("mountPropagation").Values("None", "HostToContainer", "Bidirectional"),
 				defkit.String("path").Required(),
 				defkit.Bool("readOnly"),
@@ -301,6 +296,7 @@ func daemonTemplate(tpl *defkit.Template) {
 		SetIf(imagePullPolicy.IsSet(), "spec.template.spec.containers[0].imagePullPolicy", imagePullPolicy).
 		SetIf(cmd.IsSet(), "spec.template.spec.containers[0].command", cmd).
 		SetIf(env.IsSet(), "spec.template.spec.containers[0].env", env).
+		SetIf(defkit.PathExists(`context["config"]`), "spec.template.spec.containers[0].env", defkit.Reference("context.config")).
 		SetIf(cpu.IsSet(), "spec.template.spec.containers[0].resources.limits.cpu", cpu).
 		SetIf(cpu.IsSet(), "spec.template.spec.containers[0].resources.requests.cpu", cpu).
 		SetIf(memory.IsSet(), "spec.template.spec.containers[0].resources.limits.memory", memory).
