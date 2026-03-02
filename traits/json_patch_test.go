@@ -14,63 +14,65 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package traits
+package traits_test
 
 import (
-	"strings"
-	"testing"
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
+
+	"github.com/oam-dev/vela-go-definitions/traits"
 )
 
-func TestJSONMergePatchToCue(t *testing.T) {
-	trait := JSONMergePatch()
-	cue := trait.ToCue()
+var _ = Describe("JSONMergePatch", func() {
+	It("should have correct name and CUE output", func() {
+		trait := traits.JSONMergePatch()
+		cue := trait.ToCue()
 
-	// Verify key elements are present
-	checks := []struct {
-		name   string
-		substr string
-	}{
-		{"trait name", `"json-merge-patch":`},
-		{"trait type", `type: "trait"`},
-		{"description", `description: "Patch the output following Json Merge Patch strategy, following RFC 7396."`},
-		{"ui-hidden label", `"ui-hidden": "true"`},
-		{"podDisruptive", "podDisruptive: true"},
-		{"appliesToWorkloads", `appliesToWorkloads: ["*"]`},
-		{"patch strategy comment", "// +patchStrategy=jsonMergePatch"},
-		{"patch passthrough", "patch: parameter"},
-		{"open parameter schema", "parameter: {...}"},
-	}
-
-	for _, check := range checks {
-		if !strings.Contains(cue, check.substr) {
-			t.Errorf("JSONMergePatch CUE should contain %s (%q)\nGot:\n%s", check.name, check.substr, cue)
+		// Verify key elements are present
+		checks := []struct {
+			name   string
+			substr string
+		}{
+			{"trait name", `"json-merge-patch":`},
+			{"trait type", `type: "trait"`},
+			{"description", `description: "Patch the output following Json Merge Patch strategy, following RFC 7396."`},
+			{"ui-hidden label", `"ui-hidden": "true"`},
+			{"podDisruptive", "podDisruptive: true"},
+			{"appliesToWorkloads", `appliesToWorkloads: ["*"]`},
+			{"patch strategy comment", "// +patchStrategy=jsonMergePatch"},
+			{"patch passthrough", "patch: parameter"},
+			{"open parameter schema", "parameter: {...}"},
 		}
-	}
-}
 
-func TestJSONPatchToCue(t *testing.T) {
-	trait := JSONPatch()
-	cue := trait.ToCue()
-
-	// Verify key elements are present
-	checks := []struct {
-		name   string
-		substr string
-	}{
-		{"trait name", `"json-patch":`},
-		{"trait type", `type: "trait"`},
-		{"description", `description: "Patch the output following Json Patch strategy, following RFC 6902."`},
-		{"ui-hidden label", `"ui-hidden": "true"`},
-		{"podDisruptive", "podDisruptive: true"},
-		{"appliesToWorkloads", `appliesToWorkloads: ["*"]`},
-		{"patch strategy comment", "// +patchStrategy=jsonPatch"},
-		{"patch passthrough", "patch: parameter"},
-		{"operations array", "operations: [...{...}]"},
-	}
-
-	for _, check := range checks {
-		if !strings.Contains(cue, check.substr) {
-			t.Errorf("JSONPatch CUE should contain %s (%q)\nGot:\n%s", check.name, check.substr, cue)
+		for _, check := range checks {
+			Expect(cue).To(ContainSubstring(check.substr))
 		}
-	}
-}
+	})
+})
+
+var _ = Describe("JSONPatch", func() {
+	It("should have correct name and CUE output", func() {
+		trait := traits.JSONPatch()
+		cue := trait.ToCue()
+
+		// Verify key elements are present
+		checks := []struct {
+			name   string
+			substr string
+		}{
+			{"trait name", `"json-patch":`},
+			{"trait type", `type: "trait"`},
+			{"description", `description: "Patch the output following Json Patch strategy, following RFC 6902."`},
+			{"ui-hidden label", `"ui-hidden": "true"`},
+			{"podDisruptive", "podDisruptive: true"},
+			{"appliesToWorkloads", `appliesToWorkloads: ["*"]`},
+			{"patch strategy comment", "// +patchStrategy=jsonPatch"},
+			{"patch passthrough", "patch: parameter"},
+			{"operations array", "operations: [...{...}]"},
+		}
+
+		for _, check := range checks {
+			Expect(cue).To(ContainSubstring(check.substr))
+		}
+	})
+})

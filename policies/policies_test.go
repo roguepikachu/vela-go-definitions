@@ -14,106 +14,148 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package policies
+package policies_test
 
 import (
-	"strings"
-	"testing"
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/oam-dev/vela-go-definitions/policies"
 )
 
-func TestTopologyPolicy(t *testing.T) {
-	policy := Topology()
+var _ = Describe("Topology Policy", func() {
+	It("should have correct name and CUE output", func() {
+		policy := policies.Topology()
 
-	assert.Equal(t, "topology", policy.GetName())
-	assert.Equal(t, "Describe the destination where components should be deployed to.", policy.GetDescription())
+		Expect(policy.GetName()).To(Equal("topology"))
+		Expect(policy.GetDescription()).To(Equal("Describe the destination where components should be deployed to."))
 
-	cue := policy.ToCue()
+		cue := policy.ToCue()
 
-	// Verify key elements are present
-	assert.Contains(t, cue, `type: "policy"`)
-	assert.Contains(t, cue, `clusters?:`)
-	assert.Contains(t, cue, `clusterLabelSelector?:`)
-	assert.Contains(t, cue, `allowEmpty?:`)
-	assert.Contains(t, cue, `namespace?:`)
-}
+		Expect(cue).To(ContainSubstring(`type: "policy"`))
 
-func TestOverridePolicy(t *testing.T) {
-	policy := Override()
+		// Verify parameter types (not just existence)
+		Expect(cue).To(ContainSubstring(`clusters?: [...string]`))
+		Expect(cue).To(ContainSubstring(`clusterLabelSelector?: [string]: string`))
+		Expect(cue).To(ContainSubstring(`allowEmpty?: bool`))
+		Expect(cue).To(ContainSubstring(`namespace?: string`))
 
-	assert.Equal(t, "override", policy.GetName())
+		// Verify deprecated clusterSelector parameter
+		Expect(cue).To(ContainSubstring(`clusterSelector?:`))
+	})
+})
 
-	cue := policy.ToCue()
+var _ = Describe("Override Policy", func() {
+	It("should have correct name and CUE output", func() {
+		policy := policies.Override()
 
-	// Verify key elements are present
-	assert.Contains(t, cue, `type: "policy"`)
-	assert.Contains(t, cue, `#PatchParams`)
-	assert.Contains(t, cue, `name?:`)
-	assert.Contains(t, cue, `type?:`)
-	assert.Contains(t, cue, `properties?:`)
-	assert.Contains(t, cue, `traits?:`)
-	assert.Contains(t, cue, `disable: *false | bool`)
-	assert.Contains(t, cue, `components?:`) // Optional array parameter
-	assert.Contains(t, cue, `selector?:`)
-}
+		Expect(policy.GetName()).To(Equal("override"))
+		Expect(policy.GetDescription()).To(Equal("Describe the configuration to override when deploying resources, it only works with specified `deploy` step in workflow."))
 
-func TestGarbageCollectPolicy(t *testing.T) {
-	policy := GarbageCollect()
+		cue := policy.ToCue()
 
-	assert.Equal(t, "garbage-collect", policy.GetName())
+		Expect(cue).To(ContainSubstring(`type: "policy"`))
 
-	cue := policy.ToCue()
+		// Verify helper type definitions
+		Expect(cue).To(ContainSubstring(`#PatchParams`))
 
-	// Verify key elements are present
-	assert.Contains(t, cue, `type: "policy"`)
-	assert.Contains(t, cue, `#GarbageCollectPolicyRule`)
-	assert.Contains(t, cue, `#ResourcePolicyRuleSelector`)
-	assert.Contains(t, cue, `applicationRevisionLimit?:`)
-	assert.Contains(t, cue, `keepLegacyResource: *false | bool`)
-	assert.Contains(t, cue, `continueOnFailure: *false | bool`)
-	assert.Contains(t, cue, `rules?:`)
-	assert.Contains(t, cue, `strategy: *"onAppUpdate"`)
-	assert.Contains(t, cue, `componentNames?:`)
-	assert.Contains(t, cue, `componentTypes?:`)
-}
+		// Verify PatchParams fields with types
+		Expect(cue).To(ContainSubstring(`name?: string`))
+		Expect(cue).To(ContainSubstring(`type?: string`))
+		Expect(cue).To(ContainSubstring(`properties?: {...}`))
+		Expect(cue).To(ContainSubstring(`traits?:`))
+		Expect(cue).To(ContainSubstring(`disable: *false | bool`))
 
-func TestAllPoliciesRegistered(t *testing.T) {
-	// Test that all policies can be created and produce valid CUE
-	policies := []struct {
-		name   string
-		create func() *policy
-	}{
-		{"topology", func() *policy { return &policy{Topology()} }},
-		{"override", func() *policy { return &policy{Override()} }},
-		{"garbage-collect", func() *policy { return &policy{GarbageCollect()} }},
+		// Verify top-level parameters reference helpers
+		Expect(cue).To(ContainSubstring(`components?:`))
+		Expect(cue).To(ContainSubstring(`selector?: [...string]`))
+	})
+})
+
+var _ = Describe("GarbageCollect Policy", func() {
+	It("should have correct name and CUE output", func() {
+		policy := policies.GarbageCollect()
+
+		Expect(policy.GetName()).To(Equal("garbage-collect"))
+		Expect(policy.GetDescription()).To(Equal("Configure the garbage collect behaviour for the application."))
+
+		cue := policy.ToCue()
+
+		Expect(cue).To(ContainSubstring(`type: "policy"`))
+
+		// Verify helper type definitions
+		Expect(cue).To(ContainSubstring(`#GarbageCollectPolicyRule`))
+		Expect(cue).To(ContainSubstring(`#ResourcePolicyRuleSelector`))
+
+		// Verify parameter types and defaults
+		Expect(cue).To(ContainSubstring(`applicationRevisionLimit?: int`))
+		Expect(cue).To(ContainSubstring(`keepLegacyResource: *false | bool`))
+		Expect(cue).To(ContainSubstring(`continueOnFailure: *false | bool`))
+		Expect(cue).To(ContainSubstring(`rules?:`))
+
+		// Verify GarbageCollectPolicyRule strategy enum default
+		Expect(cue).To(ContainSubstring(`strategy: *"onAppUpdate"`))
+
+		// Verify ResourcePolicyRuleSelector fields
+		Expect(cue).To(ContainSubstring(`componentNames?: [...]`))
+		Expect(cue).To(ContainSubstring(`componentTypes?: [...]`))
+		Expect(cue).To(ContainSubstring(`oamTypes?: [...]`))
+		Expect(cue).To(ContainSubstring(`traitTypes?: [...]`))
+	})
+})
+
+var _ = Describe("All Policies Registered", func() {
+	type policyEntry struct {
+		name        string
+		description string
+		policy      func() interface {
+			GetName() string
+			GetDescription() string
+			ToCue() string
+		}
 	}
 
-	for _, tc := range policies {
-		t.Run(tc.name, func(t *testing.T) {
-			p := tc.create()
-			cue := p.ToCue()
-			assert.NotEmpty(t, cue)
+	allPolicies := []policyEntry{
+		{"topology", "Describe the destination where components should be deployed to.", func() interface {
+			GetName() string
+			GetDescription() string
+			ToCue() string
+		} {
+			return policies.Topology()
+		}},
+		{"override", "Describe the configuration to override when deploying resources, it only works with specified `deploy` step in workflow.", func() interface {
+			GetName() string
+			GetDescription() string
+			ToCue() string
+		} {
+			return policies.Override()
+		}},
+		{"garbage-collect", "Configure the garbage collect behaviour for the application.", func() interface {
+			GetName() string
+			GetDescription() string
+			ToCue() string
+		} {
+			return policies.GarbageCollect()
+		}},
+	}
 
-			// Verify CUE is well-formed (has opening/closing braces)
-			assert.True(t, strings.Contains(cue, "{"))
-			assert.True(t, strings.Contains(cue, "}"))
+	for _, tc := range allPolicies {
+		It("should produce valid CUE with correct metadata for "+tc.name, func() {
+			p := tc.policy()
+
+			// Verify Go-level metadata
+			Expect(p.GetName()).To(Equal(tc.name))
+			Expect(p.GetDescription()).To(Equal(tc.description))
+
+			// Verify CUE structural correctness
+			cue := p.ToCue()
+			Expect(cue).To(ContainSubstring(`type: "policy"`))
+			Expect(cue).To(ContainSubstring("parameter:"))
+			// Policy name appears at top level (quoted if hyphenated)
+			Expect(cue).To(Or(
+				ContainSubstring(tc.name+": {"),
+				ContainSubstring(`"`+tc.name+`": {`),
+			))
 		})
 	}
-}
-
-// policy wraps a PolicyDefinition for testing
-type policy struct {
-	def interface {
-		GetName() string
-		ToCue() string
-	}
-}
-
-func (p *policy) GetName() string {
-	return p.def.GetName()
-}
-
-func (p *policy) ToCue() string {
-	return p.def.ToCue()
-}
+})

@@ -3,10 +3,9 @@ module github.com/oam-dev/vela-go-definitions
 go 1.23.8
 
 require (
-	github.com/oam-dev/kubevela v1.10.5-0.20260220220911-4010da6765ba
+	github.com/oam-dev/kubevela v1.10.5-0.20260302052918-3f7ad2ba954e
 	github.com/onsi/ginkgo/v2 v2.23.3
 	github.com/onsi/gomega v1.36.2
-	github.com/stretchr/testify v1.10.0
 	k8s.io/api v0.31.10
 	k8s.io/apimachinery v0.31.10
 	k8s.io/client-go v0.31.10
@@ -70,7 +69,6 @@ require (
 	github.com/oam-dev/terraform-controller v0.8.1-0.20250707044258-c0557127de25 // indirect
 	github.com/openshift/library-go v0.0.0-20230327085348-8477ec72b725 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
-	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/prometheus/client_golang v1.20.5 // indirect
 	github.com/prometheus/client_model v0.6.1 // indirect
 	github.com/prometheus/common v0.55.0 // indirect
