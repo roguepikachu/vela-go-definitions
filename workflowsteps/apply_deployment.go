@@ -78,7 +78,7 @@ func ApplyDeployment() *defkit.WorkflowStepDefinition {
 
 			tpl.Builtin("wait", "builtin.#ConditionalWait").
 				WithParams(map[string]defkit.Value{
-					"continue": defkit.Reference("apply.$returns.value.status.readyReplicas == parameter.replicas"),
+					"continue": defkit.Reference("output.$returns.value.status.readyReplicas == parameter.replicas"),
 				}).
 				Build()
 		})
