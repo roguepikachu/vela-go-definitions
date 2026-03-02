@@ -74,9 +74,11 @@ var _ = Describe("Daemon Component", func() {
 	})
 
 	Describe("Daemon parameter directives", func() {
-		It("should have deprecated port parameter with ignore and short flags", func() {
+		It("should have deprecated port parameter", func() {
 			comp := components.Daemon()
 			Expect(comp).To(HaveParamNamed("port"))
+			// Ignore and short flag assertions are in the CUE generation test
+			// "should generate // +ignore and // +short=p directives for deprecated port"
 		})
 
 		It("should have deprecated volumes parameter", func() {

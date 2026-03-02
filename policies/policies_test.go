@@ -33,10 +33,15 @@ var _ = Describe("Topology Policy", func() {
 		cue := policy.ToCue()
 
 		Expect(cue).To(ContainSubstring(`type: "policy"`))
-		Expect(cue).To(ContainSubstring(`clusters?:`))
-		Expect(cue).To(ContainSubstring(`clusterLabelSelector?:`))
-		Expect(cue).To(ContainSubstring(`allowEmpty?:`))
-		Expect(cue).To(ContainSubstring(`namespace?:`))
+
+		// Verify parameter types (not just existence)
+		Expect(cue).To(ContainSubstring(`clusters?: [...string]`))
+		Expect(cue).To(ContainSubstring(`clusterLabelSelector?: [string]: string`))
+		Expect(cue).To(ContainSubstring(`allowEmpty?: bool`))
+		Expect(cue).To(ContainSubstring(`namespace?: string`))
+
+		// Verify deprecated clusterSelector parameter
+		Expect(cue).To(ContainSubstring(`clusterSelector?:`))
 	})
 })
 
@@ -45,18 +50,25 @@ var _ = Describe("Override Policy", func() {
 		policy := policies.Override()
 
 		Expect(policy.GetName()).To(Equal("override"))
+		Expect(policy.GetDescription()).To(Equal("Describe the configuration to override when deploying resources, it only works with specified `deploy` step in workflow."))
 
 		cue := policy.ToCue()
 
 		Expect(cue).To(ContainSubstring(`type: "policy"`))
+
+		// Verify helper type definitions
 		Expect(cue).To(ContainSubstring(`#PatchParams`))
-		Expect(cue).To(ContainSubstring(`name?:`))
-		Expect(cue).To(ContainSubstring(`type?:`))
-		Expect(cue).To(ContainSubstring(`properties?:`))
+
+		// Verify PatchParams fields with types
+		Expect(cue).To(ContainSubstring(`name?: string`))
+		Expect(cue).To(ContainSubstring(`type?: string`))
+		Expect(cue).To(ContainSubstring(`properties?: {...}`))
 		Expect(cue).To(ContainSubstring(`traits?:`))
 		Expect(cue).To(ContainSubstring(`disable: *false | bool`))
+
+		// Verify top-level parameters reference helpers
 		Expect(cue).To(ContainSubstring(`components?:`))
-		Expect(cue).To(ContainSubstring(`selector?:`))
+		Expect(cue).To(ContainSubstring(`selector?: [...string]`))
 	})
 })
 
@@ -65,40 +77,81 @@ var _ = Describe("GarbageCollect Policy", func() {
 		policy := policies.GarbageCollect()
 
 		Expect(policy.GetName()).To(Equal("garbage-collect"))
+		Expect(policy.GetDescription()).To(Equal("Configure the garbage collect behaviour for the application."))
 
 		cue := policy.ToCue()
 
 		Expect(cue).To(ContainSubstring(`type: "policy"`))
+
+		// Verify helper type definitions
 		Expect(cue).To(ContainSubstring(`#GarbageCollectPolicyRule`))
 		Expect(cue).To(ContainSubstring(`#ResourcePolicyRuleSelector`))
-		Expect(cue).To(ContainSubstring(`applicationRevisionLimit?:`))
+
+		// Verify parameter types and defaults
+		Expect(cue).To(ContainSubstring(`applicationRevisionLimit?: int`))
 		Expect(cue).To(ContainSubstring(`keepLegacyResource: *false | bool`))
 		Expect(cue).To(ContainSubstring(`continueOnFailure: *false | bool`))
 		Expect(cue).To(ContainSubstring(`rules?:`))
+
+		// Verify GarbageCollectPolicyRule strategy enum default
 		Expect(cue).To(ContainSubstring(`strategy: *"onAppUpdate"`))
-		Expect(cue).To(ContainSubstring(`componentNames?:`))
-		Expect(cue).To(ContainSubstring(`componentTypes?:`))
+
+		// Verify ResourcePolicyRuleSelector fields
+		Expect(cue).To(ContainSubstring(`componentNames?: [...string]`))
+		Expect(cue).To(ContainSubstring(`componentTypes?: [...string]`))
+		Expect(cue).To(ContainSubstring(`oamTypes?: [...string]`))
+		Expect(cue).To(ContainSubstring(`traitTypes?: [...string]`))
 	})
 })
 
 var _ = Describe("All Policies Registered", func() {
 	type policyEntry struct {
-		name  string
-		toCue func() string
+		name        string
+		description string
+		policy      func() interface {
+			GetName() string
+			GetDescription() string
+			ToCue() string
+		}
 	}
 
 	allPolicies := []policyEntry{
-		{"topology", func() string { return policies.Topology().ToCue() }},
-		{"override", func() string { return policies.Override().ToCue() }},
-		{"garbage-collect", func() string { return policies.GarbageCollect().ToCue() }},
+		{"topology", "Describe the destination where components should be deployed to.", func() interface {
+			GetName() string
+			GetDescription() string
+			ToCue() string
+		} {
+			return policies.Topology()
+		}},
+		{"override", "Describe the configuration to override when deploying resources, it only works with specified `deploy` step in workflow.", func() interface {
+			GetName() string
+			GetDescription() string
+			ToCue() string
+		} {
+			return policies.Override()
+		}},
+		{"garbage-collect", "Configure the garbage collect behaviour for the application.", func() interface {
+			GetName() string
+			GetDescription() string
+			ToCue() string
+		} {
+			return policies.GarbageCollect()
+		}},
 	}
 
 	for _, tc := range allPolicies {
-		It("should produce valid CUE for "+tc.name, func() {
-			cue := tc.toCue()
-			Expect(cue).NotTo(BeEmpty())
-			Expect(cue).To(ContainSubstring("{"))
-			Expect(cue).To(ContainSubstring("}"))
+		It("should produce valid CUE with correct metadata for "+tc.name, func() {
+			p := tc.policy()
+
+			// Verify Go-level metadata
+			Expect(p.GetName()).To(Equal(tc.name))
+			Expect(p.GetDescription()).To(Equal(tc.description))
+
+			// Verify CUE structural correctness
+			cue := p.ToCue()
+			Expect(cue).To(ContainSubstring(`type: "policy"`))
+			Expect(cue).To(ContainSubstring(tc.name + ": {"))
+			Expect(cue).To(ContainSubstring("parameter:"))
 		})
 	}
 })

@@ -28,14 +28,26 @@ var _ = Describe("Labels", func() {
 		trait := traits.Labels()
 
 		Expect(trait.GetName()).To(Equal("labels"))
+		Expect(trait.GetDescription()).To(Equal("Add labels on your workload. if it generates pod, add same label for generated pods."))
 
 		cue := trait.ToCue()
 
-		// Verify raw CUE content is present
+		// Verify trait metadata
 		Expect(cue).To(ContainSubstring(`type: "trait"`))
 		Expect(cue).To(ContainSubstring(`podDisruptive: true`))
 		Expect(cue).To(ContainSubstring(`appliesToWorkloads: ["*"]`))
+
+		// Verify patch strategy
+		Expect(cue).To(ContainSubstring(`patchStrategy: "jsonMergePatch"`))
+
+		// Verify labels are applied to metadata.labels
+		Expect(cue).To(ContainSubstring("metadata: labels:"))
 		Expect(cue).To(ContainSubstring(`for k, v in parameter`))
+
+		// Verify conditional patch for pod templates (spec.template.metadata.labels)
+		Expect(cue).To(ContainSubstring("spec: template: metadata: labels:"))
+
+		// Verify parameter type: map of string to string|null
 		Expect(cue).To(ContainSubstring(`parameter: [string]: string | null`))
 	})
 })

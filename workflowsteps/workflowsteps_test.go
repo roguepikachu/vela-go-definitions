@@ -49,14 +49,17 @@ var _ = Describe("Suspend WorkflowStep", func() {
 		step := workflowsteps.Suspend()
 
 		Expect(step.GetName()).To(Equal("suspend"))
+		Expect(step.GetDescription()).To(Equal("Suspend the current workflow, it can be resumed by 'vela workflow resume' command."))
 
 		cue := step.ToCue()
 
 		Expect(cue).To(ContainSubstring(`type: "workflow-step"`))
 		Expect(cue).To(ContainSubstring(`"category": "Process Control"`))
 		Expect(cue).To(ContainSubstring(`builtin.#Suspend`))
-		Expect(cue).To(ContainSubstring(`duration?:`))
-		Expect(cue).To(ContainSubstring(`message?:`))
+
+		// Verify parameter types (not just existence)
+		Expect(cue).To(ContainSubstring(`duration?: string`))
+		Expect(cue).To(ContainSubstring(`message?: string`))
 	})
 })
 
@@ -65,36 +68,69 @@ var _ = Describe("ApplyComponent WorkflowStep", func() {
 		step := workflowsteps.ApplyComponent()
 
 		Expect(step.GetName()).To(Equal("apply-component"))
+		Expect(step.GetDescription()).To(ContainSubstring("Apply a specific component"))
 
 		cue := step.ToCue()
 
 		Expect(cue).To(ContainSubstring(`type: "workflow-step"`))
 		Expect(cue).To(ContainSubstring(`"category": "Application Delivery"`))
 		Expect(cue).To(ContainSubstring(`"scope": "Application"`))
-		Expect(cue).To(ContainSubstring(`component:`))
-		Expect(cue).To(ContainSubstring(`cluster:`))
-		Expect(cue).To(ContainSubstring(`namespace:`))
+
+		// Verify parameter types and defaults
+		Expect(cue).To(ContainSubstring(`component: string`))
+		Expect(cue).To(ContainSubstring(`cluster: *"" | string`))
+		Expect(cue).To(ContainSubstring(`namespace: *"" | string`))
 	})
 })
 
 var _ = Describe("All WorkflowSteps Registered", func() {
 	type stepEntry struct {
-		name  string
-		toCue func() string
+		name        string
+		description string
+		step        func() interface {
+			GetName() string
+			GetDescription() string
+			ToCue() string
+		}
 	}
 
 	allSteps := []stepEntry{
-		{"deploy", func() string { return workflowsteps.Deploy().ToCue() }},
-		{"suspend", func() string { return workflowsteps.Suspend().ToCue() }},
-		{"apply-component", func() string { return workflowsteps.ApplyComponent().ToCue() }},
+		{"deploy", "A powerful and unified deploy step for components multi-cluster delivery with policies.", func() interface {
+			GetName() string
+			GetDescription() string
+			ToCue() string
+		} {
+			return workflowsteps.Deploy()
+		}},
+		{"suspend", "Suspend the current workflow, it can be resumed by 'vela workflow resume' command.", func() interface {
+			GetName() string
+			GetDescription() string
+			ToCue() string
+		} {
+			return workflowsteps.Suspend()
+		}},
+		{"apply-component", "Apply a specific component and its corresponding traits in application.", func() interface {
+			GetName() string
+			GetDescription() string
+			ToCue() string
+		} {
+			return workflowsteps.ApplyComponent()
+		}},
 	}
 
 	for _, tc := range allSteps {
-		It("should produce valid CUE for "+tc.name, func() {
-			cue := tc.toCue()
-			Expect(cue).NotTo(BeEmpty())
-			Expect(cue).To(ContainSubstring("{"))
-			Expect(cue).To(ContainSubstring("}"))
+		It("should produce valid CUE with correct metadata for "+tc.name, func() {
+			s := tc.step()
+
+			// Verify Go-level metadata
+			Expect(s.GetName()).To(Equal(tc.name))
+			Expect(s.GetDescription()).To(Equal(tc.description))
+
+			// Verify CUE structural correctness
+			cue := s.ToCue()
+			Expect(cue).To(ContainSubstring(`type: "workflow-step"`))
+			Expect(cue).To(ContainSubstring(tc.name + ": {"))
+			Expect(cue).To(ContainSubstring("parameter:"))
 		})
 	}
 })

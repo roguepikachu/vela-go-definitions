@@ -28,18 +28,33 @@ var _ = Describe("Sidecar Trait", func() {
 		trait := traits.Sidecar()
 
 		Expect(trait.GetName()).To(Equal("sidecar"))
+		Expect(trait.GetDescription()).To(Equal("Inject a sidecar container to K8s pod for your workload which follows the pod spec in path 'spec.template'."))
 
 		cue := trait.ToCue()
 
-		// Verify key elements are present
+		// Verify trait metadata
 		Expect(cue).To(ContainSubstring(`type: "trait"`))
 		Expect(cue).To(ContainSubstring(`podDisruptive: true`))
 		Expect(cue).To(ContainSubstring(`"deployments.apps"`))
 		Expect(cue).To(ContainSubstring(`"statefulsets.apps"`))
 		Expect(cue).To(ContainSubstring(`"daemonsets.apps"`))
 		Expect(cue).To(ContainSubstring(`"jobs.batch"`))
+
+		// Verify required parameters with types
 		Expect(cue).To(ContainSubstring(`name: string`))
 		Expect(cue).To(ContainSubstring(`image: string`))
+
+		// Verify optional sidecar parameters
+		Expect(cue).To(ContainSubstring(`cmd?: [...string]`))
+		Expect(cue).To(ContainSubstring(`args?: [...string]`))
+		Expect(cue).To(ContainSubstring(`env?: [...{`))
+		Expect(cue).To(ContainSubstring(`volumes?: [...{`))
+
+		// Verify sidecar container injection via patchKey
+		Expect(cue).To(ContainSubstring(`// +patchKey=name`))
+		Expect(cue).To(ContainSubstring(`containers:`))
+
+		// Verify HealthProbe reference for probes
 		Expect(cue).To(ContainSubstring(`#HealthProbe`))
 		Expect(cue).To(ContainSubstring(`livenessProbe?:`))
 		Expect(cue).To(ContainSubstring(`readinessProbe?:`))

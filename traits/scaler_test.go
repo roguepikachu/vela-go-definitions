@@ -32,12 +32,17 @@ var _ = Describe("Scaler Trait", func() {
 
 		cue := trait.ToCue()
 
-		// Verify key elements are present
+		// Verify trait metadata
 		Expect(cue).To(ContainSubstring(`type: "trait"`))
 		Expect(cue).To(ContainSubstring(`podDisruptive: false`))
 		Expect(cue).To(ContainSubstring(`"deployments.apps"`))
 		Expect(cue).To(ContainSubstring(`"statefulsets.apps"`))
-		Expect(cue).To(ContainSubstring(`replicas:`))
-		Expect(cue).To(ContainSubstring(`*1`))
+
+		// Verify replicas parameter has correct type and default
+		Expect(cue).To(ContainSubstring(`replicas: *1 | int`))
+
+		// Verify patch targets spec.replicas with retainKeys strategy
+		Expect(cue).To(ContainSubstring(`// +patchStrategy=retainKeys`))
+		Expect(cue).To(ContainSubstring(`spec: replicas: parameter.replicas`))
 	})
 })

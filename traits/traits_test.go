@@ -25,35 +25,143 @@ import (
 
 var _ = Describe("All Traits Registered", func() {
 	type traitEntry struct {
-		name   string
-		toCue  func() string
+		name        string
+		description string
+		trait       func() interface {
+			GetName() string
+			GetDescription() string
+			ToCue() string
+		}
 	}
 
 	allTraits := []traitEntry{
-		{"scaler", func() string { return traits.Scaler().ToCue() }},
-		{"labels", func() string { return traits.Labels().ToCue() }},
-		{"annotations", func() string { return traits.Annotations().ToCue() }},
-		{"expose", func() string { return traits.Expose().ToCue() }},
-		{"sidecar", func() string { return traits.Sidecar().ToCue() }},
-		{"env", func() string { return traits.Env().ToCue() }},
-		{"resource", func() string { return traits.Resource().ToCue() }},
-		{"affinity", func() string { return traits.Affinity().ToCue() }},
-		{"hpa", func() string { return traits.HPA().ToCue() }},
-		{"init-container", func() string { return traits.InitContainer().ToCue() }},
-		{"service-account", func() string { return traits.ServiceAccount().ToCue() }},
-		{"gateway", func() string { return traits.Gateway().ToCue() }},
-		{"service-binding", func() string { return traits.ServiceBinding().ToCue() }},
-		{"startup-probe", func() string { return traits.StartupProbe().ToCue() }},
-		{"securitycontext", func() string { return traits.SecurityContext().ToCue() }},
-		{"container-image", func() string { return traits.ContainerImage().ToCue() }},
+		{"scaler", "Manually scale K8s pod for your workload which follows the pod spec in path 'spec.template'.", func() interface {
+			GetName() string
+			GetDescription() string
+			ToCue() string
+		} {
+			return traits.Scaler()
+		}},
+		{"labels", "Add labels on your workload. if it generates pod, add same label for generated pods.", func() interface {
+			GetName() string
+			GetDescription() string
+			ToCue() string
+		} {
+			return traits.Labels()
+		}},
+		{"annotations", "Add annotations on your workload. If it generates pod or job, add same annotations for generated pods.", func() interface {
+			GetName() string
+			GetDescription() string
+			ToCue() string
+		} {
+			return traits.Annotations()
+		}},
+		{"expose", "Expose port to enable web traffic for your component.", func() interface {
+			GetName() string
+			GetDescription() string
+			ToCue() string
+		} {
+			return traits.Expose()
+		}},
+		{"sidecar", "Inject a sidecar container to K8s pod for your workload which follows the pod spec in path 'spec.template'.", func() interface {
+			GetName() string
+			GetDescription() string
+			ToCue() string
+		} {
+			return traits.Sidecar()
+		}},
+		{"env", "Add env on K8s pod for your workload which follows the pod spec in path 'spec.template'", func() interface {
+			GetName() string
+			GetDescription() string
+			ToCue() string
+		} {
+			return traits.Env()
+		}},
+		{"resource", "Add resource requests and limits on K8s pod for your workload which follows the pod spec in path 'spec.template.'", func() interface {
+			GetName() string
+			GetDescription() string
+			ToCue() string
+		} {
+			return traits.Resource()
+		}},
+		{"affinity", "Affinity specifies affinity and toleration K8s pod for your workload which follows the pod spec in path 'spec.template'.", func() interface {
+			GetName() string
+			GetDescription() string
+			ToCue() string
+		} {
+			return traits.Affinity()
+		}},
+		{"hpa", "Configure k8s HPA for Deployment or Statefulsets", func() interface {
+			GetName() string
+			GetDescription() string
+			ToCue() string
+		} {
+			return traits.HPA()
+		}},
+		{"init-container", "add an init container and use shared volume with pod", func() interface {
+			GetName() string
+			GetDescription() string
+			ToCue() string
+		} {
+			return traits.InitContainer()
+		}},
+		{"service-account", "Specify serviceAccount for your workload which follows the pod spec in path 'spec.template'.", func() interface {
+			GetName() string
+			GetDescription() string
+			ToCue() string
+		} {
+			return traits.ServiceAccount()
+		}},
+		{"gateway", "Enable public web traffic for the component, the ingress API matches K8s v1.20+.", func() interface {
+			GetName() string
+			GetDescription() string
+			ToCue() string
+		} {
+			return traits.Gateway()
+		}},
+		{"service-binding", "Binding secrets of cloud resources to component env. This definition is DEPRECATED, please use 'storage' instead.", func() interface {
+			GetName() string
+			GetDescription() string
+			ToCue() string
+		} {
+			return traits.ServiceBinding()
+		}},
+		{"startup-probe", "Add startup probe hooks for the specified container of K8s pod for your workload which follows the pod spec in path 'spec.template'.", func() interface {
+			GetName() string
+			GetDescription() string
+			ToCue() string
+		} {
+			return traits.StartupProbe()
+		}},
+		{"securitycontext", "Adds security context to the container spec in path 'spec.template.spec.containers.[].securityContext'.", func() interface {
+			GetName() string
+			GetDescription() string
+			ToCue() string
+		} {
+			return traits.SecurityContext()
+		}},
+		{"container-image", "Set the image of the container.", func() interface {
+			GetName() string
+			GetDescription() string
+			ToCue() string
+		} {
+			return traits.ContainerImage()
+		}},
 	}
 
 	for _, tc := range allTraits {
-		It("should produce valid CUE for "+tc.name, func() {
-			cue := tc.toCue()
-			Expect(cue).NotTo(BeEmpty())
-			Expect(cue).To(ContainSubstring("{"))
-			Expect(cue).To(ContainSubstring("}"))
+		It("should produce valid CUE with correct metadata for "+tc.name, func() {
+			t := tc.trait()
+
+			// Verify Go-level metadata
+			Expect(t.GetName()).To(Equal(tc.name))
+			Expect(t.GetDescription()).To(Equal(tc.description))
+
+			// Verify CUE structural correctness
+			cue := t.ToCue()
+			Expect(cue).To(ContainSubstring(`type: "trait"`))
+			Expect(cue).To(ContainSubstring(tc.name + ": {"))
+			Expect(cue).To(ContainSubstring("description:"))
 		})
 	}
 })
