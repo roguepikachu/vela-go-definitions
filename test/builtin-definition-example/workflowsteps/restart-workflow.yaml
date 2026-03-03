@@ -1,7 +1,9 @@
+
+# Example using 'after' parameter
 apiVersion: core.oam.dev/v1beta1
 kind: Application
 metadata:
-  name: webhook-workflow
+  name: restart-workflow-after-demo
   namespace: default
 spec:
   components:
@@ -12,12 +14,14 @@ spec:
       port: 8000
   workflow:
     steps:
-    - name: application
+    - name: deploy-server
       type: apply-component
       properties:
         component: express-server
-    - name: webhook
-      type: webhook
+    - name: schedule-restart-after
+      type: restart-workflow
       properties:
-        url:
-          value: https://webhook.site/0d445fb8-691c-45d3-8e13-118f79083335
+        # Schedule restart after 5 minutes from now
+        after: "30s"
+
+

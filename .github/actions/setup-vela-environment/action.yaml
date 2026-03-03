@@ -15,11 +15,17 @@ runs:
       with:
         go-version: ${{ inputs.go-version }}
 
-    - name: Set up Kubernetes (Kind)
-      uses: helm/kind-action@v1
-      with:
-        cluster_name: vela-test
-        wait: 120s
+    - name: Install k3d
+      shell: bash
+      run: |
+        curl -s https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | bash
+        k3d version
+
+    - name: Set up Kubernetes (k3d)
+      shell: bash
+      run: |
+        k3d cluster create vela-test --wait --timeout 120s
+        kubectl config use-context k3d-vela-test
 
     - name: Verify Kubernetes cluster
       shell: bash

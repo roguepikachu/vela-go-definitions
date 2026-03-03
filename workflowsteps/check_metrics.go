@@ -23,66 +23,58 @@ import (
 // CheckMetrics creates the check-metrics workflow step definition.
 // This step verifies application's metrics.
 func CheckMetrics() *defkit.WorkflowStepDefinition {
+	query := defkit.String("query").
+		Required().
+		Description("Query is a raw prometheus query to perform")
+	metricEndpoint := defkit.String("metricEndpoint").
+		Optional().
+		Enum("http://prometheus-server.o11y-system.svc:9090").
+		OpenEnum().
+		Description("The HTTP address and port of the prometheus server")
+	condition := defkit.String("condition").
+		Required().
+		Description("Condition is an expression which determines if a measurement is considered successful. eg: >=0.95")
+	duration := defkit.String("duration").
+		Default("5m").
+		ForceOptional().
+		Description("Duration defines the duration of time required for this step to be considered successful.")
+	failDuration := defkit.String("failDuration").
+		Default("2m").
+		ForceOptional().
+		Description("FailDuration is the duration of time that, if the check fails, will result in the step being marked as failed.")
+
 	return defkit.NewWorkflowStep("check-metrics").
 		Description("Verify application's metrics").
-		RawCUE(`import (
-	"vela/metrics"
-	"vela/builtin"
-)
-
-"check-metrics": {
-	type: "workflow-step"
-	labels: {
-		"catalog": "Delivery"
+		Category("Application Delivery").
+		Labels(map[string]string{"catalog": "Delivery"}).
+		WithImports("vela/metrics", "vela/builtin").
+		Params(query, metricEndpoint, condition, duration, failDuration).
+		TemplateBody(`check: metrics.#PromCheck & {
+	$params: {
+		query:          parameter.query
+		metricEndpoint: parameter.metricEndpoint
+		condition:      parameter.condition
+		duration:       parameter.duration
+		failDuration:   parameter.failDuration
 	}
-	annotations: {
-		"category": "Application Delivery"
-	}
-	description: "Verify application's metrics"
 }
-template: {
-	check: metrics.#PromCheck & {
-		$params: {
-			query:          parameter.query
-			metricEndpoint: parameter.metricEndpoint
-			condition:      parameter.condition
-			stepID:         context.stepSessionID
-			duration:       parameter.duration
-			failDuration:   parameter.failDuration
-		}
-	}
 
-	fail: {
-		if check.$returns.failed != _|_ {
-			if check.$returns.failed == true {
-				breakWorkflow: builtin.#Fail & {
-					$params: message: check.$returns.message
-				}
+fail: {
+	if check.$returns.failed != _|_ {
+		if check.$returns.failed == true {
+			breakWorkflow: builtin.#Fail & {
+				$params: message: check.$returns.message
 			}
 		}
 	}
-
-	wait: builtin.#ConditionalWait & {
-		$params: continue: check.$returns.result
-		if check.$returns.message != _|_ {
-			$params: message: check.$returns.message
-		}
-	}
-
-	parameter: {
-		// +usage=Query is a raw prometheus query to perform
-		query: string
-		// +usage=The HTTP address and port of the prometheus server
-		metricEndpoint?: "http://prometheus-server.o11y-system.svc:9090" | string
-		// +usage=Condition is an expression which determines if a measurement is considered successful. eg: >=0.95
-		condition: string
-		// +usage=Duration defines the duration of time required for this step to be considered successful.
-		duration?: *"5m" | string
-		// +usage=FailDuration is the duration of time that, if the check fails, will result in the step being marked as failed.
-		failDuration?: *"2m" | string
-	}
 }
-`)
+
+wait: builtin.#ConditionalWait & {
+	$params: continue: check.$returns.result
+	if check.$returns.message != _|_ {
+		$params: message: check.$returns.message
+	}
+}`)
 }
 
 func init() {

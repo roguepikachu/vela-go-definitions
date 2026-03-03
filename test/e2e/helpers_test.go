@@ -417,5 +417,61 @@ func getAppFailureDiagnostics(ctx context.Context, appName, namespace string) st
 	}
 	diagInfo.WriteString(fmt.Sprintf("\n--- kubectl describe app ---\n%s\n", string(descOutput)))
 
+	// List all pods in the namespace
+	podsCmd := exec.Command("kubectl", "get", "pods", "-n", namespace, "-o", "wide")
+	podsOutput, err := podsCmd.CombinedOutput()
+	if err != nil {
+		diagInfo.WriteString(fmt.Sprintf("\nkubectl get pods error: %v\n", err))
+	}
+	diagInfo.WriteString(fmt.Sprintf("\n--- Pods in namespace %s ---\n%s\n", namespace, string(podsOutput)))
+
+	return diagInfo.String()
+}
+
+// getKanikoPodLogs retrieves logs and details from kaniko pods in a namespace.
+// This is specifically used for build-push-image workflow step diagnostics.
+func getKanikoPodLogs(namespace string) string {
+	var diagInfo strings.Builder
+
+	kanikoPodCmd := exec.Command("kubectl", "get", "pods", "-n", namespace, "-o", "name", "--no-headers")
+	kanikoPodOutput, err := kanikoPodCmd.CombinedOutput()
+	if err != nil {
+		return fmt.Sprintf("Error listing pods: %v\n", err)
+	}
+
+	podNames := strings.Split(strings.TrimSpace(string(kanikoPodOutput)), "\n")
+	for _, podName := range podNames {
+		if podName == "" {
+			continue
+		}
+		// Only get logs from kaniko pods (created by build-push-image workflow step)
+		if !strings.Contains(podName, "kaniko") {
+			continue
+		}
+		// Get logs for kaniko pod
+		diagInfo.WriteString(fmt.Sprintf("\n--- Logs from %s ---\n", podName))
+		logsCmd := exec.Command("kubectl", "logs", podName, "-n", namespace, "--tail=100")
+		logsOutput, err := logsCmd.CombinedOutput()
+		if err != nil {
+			diagInfo.WriteString(fmt.Sprintf("Error getting logs: %v\n", err))
+		} else {
+			diagInfo.WriteString(string(logsOutput))
+		}
+
+		// Also describe the pod for events and status
+		diagInfo.WriteString(fmt.Sprintf("\n--- Describe %s ---\n", podName))
+		describePodCmd := exec.Command("kubectl", "describe", podName, "-n", namespace)
+		describePodOutput, err := describePodCmd.CombinedOutput()
+		if err != nil {
+			diagInfo.WriteString(fmt.Sprintf("Error describing pod: %v\n", err))
+		} else {
+			diagInfo.WriteString(string(describePodOutput))
+		}
+	}
+
+	if diagInfo.Len() == 0 {
+		return "No kaniko pods found in namespace\n"
+	}
+
 	return diagInfo.String()
 }

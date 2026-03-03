@@ -23,30 +23,18 @@ import (
 // PrintMessageInStatus creates the print-message-in-status workflow step definition.
 // This step prints a message in workflow step status.
 func PrintMessageInStatus() *defkit.WorkflowStepDefinition {
+	message := defkit.String("message").Required()
+
 	return defkit.NewWorkflowStep("print-message-in-status").
 		Description("print message in workflow step status").
-		RawCUE(`import (
-	"vela/builtin"
-)
-
-"print-message-in-status": {
-	type: "workflow-step"
-	annotations: {
-		"category": "Process Control"
-	}
-	description: "print message in workflow step status"
-}
-
-template: {
-	parameter: {
-		message: string
-	}
-
-	msg: builtin.#Message & {
-		$params: parameter
-	}
-}
-`)
+		Category("Process Control").
+		WithImports("vela/builtin").
+		Params(message).
+		Template(func(tpl *defkit.WorkflowStepTemplate) {
+			tpl.Builtin("msg", "builtin.#Message").
+				WithFullParameter().
+				Build()
+		})
 }
 
 func init() {

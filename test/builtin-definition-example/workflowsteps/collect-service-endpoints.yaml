@@ -17,17 +17,12 @@ spec:
           properties:
             port: [8080]
             type: ClusterIP
-  policies:
-    - type: topology
-      name: local
-      properties:
-        clusters: ["local"]
   workflow:
     steps:
-      - type: deploy
+      - type: apply-component
         name: deploy
         properties:
-          policies: ["local"]
+          component: busybox
       - type: collect-service-endpoints
         name: collect-service-endpoints
         outputs:

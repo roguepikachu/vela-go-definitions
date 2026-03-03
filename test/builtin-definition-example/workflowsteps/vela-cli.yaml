@@ -7,9 +7,34 @@ spec:
   components: []
   workflow:
     steps:
-    - name: list-app
-      type: vela-cli
-      properties:
-        command:
-        - vela
-        - ls
+      - name: check-version
+        type: vela-cli
+        properties:
+          command:
+            - "vela"
+            - "version"
+
+      - name: list-apps
+        type: vela-cli
+        properties:
+          command:
+            - "vela"
+            - "ls"
+            - "-A"
+
+      - name: get-workflow-status
+        type: vela-cli
+        properties:
+          command:
+            - "vela"
+            - "workflow"
+            - "ls"
+
+      - name: custom-cli-command
+        type: vela-cli
+        properties:
+          image: "oamdev/vela-cli:v1.9.0"
+          command:
+            - "vela"
+            - "show"
+          serviceAccountName: "kubevela-vela-core"

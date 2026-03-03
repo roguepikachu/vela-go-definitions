@@ -23,36 +23,19 @@ import (
 // Suspend creates the suspend workflow step definition.
 // This step suspends the current workflow until resumed.
 func Suspend() *defkit.WorkflowStepDefinition {
-	// This workflow step uses the vela/builtin import for #Suspend.
+	duration := defkit.String("duration").Description("Specify the wait duration time to resume workflow such as \"30s\", \"1min\" or \"2m15s\"")
+	message := defkit.String("message").Description("The suspend message to show")
+
 	return defkit.NewWorkflowStep("suspend").
 		Description("Suspend the current workflow, it can be resumed by 'vela workflow resume' command.").
 		Category("Process Control").
 		WithImports("vela/builtin").
-		RawCUE(`import (
-	"vela/builtin"
-)
-
-"suspend": {
-	type: "workflow-step"
-	annotations: {
-		"category": "Process Control"
-	}
-	labels: {}
-	description: "Suspend the current workflow, it can be resumed by 'vela workflow resume' command."
-}
-template: {
-	suspend: builtin.#Suspend & {
-		$params: parameter
-	}
-
-	parameter: {
-		// +usage=Specify the wait duration time to resume workflow such as "30s", "1min" or "2m15s"
-		duration?: string
-		// +usage=The suspend message to show
-		message?: string
-	}
-}
-`)
+		Params(duration, message).
+		Template(func(tpl *defkit.WorkflowStepTemplate) {
+			tpl.Builtin("suspend", "builtin.#Suspend").
+				WithFullParameter().
+				Build()
+		})
 }
 
 func init() {

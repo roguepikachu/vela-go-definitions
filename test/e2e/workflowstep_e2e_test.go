@@ -38,13 +38,9 @@ import (
 var skipWorkflowStepTests = map[string]string{
 	"deploy-cloud-resource.yaml":    "requires alibaba-rds component and multi-cluster setup",
 	"share-cloud-resource.yaml":     "requires alibaba-rds component and multi-cluster setup",
-	"generate-jdbc-connection.yaml":  "requires alibaba-rds component",
-	"notification.yaml":             "requires external notification endpoints (DingTalk, Slack, email)",
-	"webhook.yaml":                  "requires a reachable webhook endpoint",
+	"generate-jdbc-connection.yaml": "requires alibaba-rds component",
 	"apply-terraform-config.yaml":   "requires Alibaba Cloud credentials and terraform provider",
 	"apply-terraform-provider.yaml": "requires Alibaba Cloud credentials",
-	"check-metrics.yaml":            "requires Prometheus server in cluster",
-	"build-push-image.yaml":         "requires Docker registry credentials and git token",
 }
 
 var _ = Describe("WorkflowStep Definition E2E Tests", Label("workflowsteps"), func() {
@@ -94,6 +90,11 @@ var _ = Describe("WorkflowStep Definition E2E Tests", Label("workflowsteps"), fu
 						if !testPassed {
 							GinkgoWriter.Printf("\n⚠️ Test did not complete successfully, gathering diagnostics...\n")
 							GinkgoWriter.Printf("%s\n", getAppFailureDiagnostics(ctx, app.Name, uniqueNs))
+							// Print kaniko pod logs for build-push-image workflow step
+							if filepath.Base(file) == "build-push-image.yaml" {
+								GinkgoWriter.Printf("\n--- Kaniko Pod Diagnostics ---\n")
+								GinkgoWriter.Printf("%s\n", getKanikoPodLogs(uniqueNs))
+							}
 						}
 						// Clean up namespace after test
 						GinkgoWriter.Printf("Deleting namespace %s...\n", uniqueNs)

@@ -1,33 +1,47 @@
 apiVersion: core.oam.dev/v1beta1
 kind: Application
 metadata:
-  name: canary-demo
+  name: check-metrics-workflow
   annotations:
-    app.oam.dev/publishVersion: v2
+    app.oam.dev/publishVersion: v1
 spec:
   components:
-  - name: canary-demo
+  - name: nginx-server
     type: webservice
     properties:
-      image: wangyikewyk/canarydemo:v2
+      image: nginx:latest
       ports:
-      - port: 8090
-    traits:
-    - type: scaler
-      properties:
-        replicas: 5
-    - type: gateway
-      properties:
-        domain: canary-demo.com
-        http:
-          "/version": 8090
+      - port: 80
+
   workflow:
     steps:
-    - name: 200-status-percent-2-phase
-      type: check-metrics
-      timeout: 3m
+    # Step 1: Deploy the component
+    - name: deploy
+      type: apply-component
       properties:
-        query: sum(irate(nginx_ingress_controller_requests{host="canary-demo.com",status="200"}[5m]))/sum(irate(nginx_ingress_controller_requests{host="canary-demo.com"}[2m]))
-        promAddress: "http://prometheus-server.o11y-system.svc:9090"
-        condition: ">=0.95"
-        duration: 2m
+        component: nginx-server
+
+    # Step 2: Check metrics example
+    # Using PromLabs public demo server (https://demo.promlabs.com)
+    # This is a free, public Prometheus instance for testing and demo purposes.
+    #
+    # For production/local testing, install Prometheus in your cluster:
+    #   helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+    #   helm install prometheus prometheus-community/prometheus -n o11y-system --create-namespace
+    #
+    - name: check-health
+      type: check-metrics
+      timeout: 2m
+      properties:
+        # Query: check if prometheus itself is up (single result)
+        # Using job="prometheus" to get exactly one result
+        query: 'up{job="prometheus"}'
+        # PromLabs public demo endpoint
+        # See: https://demo.promlabs.com
+        metricEndpoint: "https://demo.promlabs.com"
+        # Condition: value must be >= 1 (target is up)
+        condition: ">=1"
+        # Duration to maintain the condition
+        duration: "30s"
+        # Time before failing
+        failDuration: "1m"

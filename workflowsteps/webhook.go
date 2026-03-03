@@ -23,101 +23,92 @@ import (
 // Webhook creates the webhook workflow step definition.
 // This step sends a POST request to the specified Webhook URL. If no request body is specified, the current Application body will be sent by default.
 func Webhook() *defkit.WorkflowStepDefinition {
+	// url is a discriminated union: either {value: string} or {secretRef: {name, key}}
+	url := defkit.OneOf("url").
+		Required().
+		Description("Specify the webhook url").
+		Variants(
+			defkit.Variant("value").Fields(
+				defkit.Field("value", defkit.ParamTypeString).Required(),
+			),
+			defkit.Variant("secretRef").Fields(
+				defkit.Field("secretRef", defkit.ParamTypeStruct).Required().Nested(
+					defkit.Struct("secretRef").Fields(
+						defkit.Field("name", defkit.ParamTypeString).Required().Description("name is the name of the secret"),
+						defkit.Field("key", defkit.ParamTypeString).Required().Description("key is the key in the secret"),
+					),
+				),
+			),
+		)
+
+	data := defkit.Object("data").Description("Specify the data you want to send")
+	hasData := defkit.PathExists("parameter.data")
+	noData := defkit.Eq(defkit.ParamRef("data"), defkit.Reference("_|_"))
+	hasURLValue := defkit.PathExists("parameter.url.value")
+	urlValueNotSet := defkit.Eq(defkit.Reference("parameter.url.value"), defkit.Reference("_|_"))
+	useSecretURL := defkit.And(
+		defkit.PathExists("parameter.url.secretRef"),
+		urlValueNotSet,
+	)
+
+	dataValue := defkit.NewArrayElement().
+		SetIf(noData, "read", defkit.Reference(`kube.#Read & {
+	$params: value: {
+		apiVersion: "core.oam.dev/v1beta1"
+		kind:       "Application"
+		metadata: {
+			name:      context.name
+			namespace: context.namespace
+		}
+	}
+}`)).
+		SetIf(noData, "value", defkit.Reference("json.Marshal(read.$returns.value)")).
+		SetIf(hasData, "value", defkit.Reference("json.Marshal(parameter.data)"))
+
+	webhookValue := defkit.NewArrayElement().
+		SetIf(hasURLValue, "req", defkit.Reference(`http.#HTTPDo & {
+	$params: {
+		method: "POST"
+		url: parameter.url.value
+		request: {
+			body: data.value
+			header: "Content-Type": "application/json"
+		}
+	}
+}`)).
+		SetIf(useSecretURL, "read", defkit.Reference(`kube.#Read & {
+	$params: value: {
+		apiVersion: "v1"
+		kind:       "Secret"
+		metadata: {
+			name:      parameter.url.secretRef.name
+			namespace: context.namespace
+		}
+	}
+}`)).
+		SetIf(useSecretURL, "stringValue", defkit.Reference(`util.#ConvertString & {
+	$params: bt: base64.Decode(null, read.$returns.value.data[parameter.url.secretRef.key])
+}`)).
+		SetIf(useSecretURL, "req", defkit.Reference(`http.#HTTPDo & {
+	$params: {
+		method: "POST"
+		url: stringValue.$returns.str
+		request: {
+			body: data.value
+			header: "Content-Type": "application/json"
+		}
+	}
+}`))
+
 	return defkit.NewWorkflowStep("webhook").
 		Description("Send a POST request to the specified Webhook URL. If no request body is specified, the current Application body will be sent by default.").
-		RawCUE(`import (
-	"vela/http"
-	"vela/kube"
-	"vela/util"
-	"encoding/json"
-	"encoding/base64"
-)
-
-"webhook": {
-	type: "workflow-step"
-	annotations: {
-		"category": "External Intergration"
-	}
-	labels: {}
-	description: "Send a POST request to the specified Webhook URL. If no request body is specified, the current Application body will be sent by default."
-}
-template: {
-	data: {
-		if parameter.data == _|_ {
-			read: kube.#Read & {
-				$params: {
-					value: {
-						apiVersion: "core.oam.dev/v1beta1"
-						kind:       "Application"
-						metadata: {
-							name:      context.name
-							namespace: context.namespace
-						}
-					}
-				}
-			}
-			value: json.Marshal(read.$returns.value)
-		}
-		if parameter.data != _|_ {
-			value: json.Marshal(parameter.data)
-		}
-	}
-	webhook: {
-		if parameter.url.value != _|_ {
-			req: http.#HTTPPost & {
-				$params: {
-					url: parameter.url.value
-					request: {
-						body: data.value
-						header: "Content-Type": "application/json"
-					}
-				}
-			}
-		}
-		if parameter.url.secretRef != _|_ && parameter.url.value == _|_ {
-			read: kube.#Read & {
-				$params: {
-					value: {
-						apiVersion: "v1"
-						kind:       "Secret"
-						metadata: {
-							name:      parameter.url.secretRef.name
-							namespace: context.namespace
-						}
-					}
-				}
-			}
-
-			stringValue: util.#ConvertString & {$params: bt: base64.Decode(null, read.$returns.value.data[parameter.url.secretRef.key])}
-			req: http.#HTTPPost & {
-				$params: {
-					url: stringValue.$returns.str
-					request: {
-						body: data.value
-						header: "Content-Type": "application/json"
-					}
-				}
-			}
-		}
-	}
-
-	parameter: {
-		// +usage=Specify the webhook url
-		url: close({
-			value: string
-		}) | close({
-			secretRef: {
-				// +usage=name is the name of the secret
-				name: string
-				// +usage=key is the key in the secret
-				key: string
-			}
+		Category("External Intergration").
+		WithImports("vela/http", "vela/kube", "vela/util", "encoding/json", "encoding/base64").
+		Params(url, data).
+		Template(func(tpl *defkit.WorkflowStepTemplate) {
+			tpl.Set("data", dataValue)
+			tpl.Set("webhook", webhookValue)
 		})
-		// +usage=Specify the data you want to send
-		data?: {...}
-	}
-}
-`)
 }
 
 func init() {

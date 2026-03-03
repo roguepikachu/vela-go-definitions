@@ -20,409 +20,388 @@ import (
 	"github.com/oam-dev/kubevela/pkg/definition/defkit"
 )
 
+func stringValueOrSecretRef(name, usage, valueUsage string) *defkit.OneOfParam {
+	return defkit.OneOf(name).
+		Required().
+		Description(usage).
+		Variants(
+			defkit.Variant("value").Fields(
+				defkit.Field("value", defkit.ParamTypeString).Required().Description(valueUsage),
+			),
+			defkit.Variant("secretRef").Fields(
+				defkit.Field("secretRef", defkit.ParamTypeStruct).Required().Nested(
+					defkit.Struct("secretRef").Fields(
+						defkit.Field("name", defkit.ParamTypeString).Required().Description("name is the name of the secret"),
+						defkit.Field("key", defkit.ParamTypeString).Required().Description("key is the key in the secret"),
+					),
+				),
+			),
+		)
+}
+
 // Notification creates the notification workflow step definition.
 // This step sends notifications to Email, DingTalk, Slack, Lark or webhook in your workflow.
 func Notification() *defkit.WorkflowStepDefinition {
+	textType := defkit.Object("textType").WithFields(
+		defkit.String("type").Required(),
+		defkit.String("text").Required(),
+		defkit.Bool("emoji").Optional(),
+		defkit.Bool("verbatim").Optional(),
+	)
+
+	option := defkit.Object("option").WithFields(
+		defkit.Object("text").Required().WithSchemaRef("TextType"),
+		defkit.String("value").Required(),
+		defkit.Object("description").Optional().WithSchemaRef("TextType"),
+		defkit.String("url").Optional(),
+	)
+
+	dingLink := defkit.Object("dingLink").WithFields(
+		defkit.String("text").Optional(),
+		defkit.String("title").Optional(),
+		defkit.String("messageUrl").Optional(),
+		defkit.String("picUrl").Optional(),
+	)
+
+	block := defkit.Object("block").WithFields(
+		defkit.String("type").Required(),
+		defkit.String("block_id").Optional(),
+		defkit.Array("elements").Optional().WithFields(
+			defkit.String("type").Required(),
+			defkit.String("action_id").Optional(),
+			defkit.String("url").Optional(),
+			defkit.String("value").Optional(),
+			defkit.String("style").Optional(),
+			defkit.Object("text").Optional().WithSchemaRef("TextType"),
+			defkit.Object("confirm").Optional().WithFields(
+				defkit.Object("title").Required().WithSchemaRef("TextType"),
+				defkit.Object("text").Required().WithSchemaRef("TextType"),
+				defkit.Object("confirm").Required().WithSchemaRef("TextType"),
+				defkit.Object("deny").Required().WithSchemaRef("TextType"),
+				defkit.String("style").Optional(),
+			),
+			defkit.Array("options").Optional().WithSchemaRef("Option"),
+			defkit.Array("initial_options").Optional().WithSchemaRef("Option"),
+			defkit.Object("placeholder").Optional().WithSchemaRef("TextType"),
+			defkit.String("initial_date").Optional(),
+			defkit.String("image_url").Optional(),
+			defkit.String("alt_text").Optional(),
+			defkit.Array("option_groups").Optional().WithSchemaRef("Option"),
+			defkit.Int("max_selected_items").Optional(),
+			defkit.String("initial_value").Optional(),
+			defkit.Bool("multiline").Optional(),
+			defkit.Int("min_length").Optional(),
+			defkit.Int("max_length").Optional(),
+			defkit.Object("dispatch_action_config").Optional().WithFields(
+				defkit.StringList("trigger_actions_on").Optional(),
+			),
+			defkit.String("initial_time").Optional(),
+		),
+	)
+
+	lark := defkit.Object("lark").
+		Optional().
+		Description("Please fulfill its url and message if you want to send Lark messages").
+		WithFields(
+			stringValueOrSecretRef(
+				"url",
+				"Specify the the lark url, you can either sepcify it in value or use secretRef",
+				"the url address content in string",
+			),
+			defkit.Object("message").
+				Required().
+				Description("Specify the message that you want to sent, refer to [Lark messaging](https://open.feishu.cn/document/ukTMukTMukTM/ucTM5YjL3ETO24yNxkjN#8b0f2a1b).").
+				WithFields(
+					defkit.String("msg_type").Required().Description("msg_type can be text, post, image, interactive, share_chat, share_user, audio, media, file, sticker"),
+					defkit.String("content").Required().Description("content should be json encode string"),
+				),
+		)
+
+	dingding := defkit.Object("dingding").
+		Optional().
+		Description("Please fulfill its url and message if you want to send DingTalk messages").
+		WithFields(
+			stringValueOrSecretRef(
+				"url",
+				"Specify the the dingding url, you can either sepcify it in value or use secretRef",
+				"the url address content in string",
+			),
+			defkit.Object("message").
+				Required().
+				Description("Specify the message that you want to sent, refer to [dingtalk messaging](https://developers.dingtalk.com/document/robots/custom-robot-access/title-72m-8ag-pqw)").
+				WithFields(
+					defkit.Object("text").Optional().Description("Specify the message content of dingtalk notification").WithFields(
+						defkit.String("content").Required(),
+					),
+					defkit.String("msgtype").
+						Description("msgType can be text, link, mardown, actionCard, feedCard").
+						Default("text").
+						Enum("text", "link", "markdown", "actionCard", "feedCard"),
+					defkit.Object("link").Optional().WithSchemaRef("DingLink"),
+					defkit.Object("markdown").Optional().WithFields(
+						defkit.String("text").Required(),
+						defkit.String("title").Required(),
+					),
+					defkit.Object("at").Optional().WithFields(
+						defkit.StringList("atMobiles").Optional(),
+						defkit.Bool("isAtAll").Optional(),
+					),
+					defkit.Object("actionCard").Optional().WithFields(
+						defkit.String("text").Required(),
+						defkit.String("title").Required(),
+						defkit.String("hideAvatar").Required(),
+						defkit.String("btnOrientation").Required(),
+						defkit.String("singleTitle").Required(),
+						defkit.String("singleURL").Required(),
+						defkit.Array("btns").Optional().WithFields(
+							defkit.String("title").Required(),
+							defkit.String("actionURL").Required(),
+						),
+					),
+					defkit.Object("feedCard").Optional().WithFields(
+						defkit.Array("links").Required().WithSchemaRef("DingLink"),
+					),
+				),
+		)
+
+	slack := defkit.Object("slack").
+		Optional().
+		Description("Please fulfill its url and message if you want to send Slack messages").
+		WithFields(
+			stringValueOrSecretRef(
+				"url",
+				"Specify the the slack url, you can either sepcify it in value or use secretRef",
+				"the url address content in string",
+			),
+			defkit.Object("message").
+				Required().
+				Description("Specify the message that you want to sent, refer to [slack messaging](https://api.slack.com/reference/messaging/payload)").
+				WithFields(
+					defkit.String("text").Required().Description("Specify the message text for slack notification"),
+					defkit.Array("blocks").Optional().WithSchemaRef("Block"),
+					defkit.Object("attachments").Optional().WithFields(
+						defkit.Array("blocks").Optional().WithSchemaRef("Block"),
+						defkit.String("color").Optional(),
+					),
+					defkit.String("thread_ts").Optional(),
+					defkit.Bool("mrkdwn").Optional().Default(true).ForceOptional().Description("Specify the message text format in markdown for slack notification"),
+				),
+		)
+
+	email := defkit.Object("email").
+		Optional().
+		Description("Please fulfill its from, to and content if you want to send email").
+		WithFields(
+			defkit.Object("from").
+				Required().
+				Description("Specify the email info that you want to send from").
+				WithFields(
+					defkit.String("address").Required().Description("Specify the email address that you want to send from"),
+					defkit.String("alias").Optional().Description("The alias is the email alias to show after sending the email"),
+					stringValueOrSecretRef(
+						"password",
+						"Specify the password of the email, you can either sepcify it in value or use secretRef",
+						"the password content in string",
+					),
+					defkit.String("host").Required().Description("Specify the host of your email"),
+					defkit.Int("port").Default(587).Description("Specify the port of the email host, default to 587"),
+				),
+			defkit.StringList("to").Required().Description("Specify the email address that you want to send to"),
+			defkit.Object("content").
+				Required().
+				Description("Specify the content of the email").
+				WithFields(
+					defkit.String("subject").Required().Description("Specify the subject of the email"),
+					defkit.String("body").Required().Description("Specify the context body of the email"),
+				),
+		)
+
 	return defkit.NewWorkflowStep("notification").
 		Description("Send notifications to Email, DingTalk, Slack, Lark or webhook in your workflow.").
-		RawCUE(`import (
-	"vela/http"
-	"vela/email"
-	"vela/kube"
-	"vela/util"
-	"encoding/base64"
-	"encoding/json"
-)
-
-"notification": {
-	type: "workflow-step"
-	annotations: {
-		"category": "External Integration"
-	}
-	labels: {}
-	description: "Send notifications to Email, DingTalk, Slack, Lark or webhook in your workflow."
-}
-template: {
-
-	parameter: {
-		// +usage=Please fulfill its url and message if you want to send Lark messages
-		lark?: {
-			// +usage=Specify the the lark url, you can either sepcify it in value or use secretRef
-			url: close({
-				// +usage=the url address content in string
-				value: string
-			}) | close({
-				secretRef: {
-					// +usage=name is the name of the secret
-					name: string
-					// +usage=key is the key in the secret
-					key: string
-				}
-			})
-			// +usage=Specify the message that you want to sent, refer to [Lark messaging](https://open.feishu.cn/document/ukTMukTMukTM/ucTM5YjL3ETO24yNxkjN#8b0f2a1b).
-			message: {
-				// +usage=msg_type can be text, post, image, interactive, share_chat, share_user, audio, media, file, sticker
-				msg_type: string
-				// +usage=content should be json encode string
-				content: string
-			}
-		}
-		// +usage=Please fulfill its url and message if you want to send DingTalk messages
-		dingding?: {
-			// +usage=Specify the the dingding url, you can either sepcify it in value or use secretRef
-			url: close({
-				// +usage=the url address content in string
-				value: string
-			}) | close({
-				secretRef: {
-					// +usage=name is the name of the secret
-					name: string
-					// +usage=key is the key in the secret
-					key: string
-				}
-			})
-			// +usage=Specify the message that you want to sent, refer to [dingtalk messaging](https://developers.dingtalk.com/document/robots/custom-robot-access/title-72m-8ag-pqw)
-			message: {
-				// +usage=Specify the message content of dingtalk notification
-				text?: close({
-					content: string
-				})
-				// +usage=msgType can be text, link, mardown, actionCard, feedCard
-				msgtype: *"text" | "link" | "markdown" | "actionCard" | "feedCard"
-				#link: {
-					text?:       string
-					title?:      string
-					messageUrl?: string
-					picUrl?:     string
-				}
-
-				link?: #link
-				markdown?: close({
-					text:  string
-					title: string
-				})
-				at?: close({
-					atMobiles?: [...string]
-					isAtAll?: bool
-				})
-				actionCard?: close({
-					text:           string
-					title:          string
-					hideAvatar:     string
-					btnOrientation: string
-					singleTitle:    string
-					singleURL:      string
-					btns?: [...close({
-						title:     string
-						actionURL: string
-					})]
-				})
-				feedCard?: close({
-					links: [...#link]
-				})
-			}
-		}
-		// +usage=Please fulfill its url and message if you want to send Slack messages
-		slack?: {
-			// +usage=Specify the the slack url, you can either sepcify it in value or use secretRef
-			url: close({
-				// +usage=the url address content in string
-				value: string
-			}) | close({
-				secretRef: {
-					// +usage=name is the name of the secret
-					name: string
-					// +usage=key is the key in the secret
-					key: string
-				}
-			})
-			// +usage=Specify the message that you want to sent, refer to [slack messaging](https://api.slack.com/reference/messaging/payload)
-			message: {
-				// +usage=Specify the message text for slack notification
-				text: string
-				blocks?: [...block]
-				attachments?: close({
-					blocks?: [...block]
-					color?: string
-				})
-				thread_ts?: string
-				// +usage=Specify the message text format in markdown for slack notification
-				mrkdwn?: *true | bool
-			}
-		}
-		// +usage=Please fulfill its from, to and content if you want to send email
-		email?: {
-			// +usage=Specify the email info that you want to send from
-			from: {
-				// +usage=Specify the email address that you want to send from
-				address: string
-				// +usage=The alias is the email alias to show after sending the email
-				alias?: string
-				// +usage=Specify the password of the email, you can either sepcify it in value or use secretRef
-				password: close({
-					// +usage=the password content in string
-					value: string
-				}) | close({
-					secretRef: {
-						// +usage=name is the name of the secret
-						name: string
-						// +usage=key is the key in the secret
-						key: string
-					}
-				})
-				// +usage=Specify the host of your email
-				host: string
-				// +usage=Specify the port of the email host, default to 587
-				port: *587 | int
-			}
-			// +usage=Specify the email address that you want to send to
-			to: [...string]
-			// +usage=Specify the content of the email
-			content: {
-				// +usage=Specify the subject of the email
-				subject: string
-				// +usage=Specify the context body of the email
-				body: string
-			}
-		}
-	}
-
-	block: {
-		type:      string
-		block_id?: string
-		elements?: [...{
-			type:       string
-			action_id?: string
-			url?:       string
-			value?:     string
-			style?:     string
-			text?:      textType
-			confirm?: {
-				title:   textType
-				text:    textType
-				confirm: textType
-				deny:    textType
-				style?:  string
-			}
-			options?: [...option]
-			initial_options?: [...option]
-			placeholder?:  textType
-			initial_date?: string
-			image_url?:    string
-			alt_text?:     string
-			option_groups?: [...option]
-			max_selected_items?: int
-			initial_value?:      string
-			multiline?:          bool
-			min_length?:         int
-			max_length?:         int
-			dispatch_action_config?: {
-				trigger_actions_on?: [...string]
-			}
-			initial_time?: string
-		}]
-	}
-
-	textType: {
-		type:      string
-		text:      string
-		emoji?:    bool
-		verbatim?: bool
-	}
-
-	option: {
-		text:         textType
-		value:        string
-		description?: textType
-		url?:         string
-	}
-
-	// send webhook notification
-	ding: {
-		if parameter.dingding != _|_ {
-			if parameter.dingding.url.value != _|_ {
-				ding1: http.#Do & {
-					$params: {
-						method: "POST"
-						url:    parameter.dingding.url.value
-						request: {
-							body: json.Marshal(parameter.dingding.message)
-							header: "Content-Type": "application/json"
-						}
+		Category("External Integration").
+		WithImports("vela/http", "vela/email", "vela/kube", "vela/util", "encoding/base64", "encoding/json").
+		Helper("TextType", textType).
+		Helper("Option", option).
+		Helper("DingLink", dingLink).
+		Helper("Block", block).
+		Params(lark, dingding, slack, email).
+		Template(func(tpl *defkit.WorkflowStepTemplate) {
+			tpl.Set("ding", defkit.Reference(`{
+	if parameter.dingding != _|_ {
+		if parameter.dingding.url.value != _|_ {
+			ding1: http.#HTTPDo & {
+				$params: {
+					method: "POST"
+					url:    parameter.dingding.url.value
+					request: {
+						body: json.Marshal(parameter.dingding.message)
+						header: "Content-Type": "application/json"
 					}
 				}
 			}
-			if parameter.dingding.url.secretRef != _|_ && parameter.dingding.url.value == _|_ {
-				read: kube.#Read & {
-					$params: {
-						value: {
-							apiVersion: "v1"
-							kind:       "Secret"
-							metadata: {
-								name:      parameter.dingding.url.secretRef.name
-								namespace: context.namespace
-							}
-						}
+		}
+		if parameter.dingding.url.secretRef != _|_ && parameter.dingding.url.value == _|_ {
+			read: kube.#Read & {
+				$params: value: {
+					apiVersion: "v1"
+					kind:       "Secret"
+					metadata: {
+						name:      parameter.dingding.url.secretRef.name
+						namespace: context.namespace
 					}
 				}
+			}
 
-				stringValue: util.#ConvertString & {$params: bt: base64.Decode(null, read.$returns.value.data[parameter.dingding.url.secretRef.key])}
-				ding2: http.#Do & {
-					$params: {
-						method: "POST"
-						url:    stringValue.$returns.str
-						request: {
-							body: json.Marshal(parameter.dingding.message)
-							header: "Content-Type": "application/json"
-						}
+			stringValue: util.#ConvertString & {$params: bt: base64.Decode(null, read.$returns.value.data[parameter.dingding.url.secretRef.key])}
+			ding2: http.#HTTPDo & {
+				$params: {
+					method: "POST"
+					url:    stringValue.$returns.str
+					request: {
+						body: json.Marshal(parameter.dingding.message)
+						header: "Content-Type": "application/json"
 					}
 				}
 			}
 		}
 	}
+}`))
 
-	lark: {
-		if parameter.lark != _|_ {
-			if parameter.lark.url.value != _|_ {
-				lark1: http.#Do & {
-					$params: {
-						method: "POST"
-						url:    parameter.lark.message
-						request: {
-							body: json.Marshal(parameter.lark.message)
-							header: "Content-Type": "application/json"
-						}
+			tpl.Set("lark", defkit.Reference(`{
+	if parameter.lark != _|_ {
+		if parameter.lark.url.value != _|_ {
+			lark1: http.#HTTPDo & {
+				$params: {
+					method: "POST"
+					url:    parameter.lark.url.value
+					request: {
+						body: json.Marshal(parameter.lark.message)
+						header: "Content-Type": "application/json"
 					}
 				}
-			}
-			if parameter.lark.url.secretRef != _|_ && parameter.lark.url.value == _|_ {
-				read: kube.#Read & {
-					$params: {
-						value: {
-							apiVersion: "v1"
-							kind:       "Secret"
-							metadata: {
-								name:      parameter.lark.url.secretRef.name
-								namespace: context.namespace
-							}
-						}
-					}
-				}
-
-				stringValue: util.#ConvertString & {$params: bt: base64.Decode(null, read.$returns.value.data[parameter.lark.url.secretRef.key])}
-				lark2: http.#Do & {
-					$params: {
-						method: "POST"
-						url:    stringValue.$returns.str
-						request: {
-							body: json.Marshal(parameter.lark.message)
-							header: "Content-Type": "application/json"
-						}
-					}
-				}
-
 			}
 		}
-	}
-
-	slack: {
-		if parameter.slack != _|_ {
-			if parameter.slack.url.value != _|_ {
-				slack1: http.#Do & {
-					$params: {
-						method: "POST"
-						url:    parameter.slack.url.value
-						request: {
-							body: json.Marshal(parameter.slack.message)
-							header: "Content-Type": "application/json"
-						}
+		if parameter.lark.url.secretRef != _|_ && parameter.lark.url.value == _|_ {
+			read: kube.#Read & {
+				$params: value: {
+					apiVersion: "v1"
+					kind:       "Secret"
+					metadata: {
+						name:      parameter.lark.url.secretRef.name
+						namespace: context.namespace
 					}
 				}
 			}
-			if parameter.slack.url.secretRef != _|_ && parameter.slack.url.value == _|_ {
-				read: kube.#Read & {
-					$params: {
-						value: {
-							kind:       "Secret"
-							apiVersion: "v1"
-							metadata: {
-								name:      parameter.slack.url.secretRef.name
-								namespace: context.namespace
-							}
-						}
+
+			stringValue: util.#ConvertString & {$params: bt: base64.Decode(null, read.$returns.value.data[parameter.lark.url.secretRef.key])}
+			lark2: http.#HTTPDo & {
+				$params: {
+					method: "POST"
+					url:    stringValue.$returns.str
+					request: {
+						body: json.Marshal(parameter.lark.message)
+						header: "Content-Type": "application/json"
 					}
 				}
+			}
 
-				stringValue: util.#ConvertString & {$params: bt: base64.Decode(null, read.$returns.value.data[parameter.slack.url.secretRef.key])}
-				slack2: http.#Do & {
-					$params: {
-						method: "POST"
-						url:    stringValue.$returns.str
-						request: {
-							body: json.Marshal(parameter.slack.message)
-							header: "Content-Type": "application/json"
-						}
+		}
+	}
+}`))
+
+			tpl.Set("slack", defkit.Reference(`{
+	if parameter.slack != _|_ {
+		if parameter.slack.url.value != _|_ {
+			slack1: http.#HTTPDo & {
+				$params: {
+					method: "POST"
+					url:    parameter.slack.url.value
+					request: {
+						body: json.Marshal(parameter.slack.message)
+						header: "Content-Type": "application/json"
+					}
+				}
+			}
+		}
+		if parameter.slack.url.secretRef != _|_ && parameter.slack.url.value == _|_ {
+			read: kube.#Read & {
+				$params: value: {
+					kind:       "Secret"
+					apiVersion: "v1"
+					metadata: {
+						name:      parameter.slack.url.secretRef.name
+						namespace: context.namespace
+					}
+				}
+			}
+
+			stringValue: util.#ConvertString & {$params: bt: base64.Decode(null, read.$returns.value.data[parameter.slack.url.secretRef.key])}
+			slack2: http.#HTTPDo & {
+				$params: {
+					method: "POST"
+					url:    stringValue.$returns.str
+					request: {
+						body: json.Marshal(parameter.slack.message)
+						header: "Content-Type": "application/json"
 					}
 				}
 			}
 		}
 	}
+}`))
 
-	email0: {
-		if parameter.email != _|_ {
-			if parameter.email.from.password.value != _|_ {
-				email1: email.#SendEmail & {
-					$params: {
-						from: {
-							address: parameter.email.from.address
-							if parameter.email.from.alias != _|_ {
-								alias: parameter.email.from.alias
-							}
-							password: parameter.email.from.password.value
-							host:     parameter.email.from.host
-							port:     parameter.email.from.port
+			tpl.Set("email0", defkit.Reference(`{
+	if parameter.email != _|_ {
+		if parameter.email.from.password.value != _|_ {
+			email1: email.#SendEmail & {
+				$params: {
+					from: {
+						address: parameter.email.from.address
+						if parameter.email.from.alias != _|_ {
+							alias: parameter.email.from.alias
 						}
-						to:      parameter.email.to
-						content: parameter.email.content
+						password: parameter.email.from.password.value
+						host:     parameter.email.from.host
+						port:     parameter.email.from.port
+					}
+					to:      parameter.email.to
+					content: parameter.email.content
+				}
+			}
+		}
+
+		if parameter.email.from.password.secretRef != _|_ && parameter.email.from.password.value == _|_ {
+			read: kube.#Read & {
+				$params: value: {
+					kind:       "Secret"
+					apiVersion: "v1"
+					metadata: {
+						name:      parameter.email.from.password.secretRef.name
+						namespace: context.namespace
 					}
 				}
 			}
 
-			if parameter.email.from.password.secretRef != _|_ && parameter.email.from.password.value == _|_ {
-				read: kube.#Read & {
-					$params: {
-						value: {
-							kind:       "Secret"
-							apiVersion: "v1"
-							metadata: {
-								name:      parameter.email.from.password.secretRef.name
-								namespace: context.namespace
-							}
+			stringValue: util.#ConvertString & {$params: bt: base64.Decode(null, read.$returns.value.data[parameter.email.from.password.secretRef.key])}
+			email2: email.#SendEmail & {
+				$params: {
+					from: {
+						address: parameter.email.from.address
+						if parameter.email.from.alias != _|_ {
+							alias: parameter.email.from.alias
 						}
+						password: stringValue.str
+						host:     parameter.email.from.host
+						port:     parameter.email.from.port
 					}
-				}
-
-				stringValue: util.#ConvertString & {$params: bt: base64.Decode(null, read.$returns.value.data[parameter.email.from.password.secretRef.key])}
-				email2: email.#SendEmail & {
-					$params: {
-						from: {
-							address: parameter.email.from.address
-							if parameter.email.from.alias != _|_ {
-								alias: parameter.email.from.alias
-							}
-							password: stringValue.str
-							host:     parameter.email.from.host
-							port:     parameter.email.from.port
-						}
-						to:      parameter.email.to
-						content: parameter.email.content
-					}
+					to:      parameter.email.to
+					content: parameter.email.content
 				}
 			}
 		}
 	}
-}
-`)
+}`))
+		})
 }
 
 func init() {

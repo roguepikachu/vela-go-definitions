@@ -8,45 +8,35 @@ spec:
   - name: my-web
     type: webservice
     properties:
-      image: fogdong/simple-web-demo:v1
+      image: oamdev/hello-world
       ports:
       - port: 80
         expose: true
+
   workflow:
     steps:
-    - name: create-git-secret
-      type: export2secret
-      properties:
-        secretName: git-secret
-        data:
-          token: <git token>
-    - name: create-image-secret
-      type: export2secret
-      properties:
-        secretName: image-secret
-        kind: docker-registry
-        dockerRegistry:
-          username: <docker username>
-          password: <docker password>
-    - name: build-push
-      type: build-push-image
-      properties:
-        # use your kaniko executor image like below, if not set, it will use default image oamdev/kaniko-executor:v1.9.1
-        # kanikoExecutor: gcr.io/kaniko-project/executor:latest
-        # you can use context with git and branch or directly specify the context, please refer to https://github.com/GoogleContainerTools/kaniko#kaniko-build-contexts
-        context:
-          git: github.com/FogDong/simple-web-demo
-          branch: main
-        image: fogdong/simple-web-demo:v1
-        # specify your dockerfile, if not set, it will use default dockerfile ./Dockerfile
-        # dockerfile: ./Dockerfile
-        credentials:
-          image:
-            name: image-secret
-        # buildArgs:
-        #   - key="value"
-        # platform: linux/arm
-    - name: apply-comp
-      type: apply-component
-      properties:
-        component: my-web
+      # Using ttl.sh - a free, anonymous, ephemeral container registry
+      # Images auto-expire after the time specified in the tag (e.g., :1h = 1 hour)
+      # No authentication required - perfect for CI/CD testing!
+      # See: https://ttl.sh
+
+      # Example 1: Build from public GitHub repo and push to ttl.sh (no auth needed)
+      - name: build-from-public-repo
+        type: build-push-image
+        properties:
+          kanikoExecutor: "gcr.io/kaniko-project/executor:v1.23.2"
+          context:
+            git: "github.com/kelseyhightower/helloworld"
+            branch: "master"
+          image: "ttl.sh/vela-test-helloworld:1h"
+          dockerfile: "./Dockerfile"
+
+      - name: complete
+        type: print-message-in-status
+        properties:
+          message: "All images built and pushed successfully"
+
+      - name: apply-comp
+        type: apply-component
+        properties:
+          component: my-web

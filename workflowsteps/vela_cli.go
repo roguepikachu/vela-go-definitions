@@ -23,163 +23,187 @@ import (
 // VelaCli creates the vela-cli workflow step definition.
 // This step runs a vela command inside a Kubernetes Job.
 func VelaCli() *defkit.WorkflowStepDefinition {
+	vela := defkit.VelaCtx()
+
+	command := defkit.StringList("command").Required().Description("Specify the vela command")
+	image := defkit.String("image").Default("oamdev/vela-cli:v1.6.4").Description("Specify the image")
+	serviceAccountName := defkit.String("serviceAccountName").Default("kubevela-vela-core").Description("specify serviceAccountName want to use")
+
+	// items array inside secret
+	items := defkit.Array("items").WithFields(
+		defkit.String("key").Required(),
+		defkit.String("path").Required(),
+		defkit.Int("mode").Default(511),
+	)
+
+	// secret array
+	secret := defkit.Array("secret").
+		Description("Mount Secret type storage").
+		WithFields(
+			defkit.String("name").Required(),
+			defkit.String("mountPath").Required(),
+			defkit.String("subPath"),
+			defkit.Int("defaultMode").Default(420),
+			defkit.String("secretName").Required(),
+			items,
+		)
+
+	// hostPath array
+	hostPath := defkit.Array("hostPath").
+		Description("Declare host path type storage").
+		WithFields(
+			defkit.String("name").Required(),
+			defkit.String("path").Required(),
+			defkit.String("mountPath").Required(),
+			defkit.String("type").Default("Directory").Enum(
+				"Directory", "DirectoryOrCreate", "FileOrCreate",
+				"File", "Socket", "CharDevice", "BlockDevice",
+			),
+		)
+
+	storage := defkit.Object("storage").WithFields(secret, hostPath)
+	hasSecretStorage := defkit.And(
+		defkit.PathExists("parameter.storage"),
+		defkit.PathExists("parameter.storage.secret"),
+	)
+	hasHostPathStorage := defkit.And(
+		defkit.PathExists("parameter.storage"),
+		defkit.PathExists("parameter.storage.hostPath"),
+	)
+	hasJobFailedStatus := defkit.And(
+		defkit.PathExists("job.$returns.value.status"),
+		defkit.PathExists("job.$returns.value.status.failed"),
+	)
+	hasJobSucceededStatus := defkit.And(
+		defkit.PathExists("job.$returns.value.status"),
+		defkit.PathExists("job.$returns.value.status.succeeded"),
+	)
+
+	stepName := defkit.Reference("context.stepName")
+	stepSessionID := defkit.Reference("context.stepSessionID")
+	stepLabel := defkit.Interpolation(vela.Name(), defkit.Lit("-"), stepName)
+	stepJobName := defkit.Interpolation(vela.Name(), defkit.Lit("-"), stepName, defkit.Lit("-"), stepSessionID)
+	jobContainerName := defkit.Interpolation(vela.Name(), defkit.Lit("-"), stepName, defkit.Lit("-"), stepSessionID, defkit.Lit("-job"))
+
+	mountsArray := defkit.NewArray().
+		ForEachGuarded(
+			hasSecretStorage,
+			defkit.ParamRef("storage.secret"),
+			defkit.NewArrayElement().
+				Set("name", defkit.Plus(defkit.Lit("secret-"), defkit.Reference("m.name"))).
+				Set("mountPath", defkit.Reference("m.mountPath")).
+				SetIf(defkit.PathExists("m.subPath"), "subPath", defkit.Reference("m.subPath")),
+		).
+		ForEachGuarded(
+			hasHostPathStorage,
+			defkit.ParamRef("storage.hostPath"),
+			defkit.NewArrayElement().
+				Set("name", defkit.Plus(defkit.Lit("hostpath-"), defkit.Reference("m.name"))).
+				Set("mountPath", defkit.Reference("m.mountPath")),
+		)
+
+	volumesList := defkit.NewArray().
+		ForEachGuarded(
+			hasSecretStorage,
+			defkit.ParamRef("storage.secret"),
+			defkit.NewArrayElement().
+				Set("name", defkit.Plus(defkit.Lit("secret-"), defkit.Reference("m.name"))).
+				Set("secret", defkit.NewArrayElement().
+					Set("defaultMode", defkit.Reference("m.defaultMode")).
+					Set("secretName", defkit.Reference("m.secretName")).
+					SetIf(defkit.PathExists("m.items"), "items", defkit.Reference("m.items")),
+				),
+		).
+		ForEachGuarded(
+			hasHostPathStorage,
+			defkit.ParamRef("storage.hostPath"),
+			defkit.NewArrayElement().
+				Set("name", defkit.Plus(defkit.Lit("hostpath-"), defkit.Reference("m.name"))).
+				Set("path", defkit.Reference("m.path")),
+		)
+
+	failCondition := defkit.And(
+		hasJobFailedStatus,
+		defkit.Gt(defkit.Reference("job.$returns.value.status.failed"), defkit.Lit(2)),
+	)
+
 	return defkit.NewWorkflowStep("vela-cli").
 		Description("Run a vela command").
 		Category("Scripts & Commands").
-		RawCUE(`import "vela/kube"
-import "vela/builtin"
-import "vela/util"
+		WithImports("vela/kube", "vela/builtin", "vela/util").
+		Params(command, image, serviceAccountName, storage).
+		Template(func(tpl *defkit.WorkflowStepTemplate) {
+			tpl.Set("mountsArray", mountsArray)
+			tpl.Set("volumesList", volumesList)
+			tpl.Set("deDupVolumesArray", defkit.From(defkit.Reference("volumesList")).Dedupe("name"))
 
-"vela-cli": {
-	type: "workflow-step"
-	annotations: {
-		"category": "Scripts & Commands"
-	}
-	labels: {}
-	description: "Run a vela command"
-}
-template: {
+			tpl.Builtin("job", "kube.#Apply").
+				WithParams(map[string]defkit.Value{
+					"value": defkit.NewArrayElement().
+						Set("apiVersion", defkit.Lit("batch/v1")).
+						Set("kind", defkit.Lit("Job")).
+						Set("metadata", defkit.NewArrayElement().
+							Set("name", stepJobName).
+							SetIf(defkit.Eq(serviceAccountName, defkit.Lit("kubevela-vela-core")), "namespace", defkit.Lit("vela-system")).
+							SetIf(defkit.Ne(serviceAccountName, defkit.Lit("kubevela-vela-core")), "namespace", vela.Namespace()),
+						).
+						Set("spec", defkit.NewArrayElement().
+							Set("backoffLimit", defkit.Lit(3)).
+							Set("template", defkit.NewArrayElement().
+								Set("metadata", defkit.NewArrayElement().
+									Set("labels", defkit.NewArrayElement().
+										Set("\"workflow.oam.dev/step-name\"", stepLabel),
+									),
+								).
+								Set("spec", defkit.NewArrayElement().
+									Set("containers", defkit.NewArray().
+										Item(defkit.NewArrayElement().
+											Set("name", jobContainerName).
+											Set("image", image).
+											Set("command", command).
+											Set("volumeMounts", defkit.Reference("mountsArray")),
+										),
+									).
+									Set("restartPolicy", defkit.Lit("Never")).
+									Set("serviceAccount", serviceAccountName).
+									Set("volumes", defkit.Reference("deDupVolumesArray")),
+								),
+							),
+						),
+				}).
+				Build()
 
-mountsArray: [
-	if parameter.storage != _|_ && parameter.storage.secret != _|_ for v in parameter.storage.secret {
-		{
-			name:      "secret-" + v.name
-			mountPath: v.mountPath
-			if v.subPath != _|_ {
-				subPath: v.subPath
-			}
-		}
-	},
-	if parameter.storage != _|_ && parameter.storage.hostPath != _|_ for v in parameter.storage.hostPath {
-		{
-			name:      "hostpath-" + v.name
-			mountPath: v.mountPath
-		}
-	},
-]
+			tpl.Builtin("log", "util.#Log").
+				WithParams(map[string]defkit.Value{
+					"source": defkit.NewArrayElement().
+						Set("resources", defkit.NewArray().
+							Item(defkit.NewArrayElement().
+								Set("labelSelector", defkit.NewArrayElement().
+									Set("\"workflow.oam.dev/step-name\"", stepLabel),
+								),
+							),
+						),
+				}).
+				Build()
 
-volumesList: [
-	if parameter.storage != _|_ && parameter.storage.secret != _|_ for v in parameter.storage.secret {
-		{
-			name: "secret-" + v.name
-			secret: {
-				defaultMode: v.defaultMode
-				secretName:  v.secretName
-				if v.items != _|_ {
-					items: v.items
-				}
-			}
-		}
-	},
-	if parameter.storage != _|_ && parameter.storage.hostPath != _|_ for v in parameter.storage.hostPath {
-		{
-			name: "hostpath-" + v.name
-			path: v.path
-		}
-	},
-]
+			tpl.Set("fail", defkit.NewArrayElement().
+				SetIf(
+					failCondition,
+					"breakWorkflow",
+					defkit.Reference(`builtin.#Fail & {
+	$params: message: "failed to execute vela command"
+}`),
+				),
+			)
 
-deDupVolumesArray: [
-	for val in [
-		for i, vi in volumesList {
-			for j, vj in volumesList if j < i && vi.name == vj.name {
-				_ignore: true
-			}
-			vi
-		},
-	] if val._ignore == _|_ {
-		val
-	},
-]
-
-job: kube.#Apply & {
-	$params: value: {
-		apiVersion: "batch/v1"
-		kind:       "Job"
-		metadata: {
-			name: "\(context.name)-\(context.stepName)-\(context.stepSessionID)"
-			if parameter.serviceAccountName == "kubevela-vela-core" {
-				namespace: "vela-system"
-			}
-			if parameter.serviceAccountName != "kubevela-vela-core" {
-				namespace: context.namespace
-			}
-		}
-		spec: {
-			backoffLimit: 3
-			template: {
-				metadata: labels: "workflow.oam.dev/step-name": "\(context.name)-\(context.stepName)"
-				spec: {
-					containers: [
-						{
-							name:         "\(context.name)-\(context.stepName)-\(context.stepSessionID)-job"
-							image:        parameter.image
-							command:      parameter.command
-							volumeMounts: mountsArray
-						},
-					]
-					restartPolicy:  "Never"
-					serviceAccount: parameter.serviceAccountName
-					volumes:        deDupVolumesArray
-				}
-			}
-		}
-	}
-}
-
-log: util.#Log & {
-	$params: source: resources: [{labelSelector: "workflow.oam.dev/step-name": "\(context.name)-\(context.stepName)"}]
-}
-
-fail: {
-	if job.$returns.value.status != _|_ if job.$returns.value.status.failed != _|_ {
-		if job.$returns.value.status.failed > 2 {
-			breakWorkflow: builtin.#Fail & {
-				$params: message: "failed to execute vela command"
-			}
-		}
-	}
-}
-
-wait: builtin.#ConditionalWait & {
-	if job.$returns.value.status != _|_ if job.$returns.value.status.succeeded != _|_ {
-		$params: continue: job.$returns.value.status.succeeded > 0
-	}
-}
-
-parameter: {
-	// +usage=Specify the vela command
-	command: [...string]
-	// +usage=Specify the image
-	image: *"oamdev/vela-cli:v1.6.4" | string
-	// +usage=specify serviceAccountName want to use
-	serviceAccountName: *"kubevela-vela-core" | string
-	storage?: {
-		// +usage=Mount Secret type storage
-		secret?: [...{
-			name:        string
-			mountPath:   string
-			subPath?:    string
-			defaultMode: *420 | int
-			secretName:  string
-			items?: [...{
-				key:  string
-				path: string
-				mode: *511 | int
-			}]
-		}]
-		// +usage=Declare host path type storage
-		hostPath?: [...{
-			name:      string
-			path:      string
-			mountPath: string
-			type:      *"Directory" | "DirectoryOrCreate" | "FileOrCreate" | "File" | "Socket" | "CharDevice" | "BlockDevice"
-		}]
-	}
-}
-
-}
-`)
+			tpl.Builtin("wait", "builtin.#ConditionalWait").
+				Build()
+			tpl.Builtin("wait", "builtin.#ConditionalWait").
+				WithParams(map[string]defkit.Value{
+					"continue": defkit.Reference("job.$returns.value.status.succeeded > 0"),
+				}).
+				If(hasJobSucceededStatus)
+		})
 }
 
 func init() {
