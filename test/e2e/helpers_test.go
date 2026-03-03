@@ -43,7 +43,7 @@ import (
 
 const (
 	// Timeout for application to become running
-	AppRunningTimeout = 10 * time.Minute
+	AppRunningTimeout = 5 * time.Minute
 	// Polling interval for status checks
 	PollInterval = 5 * time.Second
 )
