@@ -27,21 +27,27 @@ func TakeOver() *defkit.PolicyDefinition {
 	ruleSelector := defkit.Struct("selector").Fields(
 		defkit.Field("componentNames", defkit.ParamTypeArray).
 			Description("Select resources by component names").
+			ArrayOf(defkit.ParamTypeString).
 			Optional(),
 		defkit.Field("componentTypes", defkit.ParamTypeArray).
 			Description("Select resources by component types").
+			ArrayOf(defkit.ParamTypeString).
 			Optional(),
 		defkit.Field("oamTypes", defkit.ParamTypeArray).
 			Description("Select resources by oamTypes (COMPONENT or TRAIT)").
+			ArrayOf(defkit.ParamTypeString).
 			Optional(),
 		defkit.Field("traitTypes", defkit.ParamTypeArray).
 			Description("Select resources by trait types").
+			ArrayOf(defkit.ParamTypeString).
 			Optional(),
 		defkit.Field("resourceTypes", defkit.ParamTypeArray).
 			Description("Select resources by resource types (like Deployment)").
+			ArrayOf(defkit.ParamTypeString).
 			Optional(),
 		defkit.Field("resourceNames", defkit.ParamTypeArray).
 			Description("Select resources by their names").
+			ArrayOf(defkit.ParamTypeString).
 			Optional(),
 	)
 
@@ -49,7 +55,8 @@ func TakeOver() *defkit.PolicyDefinition {
 	policyRule := defkit.Struct("rule").Fields(
 		defkit.Field("selector", defkit.ParamTypeStruct).
 			Description("Specify how to select the targets of the rule").
-			WithSchemaRef("RuleSelector"),
+			WithSchemaRef("RuleSelector").
+			Required(),
 	)
 
 	return defkit.NewPolicy("take-over").
