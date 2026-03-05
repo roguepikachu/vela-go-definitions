@@ -116,6 +116,20 @@ var _ = Describe("All WorkflowSteps Registered", func() {
 		} {
 			return workflowsteps.ApplyComponent()
 		}},
+		{"deploy-cloud-resource", "Deploy cloud resource and deliver secret to multi clusters.", func() interface {
+			GetName() string
+			GetDescription() string
+			ToCue() string
+		} {
+			return workflowsteps.DeployCloudResource()
+		}},
+		{"share-cloud-resource", "Sync secrets created by terraform component to runtime clusters so that runtime clusters can share the created cloud resource.", func() interface {
+			GetName() string
+			GetDescription() string
+			ToCue() string
+		} {
+			return workflowsteps.ShareCloudResource()
+		}},
 	}
 
 	for _, tc := range allSteps {

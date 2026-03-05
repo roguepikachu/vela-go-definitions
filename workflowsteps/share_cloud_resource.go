@@ -23,46 +23,40 @@ import (
 // ShareCloudResource creates the share-cloud-resource workflow step definition.
 // This step syncs secrets created by terraform component to runtime clusters so that runtime clusters can share the created cloud resource.
 func ShareCloudResource() *defkit.WorkflowStepDefinition {
+	vela := defkit.VelaCtx()
+
+	placements := defkit.Array("placements").
+		Required().
+		Description("Declare the location to bind").
+		WithFields(
+			defkit.String("namespace").Optional(),
+			defkit.String("cluster").Optional(),
+		)
+	policy := defkit.String("policy").
+		Default("").
+		Description("Declare the name of the env-binding policy, if empty, the first env-binding policy will be used")
+	env := defkit.String("env").
+		Required().
+		Description("Declare the name of the env in policy")
+
 	return defkit.NewWorkflowStep("share-cloud-resource").
 		Description("Sync secrets created by terraform component to runtime clusters so that runtime clusters can share the created cloud resource.").
-		RawCUE(`import (
-	"vela/op"
-)
-
-"share-cloud-resource": {
-	type: "workflow-step"
-	annotations: {
-		"category": "Application Delivery"
-	}
-	labels: {
-		"scope": "Application"
-	}
-	description: "Sync secrets created by terraform component to runtime clusters so that runtime clusters can share the created cloud resource."
-}
-template: {
-	app: op.#ShareCloudResource & {
-		env:        parameter.env
-		policy:     parameter.policy
-		placements: parameter.placements
-		// context.namespace indicates the namespace of the app
-		namespace: context.namespace
-		// context.namespace indicates the name of the app
-		name: context.name
-	}
-
-	parameter: {
-		// +usage=Declare the location to bind
-		placements: [...{
-			namespace?: string
-			cluster?:   string
-		}]
-		// +usage=Declare the name of the env-binding policy, if empty, the first env-binding policy will be used
-		policy: *"" | string
-		// +usage=Declare the name of the env in policy
-		env: string
-	}
-}
-`)
+		Category("Application Delivery").
+		Scope("Application").
+		WithImports("vela/op").
+		Params(placements, policy, env).
+		Template(func(tpl *defkit.WorkflowStepTemplate) {
+			tpl.Builtin("app", "op.#ShareCloudResource").
+				WithParams(map[string]defkit.Value{
+					"env":        env,
+					"policy":     policy,
+					"placements": placements,
+					"namespace":  vela.Namespace(),
+					"name":       vela.Name(),
+				}).
+				Unwrapped().
+				Build()
+		})
 }
 
 func init() {
