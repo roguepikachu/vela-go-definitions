@@ -23,40 +23,31 @@ import (
 // DeployCloudResource creates the deploy-cloud-resource workflow step definition.
 // This step deploys cloud resource and delivers secret to multi clusters.
 func DeployCloudResource() *defkit.WorkflowStepDefinition {
+	vela := defkit.VelaCtx()
+
+	policy := defkit.String("policy").
+		Default("").
+		Description("Declare the name of the env-binding policy, if empty, the first env-binding policy will be used")
+	env := defkit.String("env").
+		Required().
+		Description("Declare the name of the env in policy")
+
 	return defkit.NewWorkflowStep("deploy-cloud-resource").
 		Description("Deploy cloud resource and deliver secret to multi clusters.").
-		RawCUE(`import (
-	"vela/op"
-)
-
-"deploy-cloud-resource": {
-	type: "workflow-step"
-	annotations: {
-		"category": "Application Delivery"
-	}
-	labels: {
-		"scope": "Application"
-	}
-	description: "Deploy cloud resource and deliver secret to multi clusters."
-}
-template: {
-	app: op.#DeployCloudResource & {
-		env:    parameter.env
-		policy: parameter.policy
-		// context.namespace indicates the namespace of the app
-		namespace: context.namespace
-		// context.namespace indicates the name of the app
-		name: context.name
-	}
-
-	parameter: {
-		// +usage=Declare the name of the env-binding policy, if empty, the first env-binding policy will be used
-		policy: *"" | string
-		// +usage=Declare the name of the env in policy
-		env: string
-	}
-}
-`)
+		Category("Application Delivery").
+		Scope("Application").
+		WithImports("vela/op").
+		Params(policy, env).
+		Template(func(tpl *defkit.WorkflowStepTemplate) {
+			tpl.Builtin("app", "op.#DeployCloudResource").
+				WithParams(map[string]defkit.Value{
+					"env":       env,
+					"policy":    policy,
+					"namespace": vela.Namespace(),
+					"name":      vela.Name(),
+				}).
+				Build()
+		})
 }
 
 func init() {

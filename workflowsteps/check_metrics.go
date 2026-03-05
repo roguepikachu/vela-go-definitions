@@ -49,17 +49,18 @@ func CheckMetrics() *defkit.WorkflowStepDefinition {
 		Labels(map[string]string{"catalog": "Delivery"}).
 		WithImports("vela/metrics", "vela/builtin").
 		Params(query, metricEndpoint, condition, duration, failDuration).
-		TemplateBody(`check: metrics.#PromCheck & {
-	$params: {
-		query:          parameter.query
-		metricEndpoint: parameter.metricEndpoint
-		condition:      parameter.condition
-		duration:       parameter.duration
-		failDuration:   parameter.failDuration
-	}
-}
+		Template(func(tpl *defkit.WorkflowStepTemplate) {
+			tpl.Builtin("check", "metrics.#PromCheck").
+				WithParams(map[string]defkit.Value{
+					"query":          query,
+					"metricEndpoint": metricEndpoint,
+					"condition":      condition,
+					"duration":       duration,
+					"failDuration":   failDuration,
+				}).
+				Build()
 
-fail: {
+			tpl.Set("fail", defkit.Reference(`{
 	if check.$returns.failed != _|_ {
 		if check.$returns.failed == true {
 			breakWorkflow: builtin.#Fail & {
@@ -67,14 +68,15 @@ fail: {
 			}
 		}
 	}
-}
+}`))
 
-wait: builtin.#ConditionalWait & {
+			tpl.Set("wait", defkit.Reference(`builtin.#ConditionalWait & {
 	$params: continue: check.$returns.result
 	if check.$returns.message != _|_ {
 		$params: message: check.$returns.message
 	}
-}`)
+}`))
+		})
 }
 
 func init() {
