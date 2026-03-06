@@ -158,7 +158,7 @@ func podAffinityTermHelper() defkit.Param {
 	return defkit.Struct("podAffinityTerm").Fields(
 		defkit.Field("labelSelector", defkit.ParamTypeStruct).WithSchemaRef("labelSelector"),
 		defkit.Field("namespace", defkit.ParamTypeString),
-		defkit.Field("namespaces", defkit.ParamTypeArray).ArrayOf(defkit.ParamTypeString),
+		defkit.Field("namespaces", defkit.ParamTypeArray).Of(defkit.ParamTypeString),
 		defkit.Field("topologyKey", defkit.ParamTypeString).Required(),
 		defkit.Field("namespaceSelector", defkit.ParamTypeStruct).WithSchemaRef("labelSelector"),
 	)
@@ -169,7 +169,7 @@ func nodeSelectorHelper() defkit.Param {
 	return defkit.Struct("nodeSelector").Fields(
 		defkit.Field("key", defkit.ParamTypeString).Required(),
 		defkit.Field("operator", defkit.ParamTypeString).Default("In").Enum("In", "NotIn", "Exists", "DoesNotExist", "Gt", "Lt"),
-		defkit.Field("values", defkit.ParamTypeArray).ArrayOf(defkit.ParamTypeString),
+		defkit.Field("values", defkit.ParamTypeArray).Of(defkit.ParamTypeString),
 	)
 }
 

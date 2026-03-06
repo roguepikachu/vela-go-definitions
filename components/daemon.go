@@ -378,7 +378,7 @@ func daemonTemplate(tpl *defkit.Template) {
 	exposePorts := tpl.Helper("exposePorts").
 		From(ports).
 		Guard(ports.IsSet()).
-		FilterPred(defkit.FieldEquals("expose", true)).
+		Filter(defkit.FieldEquals("expose", true)).
 		Map(defkit.FieldMap{
 			"port":       defkit.FieldRef("port"),
 			"targetPort": defkit.FieldRef("port"),

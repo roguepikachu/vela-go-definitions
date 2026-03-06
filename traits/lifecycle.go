@@ -54,7 +54,7 @@ func lifecycleHandlerHelper() defkit.Param {
 	return defkit.Struct("LifeCycleHandler").Fields(
 		defkit.Field("exec", defkit.ParamTypeStruct).
 			Nested(defkit.Struct("exec").Fields(
-				defkit.Field("command", defkit.ParamTypeArray).ArrayOf(defkit.ParamTypeString).Required(),
+				defkit.Field("command", defkit.ParamTypeArray).Of(defkit.ParamTypeString).Required(),
 			)),
 		defkit.Field("httpGet", defkit.ParamTypeStruct).
 			Nested(defkit.Struct("httpGet").Fields(

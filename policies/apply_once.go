@@ -31,7 +31,7 @@ func ApplyOnce() *defkit.PolicyDefinition {
 			Description("When the strategy takes effect, e.g. onUpdate, onStateKeep").
 			Optional(),
 		defkit.Field("path", defkit.ParamTypeArray).
-			ArrayOf(defkit.ParamTypeString).
+			Of(defkit.ParamTypeString).
 			Description("Specify the path of the resource that allow configuration drift").
 			Required(),
 	)
