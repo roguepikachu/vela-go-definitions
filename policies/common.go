@@ -25,27 +25,27 @@ func RuleSelectorFields() []*defkit.StructField {
 	return []*defkit.StructField{
 		defkit.Field("componentNames", defkit.ParamTypeArray).
 			Description("Select resources by component names").
-			ArrayOf(defkit.ParamTypeString).
+			Of(defkit.ParamTypeString).
 			Optional(),
 		defkit.Field("componentTypes", defkit.ParamTypeArray).
 			Description("Select resources by component types").
-			ArrayOf(defkit.ParamTypeString).
+			Of(defkit.ParamTypeString).
 			Optional(),
 		defkit.Field("oamTypes", defkit.ParamTypeArray).
 			Description("Select resources by oamTypes (COMPONENT or TRAIT)").
-			ArrayOf(defkit.ParamTypeString).
+			Of(defkit.ParamTypeString).
 			Optional(),
 		defkit.Field("traitTypes", defkit.ParamTypeArray).
 			Description("Select resources by trait types").
-			ArrayOf(defkit.ParamTypeString).
+			Of(defkit.ParamTypeString).
 			Optional(),
 		defkit.Field("resourceTypes", defkit.ParamTypeArray).
 			Description("Select resources by resource types (like Deployment)").
-			ArrayOf(defkit.ParamTypeString).
+			Of(defkit.ParamTypeString).
 			Optional(),
 		defkit.Field("resourceNames", defkit.ParamTypeArray).
 			Description("Select resources by their names").
-			ArrayOf(defkit.ParamTypeString).
+			Of(defkit.ParamTypeString).
 			Optional(),
 	}
 }

@@ -28,7 +28,7 @@ func Task() *defkit.ComponentDefinition {
 	count := defkit.Int("count").Default(1).Description("Specify number of tasks to run in parallel").Short("c")
 	image := defkit.String("image").Required().Description("Which image would you like to use for your service").Short("i")
 	imagePullPolicy := defkit.String("imagePullPolicy").
-		Enum("Always", "Never", "IfNotPresent").
+		Values("Always", "Never", "IfNotPresent").
 		Description("Specify image pull policy for your service")
 	imagePullSecrets := defkit.StringList("imagePullSecrets").Description("Specify image pull secrets for your service")
 	restart := defkit.String("restart").Default("Never").
@@ -62,33 +62,33 @@ func Task() *defkit.ComponentDefinition {
 				Description("Specify volume type, options: \"pvc\",\"configMap\",\"secret\",\"emptyDir\", default to emptyDir").
 				Default("emptyDir").
 				Variants(
-					defkit.Variant("pvc").Fields(
+					defkit.Variant("pvc").WithFields(
 						defkit.Field("claimName", defkit.ParamTypeString).Required(),
 					),
-					defkit.Variant("configMap").Fields(
+					defkit.Variant("configMap").WithFields(
 						defkit.Field("defaultMode", defkit.ParamTypeInt).Default(420),
 						defkit.Field("cmName", defkit.ParamTypeString).Required(),
 						defkit.Field("items", defkit.ParamTypeArray).Nested(
-							defkit.Struct("").Fields(
+							defkit.Struct("").WithFields(
 								defkit.Field("key", defkit.ParamTypeString).Required(),
 								defkit.Field("path", defkit.ParamTypeString).Required(),
 								defkit.Field("mode", defkit.ParamTypeInt).Default(511),
 							),
 						),
 					),
-					defkit.Variant("secret").Fields(
+					defkit.Variant("secret").WithFields(
 						defkit.Field("defaultMode", defkit.ParamTypeInt).Default(420),
 						defkit.Field("secretName", defkit.ParamTypeString).Required(),
 						defkit.Field("items", defkit.ParamTypeArray).Nested(
-							defkit.Struct("").Fields(
+							defkit.Struct("").WithFields(
 								defkit.Field("key", defkit.ParamTypeString).Required(),
 								defkit.Field("path", defkit.ParamTypeString).Required(),
 								defkit.Field("mode", defkit.ParamTypeInt).Default(511),
 							),
 						),
 					),
-					defkit.Variant("emptyDir").Fields(
-						defkit.Field("medium", defkit.ParamTypeString).Default("").Enum("", "Memory"),
+					defkit.Variant("emptyDir").WithFields(
+						defkit.Field("medium", defkit.ParamTypeString).Default("").Values("", "Memory"),
 					),
 				),
 		)

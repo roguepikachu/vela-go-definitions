@@ -52,9 +52,9 @@ func Affinity() *defkit.TraitDefinition {
 
 	tolerations := defkit.Array("tolerations").Description("Specify tolerant taint").WithFields(
 		defkit.String("key"),
-		defkit.String("operator").Default("Equal").Enum("Equal", "Exists"),
+		defkit.String("operator").Default("Equal").Values("Equal", "Exists"),
 		defkit.String("value"),
-		defkit.String("effect").Enum("NoSchedule", "PreferNoSchedule", "NoExecute"),
+		defkit.String("effect").Values("NoSchedule", "PreferNoSchedule", "NoExecute"),
 		defkit.Int("tolerationSeconds").Description("Specify the period of time the toleration"),
 	)
 
@@ -147,7 +147,7 @@ func labelSelectorHelper() defkit.Param {
 		defkit.StringKeyMap("matchLabels").Description("A map of {key,value} pairs"),
 		defkit.Array("matchExpressions").Description("A list of label selector requirements").WithFields(
 			defkit.String("key").Required(),
-			defkit.String("operator").Default("In").Enum("In", "NotIn", "Exists", "DoesNotExist"),
+			defkit.String("operator").Default("In").Values("In", "NotIn", "Exists", "DoesNotExist"),
 			defkit.Array("values").Of(defkit.ParamTypeString),
 		),
 	)
@@ -155,10 +155,10 @@ func labelSelectorHelper() defkit.Param {
 
 // podAffinityTermHelper returns the #podAffinityTerm helper definition schema.
 func podAffinityTermHelper() defkit.Param {
-	return defkit.Struct("podAffinityTerm").Fields(
+	return defkit.Struct("podAffinityTerm").WithFields(
 		defkit.Field("labelSelector", defkit.ParamTypeStruct).WithSchemaRef("labelSelector"),
 		defkit.Field("namespace", defkit.ParamTypeString),
-		defkit.Field("namespaces", defkit.ParamTypeArray).ArrayOf(defkit.ParamTypeString),
+		defkit.Field("namespaces", defkit.ParamTypeArray).Of(defkit.ParamTypeString),
 		defkit.Field("topologyKey", defkit.ParamTypeString).Required(),
 		defkit.Field("namespaceSelector", defkit.ParamTypeStruct).WithSchemaRef("labelSelector"),
 	)
@@ -166,16 +166,16 @@ func podAffinityTermHelper() defkit.Param {
 
 // nodeSelectorHelper returns the #nodeSelector helper definition schema.
 func nodeSelectorHelper() defkit.Param {
-	return defkit.Struct("nodeSelector").Fields(
+	return defkit.Struct("nodeSelector").WithFields(
 		defkit.Field("key", defkit.ParamTypeString).Required(),
-		defkit.Field("operator", defkit.ParamTypeString).Default("In").Enum("In", "NotIn", "Exists", "DoesNotExist", "Gt", "Lt"),
-		defkit.Field("values", defkit.ParamTypeArray).ArrayOf(defkit.ParamTypeString),
+		defkit.Field("operator", defkit.ParamTypeString).Default("In").Values("In", "NotIn", "Exists", "DoesNotExist", "Gt", "Lt"),
+		defkit.Field("values", defkit.ParamTypeArray).Of(defkit.ParamTypeString),
 	)
 }
 
 // nodeSelectorTermHelper returns the #nodeSelectorTerm helper definition schema.
 func nodeSelectorTermHelper() defkit.Param {
-	return defkit.Struct("nodeSelectorTerm").Fields(
+	return defkit.Struct("nodeSelectorTerm").WithFields(
 		defkit.Field("matchExpressions", defkit.ParamTypeArray).WithSchemaRef("nodeSelector"),
 		defkit.Field("matchFields", defkit.ParamTypeArray).WithSchemaRef("nodeSelector"),
 	)

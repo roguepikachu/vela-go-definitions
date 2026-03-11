@@ -28,21 +28,21 @@ func InitContainer() *defkit.TraitDefinition {
 	// Parameters
 	name := defkit.String("name").Required().Description("Specify the name of init container")
 	image := defkit.String("image").Required().Description("Specify the image of init container")
-	imagePullPolicy := defkit.String("imagePullPolicy").Default("IfNotPresent").Enum("IfNotPresent", "Always", "Never").Description("Specify image pull policy for your service")
+	imagePullPolicy := defkit.String("imagePullPolicy").Default("IfNotPresent").Values("IfNotPresent", "Always", "Never").Description("Specify image pull policy for your service")
 	cmd := defkit.Array("cmd").Of(defkit.ParamTypeString).Optional().Description("Specify the commands run in the init container")
 	args := defkit.Array("args").Of(defkit.ParamTypeString).Optional().Description("Specify the args run in the init container")
 	env := defkit.Array("env").WithFields(
 		defkit.String("name").Required().Description("Environment variable name"),
 		defkit.String("value").Optional().Description("The value of the environment variable"),
-		defkit.Struct("valueFrom").Optional().Description("Specifies a source the value of this var should come from").Fields(
+		defkit.Struct("valueFrom").Optional().Description("Specifies a source the value of this var should come from").WithFields(
 			defkit.Field("secretKeyRef", defkit.ParamTypeStruct).Optional().Description("Selects a key of a secret in the pod's namespace").Nested(
-				defkit.Struct("").Fields(
+				defkit.Struct("").WithFields(
 					defkit.Field("name", defkit.ParamTypeString).Required().Description("The name of the secret in the pod's namespace to select from"),
 					defkit.Field("key", defkit.ParamTypeString).Required().Description("The key of the secret to select from. Must be a valid secret key"),
 				),
 			),
 			defkit.Field("configMapKeyRef", defkit.ParamTypeStruct).Optional().Description("Selects a key of a config map in the pod's namespace").Nested(
-				defkit.Struct("").Fields(
+				defkit.Struct("").WithFields(
 					defkit.Field("name", defkit.ParamTypeString).Required().Description("The name of the config map in the pod's namespace to select from"),
 					defkit.Field("key", defkit.ParamTypeString).Required().Description("The key of the config map to select from. Must be a valid secret key"),
 				),

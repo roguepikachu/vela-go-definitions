@@ -31,13 +31,13 @@ func ServiceAccount() *defkit.TraitDefinition {
 	privileges := defkit.Array("privileges").WithSchemaRef("Privileges").Optional().Description("Specify the privileges of the ServiceAccount, if not empty, RoleBindings(ClusterRoleBindings) will be created")
 
 	// Helper type #Privileges
-	privilegesHelper := defkit.Struct("Privileges").Fields(
-		defkit.Field("verbs", defkit.ParamTypeArray).ArrayOf(defkit.ParamTypeString).Required().Description("Specify the verbs to be allowed for the resource"),
-		defkit.Field("apiGroups", defkit.ParamTypeArray).ArrayOf(defkit.ParamTypeString).Optional().Description("Specify the apiGroups of the resource"),
-		defkit.Field("resources", defkit.ParamTypeArray).ArrayOf(defkit.ParamTypeString).Optional().Description("Specify the resources to be allowed"),
-		defkit.Field("resourceNames", defkit.ParamTypeArray).ArrayOf(defkit.ParamTypeString).Optional().Description("Specify the resourceNames to be allowed"),
-		defkit.Field("nonResourceURLs", defkit.ParamTypeArray).ArrayOf(defkit.ParamTypeString).Optional().Description("Specify the resource url to be allowed"),
-		defkit.Field("scope", defkit.ParamTypeString).Default("namespace").Enum("namespace", "cluster").Description("Specify the scope of the privileges, default to be namespace scope"),
+	privilegesHelper := defkit.Struct("Privileges").WithFields(
+		defkit.Field("verbs", defkit.ParamTypeArray).Of(defkit.ParamTypeString).Required().Description("Specify the verbs to be allowed for the resource"),
+		defkit.Field("apiGroups", defkit.ParamTypeArray).Of(defkit.ParamTypeString).Optional().Description("Specify the apiGroups of the resource"),
+		defkit.Field("resources", defkit.ParamTypeArray).Of(defkit.ParamTypeString).Optional().Description("Specify the resources to be allowed"),
+		defkit.Field("resourceNames", defkit.ParamTypeArray).Of(defkit.ParamTypeString).Optional().Description("Specify the resourceNames to be allowed"),
+		defkit.Field("nonResourceURLs", defkit.ParamTypeArray).Of(defkit.ParamTypeString).Optional().Description("Specify the resource url to be allowed"),
+		defkit.Field("scope", defkit.ParamTypeString).Default("namespace").Values("namespace", "cluster").Description("Specify the scope of the privileges, default to be namespace scope"),
 	)
 
 	// Interpolated name for cluster-scoped resources: "\(context.namespace):\(parameter.name)"

@@ -25,14 +25,14 @@ import (
 func K8sUpdateStrategy() *defkit.TraitDefinition {
 	// Define parameters
 	targetAPIVersion := defkit.String("targetAPIVersion").Default("apps/v1").Description("Specify the apiVersion of target")
-	targetKind := defkit.String("targetKind").Default("Deployment").Enum("Deployment", "StatefulSet", "DaemonSet").Description("Specify the kind of target")
+	targetKind := defkit.String("targetKind").Default("Deployment").Values("Deployment", "StatefulSet", "DaemonSet").Description("Specify the kind of target")
 
 	// Strategy struct with nested rolling strategy
-	strategy := defkit.Struct("strategy").Required().Description("Specify the strategy of update").Fields(
-		defkit.Field("type", defkit.ParamTypeString).Default("RollingUpdate").Enum("RollingUpdate", "Recreate", "OnDelete").Description("Specify the strategy type"),
+	strategy := defkit.Struct("strategy").Required().Description("Specify the strategy of update").WithFields(
+		defkit.Field("type", defkit.ParamTypeString).Default("RollingUpdate").Values("RollingUpdate", "Recreate", "OnDelete").Description("Specify the strategy type"),
 		defkit.Field("rollingStrategy", defkit.ParamTypeStruct).
 			Description("Specify the parameters of rolling update strategy").
-			Nested(defkit.Struct("rollingStrategy").Fields(
+			Nested(defkit.Struct("rollingStrategy").WithFields(
 				defkit.Field("maxSurge", defkit.ParamTypeString).Default("25%"),
 				defkit.Field("maxUnavailable", defkit.ParamTypeString).Default("25%"),
 				defkit.Field("partition", defkit.ParamTypeInt).Default(0),

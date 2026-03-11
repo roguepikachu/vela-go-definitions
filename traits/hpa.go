@@ -30,12 +30,12 @@ func HPA() *defkit.TraitDefinition {
 	max := defkit.Int("max").Default(10).Description("Specify the maximum number of of replicas to which the autoscaler can scale up")
 	targetAPIVersion := defkit.String("targetAPIVersion").Default("apps/v1").Description("Specify the apiVersion of scale target")
 	targetKind := defkit.String("targetKind").Default("Deployment").Description("Specify the kind of scale target")
-	cpu := defkit.Struct("cpu").Required().Fields(
-		defkit.Field("type", defkit.ParamTypeString).Default("Utilization").Enum("Utilization", "AverageValue").Description("Specify resource metrics in terms of percentage(\"Utilization\") or direct value(\"AverageValue\")"),
+	cpu := defkit.Struct("cpu").Required().WithFields(
+		defkit.Field("type", defkit.ParamTypeString).Default("Utilization").Values("Utilization", "AverageValue").Description("Specify resource metrics in terms of percentage(\"Utilization\") or direct value(\"AverageValue\")"),
 		defkit.Field("value", defkit.ParamTypeInt).Default(50).Description("Specify the value of CPU utilization or averageValue"),
 	)
-	mem := defkit.Struct("mem").Fields(
-		defkit.Field("type", defkit.ParamTypeString).Default("Utilization").Enum("Utilization", "AverageValue").Description("Specify resource metrics in terms of percentage(\"Utilization\") or direct value(\"AverageValue\")"),
+	mem := defkit.Struct("mem").WithFields(
+		defkit.Field("type", defkit.ParamTypeString).Default("Utilization").Values("Utilization", "AverageValue").Description("Specify resource metrics in terms of percentage(\"Utilization\") or direct value(\"AverageValue\")"),
 		defkit.Field("value", defkit.ParamTypeInt).Default(50).Description("Specify  the value of MEM utilization or averageValue"),
 	).Optional()
 	podCustomMetrics := defkit.Array("podCustomMetrics").WithFields(

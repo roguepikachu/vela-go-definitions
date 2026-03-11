@@ -3,7 +3,7 @@ module github.com/oam-dev/vela-go-definitions
 go 1.23.8
 
 require (
-	github.com/oam-dev/kubevela v1.10.5-0.20260304095700-6a0ac8d91016
+	github.com/oam-dev/kubevela v1.10.5-0.20260310195120-79d1ee702907
 	github.com/onsi/ginkgo/v2 v2.23.3
 	github.com/onsi/gomega v1.36.2
 	k8s.io/api v0.31.10
