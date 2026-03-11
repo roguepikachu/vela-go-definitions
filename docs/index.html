@@ -1311,10 +1311,581 @@ return defkit.NewComponent("k8s-objects").
         <div><div class="section-title">Parameter Builders</div></div>
       </div>
       <p class="section-desc">Construct typed parameters that map directly to CUE types. Parameters are defined once and referenced in template functions by the captured Go variable.</p>
-      <div class="placeholder-box">
-        <div class="pl-icon">📋</div>
-        <p>Full API reference for all parameter types (<strong>String</strong>, <strong>Int</strong>, <strong>Bool</strong>, <strong>Enum</strong>, <strong>Struct</strong>, <strong>Array</strong>, <strong>OneOf</strong>, etc.) and chain methods — coming in Phase 2.</p>
-        <div class="pl-phase">Phase 2</div>
+      <!-- ── SCALAR TYPES ───────────────────────── -->
+      <h3 style="font-size:1rem;font-weight:700;margin:0 0 1rem;color:var(--text);">Scalar Types</h3>
+
+      <!-- String -->
+      <div class="method-card">
+        <div class="method-header">
+          <code class="method-sig">defkit.String(name string) *Param</code>
+          <div class="method-meta">
+            <div class="method-title">String</div>
+            <div class="method-desc">A UTF-8 string parameter. Optional by default — use <code>.Required()</code> to enforce presence.</div>
+          </div>
+        </div>
+        <div class="method-body">
+          <div class="method-applies"><span class="applies-label">Applies to:</span><span class="pill pill-all">All Definition Types</span></div>
+          <div class="code-pair">
+            <div class="code-block">
+              <div class="code-label go"><span class="dot"></span>Go — defkit</div>
+              <pre class="language-go"><code>image   := defkit.String("image").Required()
+tag     := defkit.String("tag").Default("latest")
+comment := defkit.String("comment") // optional, no default</code></pre>
+            </div>
+            <div class="code-block">
+              <div class="code-label cue"><span class="dot"></span>CUE — generated</div>
+              <pre class="language-cue"><code>image:    string
+tag:      *"latest" | string
+comment?: string</code></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Int -->
+      <div class="method-card">
+        <div class="method-header">
+          <code class="method-sig">defkit.Int(name string) *Param</code>
+          <div class="method-meta">
+            <div class="method-title">Int</div>
+            <div class="method-desc">A 64-bit integer parameter. Supports <code>.Min(n)</code> and <code>.Max(n)</code> for range constraints.</div>
+          </div>
+        </div>
+        <div class="method-body">
+          <div class="method-applies"><span class="applies-label">Applies to:</span><span class="pill pill-all">All Definition Types</span></div>
+          <div class="code-pair">
+            <div class="code-block">
+              <div class="code-label go"><span class="dot"></span>Go — defkit</div>
+              <pre class="language-go"><code>replicas := defkit.Int("replicas").Default(1).Min(1).Max(50)
+port     := defkit.Int("port").Required()</code></pre>
+            </div>
+            <div class="code-block">
+              <div class="code-label cue"><span class="dot"></span>CUE — generated</div>
+              <pre class="language-cue"><code>replicas: *1 | int &gt;=1 &amp; &lt;=50
+port:     int</code></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bool -->
+      <div class="method-card">
+        <div class="method-header">
+          <code class="method-sig">defkit.Bool(name string) *Param</code>
+          <div class="method-meta">
+            <div class="method-title">Bool</div>
+            <div class="method-desc">A boolean parameter. <code>.Default(true)</code> or <code>.Default(false)</code> sets the CUE default value.</div>
+          </div>
+        </div>
+        <div class="method-body">
+          <div class="method-applies"><span class="applies-label">Applies to:</span><span class="pill pill-all">All Definition Types</span></div>
+          <div class="code-pair">
+            <div class="code-block">
+              <div class="code-label go"><span class="dot"></span>Go — defkit</div>
+              <pre class="language-go"><code>enable := defkit.Bool("enable").Default(true)
+debug  := defkit.Bool("debug").Default(false)</code></pre>
+            </div>
+            <div class="code-block">
+              <div class="code-label cue"><span class="dot"></span>CUE — generated</div>
+              <pre class="language-cue"><code>enable: *true  | bool
+debug:  *false | bool</code></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── COLLECTION TYPES ────────────────────── -->
+      <h3 style="font-size:1rem;font-weight:700;margin:2rem 0 1rem;color:var(--text);">Collection Types</h3>
+
+      <!-- StringList -->
+      <div class="method-card">
+        <div class="method-header">
+          <code class="method-sig">defkit.StringList(name string) *Param</code>
+          <div class="method-meta">
+            <div class="method-title">StringList</div>
+            <div class="method-desc">A list of strings. Shorthand for <code>Array("x").Of(String)</code>. Optional by default.</div>
+          </div>
+        </div>
+        <div class="method-body">
+          <div class="method-applies"><span class="applies-label">Applies to:</span><span class="pill pill-all">All Definition Types</span></div>
+          <div class="code-pair">
+            <div class="code-block">
+              <div class="code-label go"><span class="dot"></span>Go — defkit</div>
+              <pre class="language-go"><code>args    := defkit.StringList("args")
+secrets := defkit.StringList("secrets").Required()</code></pre>
+            </div>
+            <div class="code-block">
+              <div class="code-label cue"><span class="dot"></span>CUE — generated</div>
+              <pre class="language-cue"><code>args?:   [...string]
+secrets: [...string]</code></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Array -->
+      <div class="method-card">
+        <div class="method-header">
+          <code class="method-sig">defkit.Array(name string).Of(paramType) *Param</code>
+          <div class="method-meta">
+            <div class="method-title">Array</div>
+            <div class="method-desc">A typed list where every element matches the given parameter type. Chain <code>.Of()</code> with any scalar, struct, or complex type. Use when items have a defined schema.</div>
+          </div>
+        </div>
+        <div class="method-body">
+          <div class="method-applies"><span class="applies-label">Applies to:</span><span class="pill pill-all">All Definition Types</span></div>
+          <div class="code-pair">
+            <div class="code-block">
+              <div class="code-label go"><span class="dot"></span>Go — defkit</div>
+              <pre class="language-go"><code>envItem := defkit.Struct("envItem").WithFields(
+    defkit.String("name").Required(),
+    defkit.String("value").Optional(),
+)
+envs := defkit.Array("env").Of(envItem)</code></pre>
+            </div>
+            <div class="code-block">
+              <div class="code-label cue"><span class="dot"></span>CUE — generated</div>
+              <pre class="language-cue"><code>env?: [...{
+    name:   string
+    value?: string
+}]</code></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- List -->
+      <div class="method-card">
+        <div class="method-header">
+          <code class="method-sig">defkit.List(name string) *Param</code>
+          <div class="method-meta">
+            <div class="method-title">List</div>
+            <div class="method-desc">An untyped list (CUE <code>[...]</code>). Use when items are heterogeneous or the schema is provided externally. Supports <code>.WithFields()</code> for a named-field variant of the list item schema.</div>
+          </div>
+        </div>
+        <div class="method-body">
+          <div class="method-applies"><span class="applies-label">Applies to:</span><span class="pill pill-all">All Definition Types</span></div>
+          <div class="code-pair">
+            <div class="code-block">
+              <div class="code-label go"><span class="dot"></span>Go — defkit</div>
+              <pre class="language-go"><code>objects := defkit.List("objects").Required()</code></pre>
+            </div>
+            <div class="code-block">
+              <div class="code-label cue"><span class="dot"></span>CUE — generated</div>
+              <pre class="language-cue"><code>objects: [...]</code></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Object -->
+      <div class="method-card">
+        <div class="method-header">
+          <code class="method-sig">defkit.Object(name string).WithFields(params...) *Param</code>
+          <div class="method-meta">
+            <div class="method-title">Object</div>
+            <div class="method-desc">A structured object with a known set of named fields. Use <code>.WithFields()</code> to specify the field parameter definitions. Prefer <code>Struct</code> when used as an element type inside <code>Array.Of()</code>.</div>
+          </div>
+        </div>
+        <div class="method-body">
+          <div class="method-applies"><span class="applies-label">Applies to:</span><span class="pill pill-all">All Definition Types</span></div>
+          <div class="code-pair">
+            <div class="code-block">
+              <div class="code-label go"><span class="dot"></span>Go — defkit</div>
+              <pre class="language-go"><code>resources := defkit.Object("resources").WithFields(
+    defkit.Object("limits").WithFields(
+        defkit.String("cpu").Default("500m"),
+        defkit.String("memory").Default("256Mi"),
+    ),
+    defkit.Object("requests").WithFields(
+        defkit.String("cpu").Default("100m"),
+        defkit.String("memory").Default("128Mi"),
+    ),
+)</code></pre>
+            </div>
+            <div class="code-block">
+              <div class="code-label cue"><span class="dot"></span>CUE — generated</div>
+              <pre class="language-cue"><code>resources?: {
+    limits?: {
+        cpu:    *"500m"  | string
+        memory: *"256Mi" | string
+    }
+    requests?: {
+        cpu:    *"100m"  | string
+        memory: *"128Mi" | string
+    }
+}</code></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- StringKeyMap -->
+      <div class="method-card">
+        <div class="method-header">
+          <code class="method-sig">defkit.StringKeyMap(name string) *Param</code>
+          <div class="method-meta">
+            <div class="method-title">StringKeyMap</div>
+            <div class="method-desc">A map with arbitrary string keys and string values. Maps directly to the CUE <code>[string]: string</code> constraint. Useful for labels, annotations, or environment variable maps.</div>
+          </div>
+        </div>
+        <div class="method-body">
+          <div class="method-applies"><span class="applies-label">Applies to:</span><span class="pill pill-all">All Definition Types</span></div>
+          <div class="code-pair">
+            <div class="code-block">
+              <div class="code-label go"><span class="dot"></span>Go — defkit</div>
+              <pre class="language-go"><code>labels      := defkit.StringKeyMap("labels")
+annotations := defkit.StringKeyMap("annotations")</code></pre>
+            </div>
+            <div class="code-block">
+              <div class="code-label cue"><span class="dot"></span>CUE — generated</div>
+              <pre class="language-cue"><code>labels?:      [string]: string
+annotations?: [string]: string</code></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── COMPLEX TYPES ───────────────────────── -->
+      <h3 style="font-size:1rem;font-weight:700;margin:2rem 0 1rem;color:var(--text);">Complex Types</h3>
+
+      <!-- Enum -->
+      <div class="method-card">
+        <div class="method-header">
+          <code class="method-sig">defkit.Enum(name string).Values(vals ...string) *Param</code>
+          <div class="method-meta">
+            <div class="method-title">Enum</div>
+            <div class="method-desc">A string parameter constrained to a fixed set of allowed values. Use <code>.Values()</code> — not <code>.Enum()</code> — to specify the allowed set (current convention as of defkit API update).</div>
+          </div>
+        </div>
+        <div class="method-body">
+          <div class="method-applies"><span class="applies-label">Applies to:</span><span class="pill pill-all">All Definition Types</span></div>
+          <div class="code-pair">
+            <div class="code-block">
+              <div class="code-label go"><span class="dot"></span>Go — defkit</div>
+              <pre class="language-go"><code>// Use .Values(), not .Enum() — current convention
+pullPolicy := defkit.Enum("imagePullPolicy").
+    Values("Always", "Never", "IfNotPresent").
+    Default("IfNotPresent")</code></pre>
+            </div>
+            <div class="code-block">
+              <div class="code-label cue"><span class="dot"></span>CUE — generated</div>
+              <pre class="language-cue"><code>imagePullPolicy: *"IfNotPresent" | "Always" | "Never" | "IfNotPresent"</code></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Struct -->
+      <div class="method-card">
+        <div class="method-header">
+          <code class="method-sig">defkit.Struct(name string).WithFields(params...) *Param</code>
+          <div class="method-meta">
+            <div class="method-title">Struct</div>
+            <div class="method-desc">An inline struct type with named fields. Identical semantics to <code>Object</code> but conventionally used as the element type inside <code>Array.Of()</code>. Can nest other parameter types including other Structs.</div>
+          </div>
+        </div>
+        <div class="method-body">
+          <div class="method-applies"><span class="applies-label">Applies to:</span><span class="pill pill-all">All Definition Types</span></div>
+          <div class="code-pair">
+            <div class="code-block">
+              <div class="code-label go"><span class="dot"></span>Go — defkit</div>
+              <pre class="language-go"><code>portStruct := defkit.Struct("port").WithFields(
+    defkit.Int("containerPort").Required(),
+    defkit.Enum("protocol").Values("TCP", "UDP").Default("TCP"),
+    defkit.String("name").Optional(),
+)
+ports := defkit.Array("ports").Of(portStruct)</code></pre>
+            </div>
+            <div class="code-block">
+              <div class="code-label cue"><span class="dot"></span>CUE — generated</div>
+              <pre class="language-cue"><code>ports?: [...{
+    containerPort: int
+    protocol:      *"TCP" | "TCP" | "UDP"
+    name?:         string
+}]</code></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- OneOf -->
+      <div class="method-card">
+        <div class="method-header">
+          <code class="method-sig">defkit.OneOf(name string).Variants(params...) *Param</code>
+          <div class="method-meta">
+            <div class="method-title">OneOf</div>
+            <div class="method-desc">A discriminated union — the parameter must match exactly one of the declared variant schemas. Each variant is defined with <code>defkit.Variant(name)</code>. Maps to a CUE disjunction of struct types.</div>
+          </div>
+        </div>
+        <div class="method-body">
+          <div class="method-applies"><span class="applies-label">Applies to:</span><span class="pill pill-all">All Definition Types</span></div>
+          <div class="code-pair">
+            <div class="code-block">
+              <div class="code-label go"><span class="dot"></span>Go — defkit</div>
+              <pre class="language-go"><code>source := defkit.OneOf("source").Variants(
+    defkit.Variant("git").WithFields(
+        defkit.String("url").Required(),
+        defkit.String("branch").Default("main"),
+    ),
+    defkit.Variant("image").WithFields(
+        defkit.String("ref").Required(),
+    ),
+)</code></pre>
+            </div>
+            <div class="code-block">
+              <div class="code-label cue"><span class="dot"></span>CUE — generated</div>
+              <pre class="language-cue"><code>source?: {
+    url:    string
+    branch: *"main" | string
+} | {
+    ref: string
+}</code></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── CHAIN METHODS ───────────────────────── -->
+      <h3 style="font-size:1rem;font-weight:700;margin:2rem 0 1rem;color:var(--text);">Chain Methods</h3>
+      <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:1.25rem;">All parameter constructors return <code>*Param</code> — chain these methods to configure validation, defaults, and metadata. Methods are composable in any order.</p>
+
+      <!-- Required / Optional / ForceOptional -->
+      <div class="method-card">
+        <div class="method-header">
+          <code class="method-sig">.Required() / .Optional() / .ForceOptional()</code>
+          <div class="method-meta">
+            <div class="method-title">Required / Optional / ForceOptional</div>
+            <div class="method-desc">Controls whether the parameter must be supplied. Parameters are optional (<code>x?</code> in CUE) by default. <code>.Required()</code> makes the field mandatory. <code>.ForceOptional()</code> overrides Required back to optional — useful for overriding inherited schemas.</div>
+          </div>
+        </div>
+        <div class="method-body">
+          <div class="code-pair">
+            <div class="code-block">
+              <div class="code-label go"><span class="dot"></span>Go — defkit</div>
+              <pre class="language-go"><code>defkit.String("image").Required()        // mandatory
+defkit.String("tag")                     // optional (default)
+defkit.String("tag").Optional()          // explicit optional
+defkit.String("name").ForceOptional()    // override to optional</code></pre>
+            </div>
+            <div class="code-block">
+              <div class="code-label cue"><span class="dot"></span>CUE — generated</div>
+              <pre class="language-cue"><code>image: string     // required — no ?
+tag?:  string     // optional — has ?
+name?: string     // force-optional — has ?</code></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Default -->
+      <div class="method-card">
+        <div class="method-header">
+          <code class="method-sig">.Default(value interface{}) *Param</code>
+          <div class="method-meta">
+            <div class="method-title">Default</div>
+            <div class="method-desc">Sets a default value. The CUE default marker (<code>*</code>) is placed before the value in the disjunction. Works with strings, ints, bools, and string slices.</div>
+          </div>
+        </div>
+        <div class="method-body">
+          <div class="code-pair">
+            <div class="code-block">
+              <div class="code-label go"><span class="dot"></span>Go — defkit</div>
+              <pre class="language-go"><code>defkit.String("tag").Default("latest")
+defkit.Int("replicas").Default(1)
+defkit.Bool("readOnly").Default(false)</code></pre>
+            </div>
+            <div class="code-block">
+              <div class="code-label cue"><span class="dot"></span>CUE — generated</div>
+              <pre class="language-cue"><code>tag:      *"latest" | string
+replicas: *1        | int
+readOnly: *false    | bool</code></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Description / Short -->
+      <div class="method-card">
+        <div class="method-header">
+          <code class="method-sig">.Description(text string) / .Short(letter rune) *Param</code>
+          <div class="method-meta">
+            <div class="method-title">Description / Short</div>
+            <div class="method-desc"><code>.Description()</code> adds a human-readable description shown in <code>vela show</code> and generated OpenAPI schemas. <code>.Short()</code> assigns a single-letter CLI shorthand flag (e.g., <code>-i</code> for image).</div>
+          </div>
+        </div>
+        <div class="method-body">
+          <div class="code-pair">
+            <div class="code-block">
+              <div class="code-label go"><span class="dot"></span>Go — defkit</div>
+              <pre class="language-go"><code>defkit.String("image").
+    Required().
+    Short('i').
+    Description("Container image reference (e.g. nginx:1.25)")</code></pre>
+            </div>
+            <div class="code-block">
+              <div class="code-label cue"><span class="dot"></span>CUE — generated annotation</div>
+              <pre class="language-cue"><code>// +usage=Container image reference (e.g. nginx:1.25)
+// +short=i
+image: string</code></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Values -->
+      <div class="method-card">
+        <div class="method-header">
+          <code class="method-sig">.Values(vals ...string) *Param</code>
+          <div class="method-meta">
+            <div class="method-title">Values</div>
+            <div class="method-desc">Restricts an <code>Enum</code> parameter to the listed allowed values. Produces a CUE string disjunction. Combine with <code>.Default()</code> to set a pre-selected value.</div>
+          </div>
+        </div>
+        <div class="method-body">
+          <div class="code-pair">
+            <div class="code-block">
+              <div class="code-label go"><span class="dot"></span>Go — defkit</div>
+              <pre class="language-go"><code>defkit.Enum("policy").
+    Values("Retain", "Delete", "Recycle").
+    Default("Retain")</code></pre>
+            </div>
+            <div class="code-block">
+              <div class="code-label cue"><span class="dot"></span>CUE — generated</div>
+              <pre class="language-cue"><code>policy: *"Retain" | "Retain" | "Delete" | "Recycle"</code></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Min / Max -->
+      <div class="method-card">
+        <div class="method-header">
+          <code class="method-sig">.Min(n int) / .Max(n int) *Param</code>
+          <div class="method-meta">
+            <div class="method-title">Min / Max</div>
+            <div class="method-desc">Applies inclusive range constraints to <code>Int</code> parameters. Generates CUE constraint expressions using <code>&gt;=</code> and <code>&lt;=</code> intersected with the base type.</div>
+          </div>
+        </div>
+        <div class="method-body">
+          <div class="code-pair">
+            <div class="code-block">
+              <div class="code-label go"><span class="dot"></span>Go — defkit</div>
+              <pre class="language-go"><code>defkit.Int("replicas").Default(1).Min(1).Max(100)
+defkit.Int("timeout").Default(30).Min(5)</code></pre>
+            </div>
+            <div class="code-block">
+              <div class="code-label cue"><span class="dot"></span>CUE — generated</div>
+              <pre class="language-cue"><code>replicas: *1  | int &gt;=1 &amp; &lt;=100
+timeout:  *30 | int &gt;=5</code></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- WithFields -->
+      <div class="method-card">
+        <div class="method-header">
+          <code class="method-sig">.WithFields(params ...*Param) *Param</code>
+          <div class="method-meta">
+            <div class="method-title">WithFields</div>
+            <div class="method-desc">Defines the named fields of an <code>Object</code> or <code>Struct</code> parameter. Each field is itself a fully-configured <code>*Param</code>, enabling nested structures of arbitrary depth.</div>
+          </div>
+        </div>
+        <div class="method-body">
+          <div class="code-pair">
+            <div class="code-block">
+              <div class="code-label go"><span class="dot"></span>Go — defkit</div>
+              <pre class="language-go"><code>probe := defkit.Object("livenessProbe").WithFields(
+    defkit.String("path").Default("/healthz"),
+    defkit.Int("port").Default(8080),
+    defkit.Int("initialDelaySeconds").Default(10),
+)</code></pre>
+            </div>
+            <div class="code-block">
+              <div class="code-label cue"><span class="dot"></span>CUE — generated</div>
+              <pre class="language-cue"><code>livenessProbe?: {
+    path:                *"/healthz" | string
+    port:                *8080 | int
+    initialDelaySeconds: *10   | int
+}</code></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Of -->
+      <div class="method-card">
+        <div class="method-header">
+          <code class="method-sig">.Of(paramType *Param) *Param</code>
+          <div class="method-meta">
+            <div class="method-title">Of</div>
+            <div class="method-desc">Sets the element type of an <code>Array</code>. Pass any <code>*Param</code> — scalar, struct, or complex — as the element schema. The element type does not need a name when passed to <code>.Of()</code>.</div>
+          </div>
+        </div>
+        <div class="method-body">
+          <div class="code-pair">
+            <div class="code-block">
+              <div class="code-label go"><span class="dot"></span>Go — defkit</div>
+              <pre class="language-go"><code>// Array of strings
+tags := defkit.Array("tags").Of(defkit.String(""))
+
+// Array of structs
+mounts := defkit.Array("volumeMounts").Of(
+    defkit.Struct("").WithFields(
+        defkit.String("name").Required(),
+        defkit.String("mountPath").Required(),
+        defkit.Bool("readOnly").Default(false),
+    ),
+)</code></pre>
+            </div>
+            <div class="code-block">
+              <div class="code-label cue"><span class="dot"></span>CUE — generated</div>
+              <pre class="language-cue"><code>tags?: [...string]
+
+volumeMounts?: [...{
+    name:      string
+    mountPath: string
+    readOnly:  *false | bool
+}]</code></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Ignore -->
+      <div class="method-card">
+        <div class="method-header">
+          <code class="method-sig">.Ignore() *Param</code>
+          <div class="method-meta">
+            <div class="method-title">Ignore</div>
+            <div class="method-desc">Marks the parameter as internal — it is excluded from the generated CUE schema and will not appear in <code>vela show</code> or OpenAPI output. Use for deprecated fields or helper variables that exist only in Go for template composition.</div>
+          </div>
+        </div>
+        <div class="method-body">
+          <div class="code-pair">
+            <div class="code-block">
+              <div class="code-label go"><span class="dot"></span>Go — defkit</div>
+              <pre class="language-go"><code>// Deprecated field — excluded from CUE schema
+port := defkit.Int("port").
+    Ignore().
+    Description("Deprecated field, please use ports instead")
+
+return defkit.NewComponent("webservice").
+    Params(image, port, ports).  // port excluded from schema
+    Template(webserviceTemplate)</code></pre>
+            </div>
+            <div class="code-block">
+              <div class="code-label cue"><span class="dot"></span>CUE — generated</div>
+              <pre class="language-cue"><code>// Only non-ignored params appear:
+parameter: {
+    image: string
+    ports?: [...]
+    // port is omitted from schema
+}</code></pre>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
 

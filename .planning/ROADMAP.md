@@ -40,7 +40,7 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 02-01-PLAN.md — Definition Builders: NewComponent, NewTrait, NewPolicy, NewWorkflowStep + chain methods + AutodetectWorkload/RawCUE/WithImports (DEF-01 to DEF-08)
+- [x] 02-01-PLAN.md — Definition Builders: NewComponent, NewTrait, NewPolicy, NewWorkflowStep + chain methods + AutodetectWorkload/RawCUE/WithImports (DEF-01 to DEF-08)
 - [ ] 02-02-PLAN.md — Parameter Builders: scalar/collection/complex types + all chain methods (PARAM-01 to PARAM-04)
 
 ### Phase 3: Template + Resource + Value + VelaCtx + Health
@@ -76,6 +76,6 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Page Shell | 1/1 | Complete    | 2026-03-11 |
-| 2. Definition + Parameter API | 0/2 | Not started | - |
+| 2. Definition + Parameter API | 1/2 | In Progress | - |
 | 3. Template + Resource + Value + VelaCtx | 0/TBD | Not started | - |
 | 4. Full Examples | 0/TBD | Not started | - |
