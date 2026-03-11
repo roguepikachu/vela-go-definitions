@@ -476,26 +476,26 @@
 
     <div class="nav-group">
       <div class="nav-group-label">Definition Builders</div>
-      <a href="#definition-builders" class="nav-link"><span class="material-icons-round">widgets</span>NewComponent</a>
-      <a href="#definition-builders" class="nav-link"><span class="material-icons-round">layers</span>NewTrait</a>
-      <a href="#definition-builders" class="nav-link"><span class="material-icons-round">policy</span>NewPolicy</a>
-      <a href="#definition-builders" class="nav-link"><span class="material-icons-round">alt_route</span>NewWorkflowStep</a>
+      <a href="#new-component"     class="nav-link"><span class="material-icons-round">widgets</span>NewComponent</a>
+      <a href="#new-trait"         class="nav-link"><span class="material-icons-round">layers</span>NewTrait</a>
+      <a href="#new-policy"        class="nav-link"><span class="material-icons-round">policy</span>NewPolicy</a>
+      <a href="#new-workflow-step" class="nav-link"><span class="material-icons-round">alt_route</span>NewWorkflowStep</a>
     </div>
 
     <div class="nav-group">
       <div class="nav-group-label">Parameter API</div>
-      <a href="#parameter-builders" class="nav-link"><span class="material-icons-round">text_fields</span>Scalar Types</a>
-      <a href="#parameter-builders" class="nav-link"><span class="material-icons-round">data_array</span>Collection Types</a>
-      <a href="#parameter-builders" class="nav-link"><span class="material-icons-round">schema</span>Complex Types</a>
-      <a href="#parameter-builders" class="nav-link"><span class="material-icons-round">link</span>Chain Methods</a>
+      <a href="#scalar-types"     class="nav-link"><span class="material-icons-round">text_fields</span>Scalar Types</a>
+      <a href="#collection-types" class="nav-link"><span class="material-icons-round">data_array</span>Collection Types</a>
+      <a href="#complex-types"    class="nav-link"><span class="material-icons-round">schema</span>Complex Types</a>
+      <a href="#chain-methods"    class="nav-link"><span class="material-icons-round">link</span>Chain Methods</a>
     </div>
 
     <div class="nav-group">
       <div class="nav-group-label">Template API</div>
-      <a href="#template-methods" class="nav-link"><span class="material-icons-round">output</span>Output Methods</a>
-      <a href="#template-methods" class="nav-link"><span class="material-icons-round">edit_note</span>Patch Methods</a>
-      <a href="#template-methods" class="nav-link"><span class="material-icons-round">handyman</span>Helper Builder</a>
-      <a href="#template-methods" class="nav-link"><span class="material-icons-round">code_blocks</span>Raw CUE Blocks</a>
+      <a href="#output-methods"  class="nav-link"><span class="material-icons-round">output</span>Output Methods</a>
+      <a href="#patch-methods"   class="nav-link"><span class="material-icons-round">edit_note</span>Patch Methods</a>
+      <a href="#helper-builder"  class="nav-link"><span class="material-icons-round">handyman</span>Helper Builder</a>
+      <a href="#raw-cue-blocks"  class="nav-link"><span class="material-icons-round">code_blocks</span>Raw CUE Blocks</a>
     </div>
 
     <div class="nav-group">
@@ -507,11 +507,16 @@
     </div>
 
     <div class="nav-group">
+      <div class="nav-group-label">Advanced</div>
+      <a href="#advanced-api" class="nav-link"><span class="material-icons-round">extension</span>Advanced API</a>
+    </div>
+
+    <div class="nav-group">
       <div class="nav-group-label">Examples</div>
-      <a href="#full-examples" class="nav-link"><span class="material-icons-round">widgets</span>Component Example</a>
-      <a href="#full-examples" class="nav-link"><span class="material-icons-round">layers</span>Trait Example</a>
-      <a href="#full-examples" class="nav-link"><span class="material-icons-round">policy</span>Policy Example</a>
-      <a href="#full-examples" class="nav-link"><span class="material-icons-round">alt_route</span>WorkflowStep Example</a>
+      <a href="#example-component" class="nav-link"><span class="material-icons-round">widgets</span>Component Example</a>
+      <a href="#example-trait"     class="nav-link"><span class="material-icons-round">layers</span>Trait Example</a>
+      <a href="#example-policy"    class="nav-link"><span class="material-icons-round">policy</span>Policy Example</a>
+      <a href="#example-workflow"  class="nav-link"><span class="material-icons-round">alt_route</span>WorkflowStep Example</a>
     </div>
 
   </div>
@@ -1026,7 +1031,7 @@ func main() {
       </div>
       <p class="section-desc">Top-level factory functions that create the four definition types. Each returns a builder with a fluent chain for configuring the definition.</p>
       <!-- NewComponent -->
-      <div class="method-card">
+      <div class="method-card" id="new-component">
         <div class="method-header">
           <code class="method-sig">defkit.NewComponent(name string) *ComponentDefinition</code>
           <div class="method-meta">
@@ -1077,21 +1082,31 @@ func init() { defkit.Register(Webservice()) }</code></pre>
             </div>
             <div class="code-block">
               <div class="code-label cue"><span class="dot"></span>CUE — generated</div>
-              <pre class="language-cue"><code>// KubeVela generates this schema from the builder:
+              <pre class="language-cue"><code>// Generated by defkit — ComponentDefinition CUE template
 parameter: {
-    image:    string
-    replicas: *1 | int
+  // +usage=Container image to run
+  image:    string
+  // +usage=Number of replicas
+  replicas: *1 | int
 }
-
-// and the template function becomes the CUE
-// output/patch body compiled by the controller</code></pre>
+output: {
+  apiVersion: "apps/v1"
+  kind: "Deployment"
+  metadata: name: context.name
+  spec: {
+    replicas: parameter.replicas
+    template: spec: containers: [{
+      image: parameter.image
+    }]
+  }
+}</code></pre>
             </div>
           </div>
         </div>
       </div>
 
       <!-- NewTrait -->
-      <div class="method-card">
+      <div class="method-card" id="new-trait">
         <div class="method-header">
           <code class="method-sig">defkit.NewTrait(name string) *TraitDefinition</code>
           <div class="method-meta">
@@ -1144,11 +1159,18 @@ func init() { defkit.Register(Env()) }</code></pre>
             </div>
             <div class="code-block">
               <div class="code-label cue"><span class="dot"></span>CUE — generated</div>
-              <pre class="language-cue"><code>parameter: {
-    env?: [...{
-        name:   string
-        value?: string
-    }]
+              <pre class="language-cue"><code>// Generated — env TraitDefinition
+#PatchParams: {
+  containerName: *"" | string
+  replace:       *false | bool
+  env: [string]: string
+  unset: *[] | [...string]
+}
+parameter: {
+  env?: [...{
+    name:   string
+    value?: string
+  }]
 }</code></pre>
             </div>
           </div>
@@ -1156,7 +1178,7 @@ func init() { defkit.Register(Env()) }</code></pre>
       </div>
 
       <!-- NewPolicy -->
-      <div class="method-card">
+      <div class="method-card" id="new-policy">
         <div class="method-header">
           <code class="method-sig">defkit.NewPolicy(name string) *PolicyDefinition</code>
           <div class="method-meta">
@@ -1201,11 +1223,18 @@ func init() { defkit.Register(ApplyOnce()) }</code></pre>
             </div>
             <div class="code-block">
               <div class="code-label cue"><span class="dot"></span>CUE — generated</div>
-              <pre class="language-cue"><code>parameter: {
-    enable: *true | bool
-    rules?: [...{
-        selector?: [...string]
-    }]
+              <pre class="language-cue"><code>// Generated — apply-once PolicyDefinition
+#ApplyOncePolicyRule: {
+  selector?: #ResourcePolicyRuleSelector
+  strategy:  #ApplyOnceStrategy
+}
+#ApplyOnceStrategy: {
+  affect?: string
+  path: [...string]
+}
+parameter: {
+  enable: *true | bool
+  rules?: [...#ApplyOncePolicyRule]
 }</code></pre>
             </div>
           </div>
@@ -1213,7 +1242,7 @@ func init() { defkit.Register(ApplyOnce()) }</code></pre>
       </div>
 
       <!-- NewWorkflowStep -->
-      <div class="method-card">
+      <div class="method-card" id="new-workflow-step">
         <div class="method-header">
           <code class="method-sig">defkit.NewWorkflowStep(name string) *WorkflowStepDefinition</code>
           <div class="method-meta">
@@ -1260,8 +1289,14 @@ func init() { defkit.Register(ApplyComponent()) }</code></pre>
             </div>
             <div class="code-block">
               <div class="code-label cue"><span class="dot"></span>CUE — generated</div>
-              <pre class="language-cue"><code>parameter: {
-    component: string
+              <pre class="language-cue"><code>// Generated — apply-component WorkflowStepDefinition
+parameter: {
+  // +usage=Specify the component name to apply
+  component: string
+  // +usage=Specify the cluster
+  cluster: *"" | string
+  // +usage=Specify the namespace
+  namespace: *"" | string
 }</code></pre>
             </div>
           </div>
@@ -1272,7 +1307,7 @@ func init() { defkit.Register(ApplyComponent()) }</code></pre>
       <h3 style="font-size:1rem;font-weight:700;margin:2rem 0 1rem;color:var(--md-on-surface);">Special Methods</h3>
 
       <!-- AutodetectWorkload -->
-      <div class="method-card">
+      <div class="method-card" id="autodetect-workload">
         <div class="method-header">
           <code class="method-sig">.AutodetectWorkload() *ComponentDefinition</code>
           <div class="method-meta">
@@ -1311,7 +1346,7 @@ return defkit.NewComponent("k8s-objects").
       </div>
 
       <!-- RawCUE -->
-      <div class="method-card">
+      <div class="method-card" id="raw-cue">
         <div class="method-header">
           <code class="method-sig">.RawCUE(cueTemplate string) *ComponentDefinition</code>
           <div class="method-meta">
@@ -1355,7 +1390,7 @@ return defkit.NewComponent("k8s-objects").
       </div>
 
       <!-- WithImports -->
-      <div class="method-card">
+      <div class="method-card" id="with-imports">
         <div class="method-header">
           <code class="method-sig">.WithImports(imports ...string) *ComponentDefinition</code>
           <div class="method-meta">
@@ -1403,7 +1438,7 @@ return defkit.NewComponent("k8s-objects").
       </div>
       <p class="section-desc">Construct typed parameters that map directly to CUE types. Parameters are defined once and referenced in template functions by the captured Go variable.</p>
       <!-- ── SCALAR TYPES ───────────────────────── -->
-      <h3 style="font-size:1rem;font-weight:700;margin:0 0 1rem;color:var(--md-on-surface);">Scalar Types</h3>
+      <h3 id="scalar-types" style="font-size:1rem;font-weight:700;margin:0 0 1rem;color:var(--md-on-surface);">Scalar Types</h3>
 
       <!-- String -->
       <div class="method-card">
@@ -1486,7 +1521,7 @@ debug:  *false | bool</code></pre>
       </div>
 
       <!-- ── COLLECTION TYPES ────────────────────── -->
-      <h3 style="font-size:1rem;font-weight:700;margin:2rem 0 1rem;color:var(--md-on-surface);">Collection Types</h3>
+      <h3 id="collection-types" style="font-size:1rem;font-weight:700;margin:2rem 0 1rem;color:var(--md-on-surface);">Collection Types</h3>
 
       <!-- StringList -->
       <div class="method-card">
@@ -1638,7 +1673,7 @@ annotations?: [string]: string</code></pre>
       </div>
 
       <!-- ── COMPLEX TYPES ───────────────────────── -->
-      <h3 style="font-size:1rem;font-weight:700;margin:2rem 0 1rem;color:var(--md-on-surface);">Complex Types</h3>
+      <h3 id="complex-types" style="font-size:1rem;font-weight:700;margin:2rem 0 1rem;color:var(--md-on-surface);">Complex Types</h3>
 
       <!-- Enum -->
       <div class="method-card">
@@ -1738,7 +1773,7 @@ ports := defkit.Array("ports").Of(portStruct)</code></pre>
       </div>
 
       <!-- ── CHAIN METHODS ───────────────────────── -->
-      <h3 style="font-size:1rem;font-weight:700;margin:2rem 0 1rem;color:var(--md-on-surface);">Chain Methods</h3>
+      <h3 id="chain-methods" style="font-size:1rem;font-weight:700;margin:2rem 0 1rem;color:var(--md-on-surface);">Chain Methods</h3>
       <p style="font-size:0.82rem;color:var(--md-on-surface-var);margin-bottom:1.25rem;">All parameter constructors return <code>*Param</code> — chain these methods to configure validation, defaults, and metadata. Methods are composable in any order.</p>
 
       <!-- Required / Optional / ForceOptional -->
@@ -1993,7 +2028,7 @@ parameter: {
       <h3 style="font-size:1rem;font-weight:700;margin:0 0 1rem;color:var(--text);">Output Methods</h3>
 
       <!-- tpl.Output -->
-      <div class="method-card">
+      <div class="method-card" id="output-methods">
         <div class="method-header">
           <code class="method-sig">tpl.Output(resource *Resource)</code>
           <div class="method-meta">
@@ -2075,7 +2110,7 @@ if parameter.create {
       <h3 style="font-size:1rem;font-weight:700;margin:2rem 0 1rem;color:var(--text);">Patch Methods</h3>
 
       <!-- tpl.Patch / tpl.SetRawPatchBlock -->
-      <div class="method-card">
+      <div class="method-card" id="patch-methods">
         <div class="method-header">
           <code class="method-sig">tpl.Patch() *Resource / tpl.PatchStrategy(strategy) / tpl.SetRawPatchBlock(cue string)</code>
           <div class="method-meta">
@@ -2186,7 +2221,7 @@ patch: { ... }</code></pre>
       <h3 style="font-size:1rem;font-weight:700;margin:2rem 0 1rem;color:var(--text);">Raw CUE Blocks</h3>
 
       <!-- tpl.SetRawHeaderBlock / tpl.SetRawOutputsBlock -->
-      <div class="method-card">
+      <div class="method-card" id="raw-cue-blocks">
         <div class="method-header">
           <code class="method-sig">tpl.SetRawHeaderBlock(cue string) / tpl.SetRawOutputsBlock(cue string)</code>
           <div class="method-meta">
@@ -2243,7 +2278,7 @@ if (parameter.existingServiceName == _|_) {
       <h3 style="font-size:1rem;font-weight:700;margin:2rem 0 1rem;color:var(--text);">Helper Builder</h3>
 
       <!-- tpl.Helper() -->
-      <div class="method-card">
+      <div class="method-card" id="helper-builder">
         <div class="method-header">
           <code class="method-sig">tpl.Helper(name string) *HelperBuilder</code>
           <div class="method-meta">
@@ -3380,6 +3415,328 @@ customStatus: {
     </section>
 
     <!-- ══════════════════════════════════
+         ADVANCED API
+    ══════════════════════════════════ -->
+    <section id="advanced-api" class="section">
+      <div class="section-header">
+        <div class="section-icon" style="background:var(--c-teal-dim);"><span class="material-icons-round" style="color:var(--c-teal);">extension</span></div>
+        <div><div class="section-title">Advanced API Methods</div></div>
+      </div>
+      <p class="section-desc">Additional methods used in complex definitions — patch container fields, array builders, field transformations, and collection utilities.</p>
+
+      <!-- ── PATCH CONTAINER FIELDS ─────────────── -->
+      <h3 style="font-size:1rem;font-weight:700;margin:0 0 1rem;color:var(--md-on-surface);">Patch Container Fields</h3>
+
+      <!-- PatchField -->
+      <div class="method-card">
+        <div class="method-header">
+          <code class="method-sig">defkit.PatchField(name string) *PatchFieldDef</code>
+          <div class="method-meta">
+            <div class="method-title">PatchField</div>
+            <div class="method-desc">Defines a single patch field for container mutation. Chain: <code>.Strategy(strategy)</code> (retainKeys, merge, replace), <code>.NotEmpty()</code> (reject empty values), <code>.Description(text)</code>.</div>
+          </div>
+        </div>
+        <div class="method-body">
+          <div class="method-applies"><span class="applies-label">Applies to:</span><span class="pill pill-trait">Trait</span></div>
+          <div class="code-pair">
+            <div class="code-block">
+              <div class="code-label go"><span class="dot"></span>Go — defkit</div>
+              <pre class="language-go"><code>defkit.PatchField("image").Strategy("retainKeys").Description("Container image")</code></pre>
+            </div>
+            <div class="code-block">
+              <div class="code-label cue"><span class="dot"></span>CUE — generated</div>
+              <pre class="language-cue"><code>// +patchStrategy=retainKeys
+image: string</code></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PatchFields -->
+      <div class="method-card">
+        <div class="method-header">
+          <code class="method-sig">defkit.PatchFields(fields ...*PatchFieldDef) PatchFieldsConfig</code>
+          <div class="method-meta">
+            <div class="method-title">PatchFields</div>
+            <div class="method-desc">Groups multiple <code>PatchField</code> definitions into a config used in <code>PatchContainerConfig</code>.</div>
+          </div>
+        </div>
+        <div class="method-body">
+          <div class="method-applies"><span class="applies-label">Applies to:</span><span class="pill pill-trait">Trait</span></div>
+          <div class="code-pair">
+            <div class="code-block">
+              <div class="code-label go"><span class="dot"></span>Go — defkit</div>
+              <pre class="language-go"><code>defkit.PatchFields(
+    defkit.PatchField("image").Strategy("retainKeys"),
+    defkit.PatchField("resources"),
+)
+// Used with:
+tpl.UsePatchContainer(defkit.PatchContainerConfig{
+    PatchFields: defkit.PatchFields(...),
+})</code></pre>
+            </div>
+            <div class="code-block">
+              <div class="code-label cue"><span class="dot"></span>CUE — generated</div>
+              <pre class="language-cue"><code>#PatchParams: {
+  image?:     string
+  resources?: {...}
+}</code></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ContextOutput -->
+      <div class="method-card">
+        <div class="method-header">
+          <code class="method-sig">defkit.ContextOutput() *ContextOutputRef</code>
+          <div class="method-meta">
+            <div class="method-title">ContextOutput</div>
+            <div class="method-desc">Accesses the primary output resource from the component's context. Methods: <code>.HasPath(path)</code> returns a boolean condition — true if path exists in the output.</div>
+          </div>
+        </div>
+        <div class="method-body">
+          <div class="method-applies"><span class="applies-label">Applies to:</span><span class="pill pill-trait">Trait</span></div>
+          <div class="code-pair">
+            <div class="code-block">
+              <div class="code-label go"><span class="dot"></span>Go — defkit</div>
+              <pre class="language-go"><code>defkit.ContextOutput().HasPath("spec.template")</code></pre>
+            </div>
+            <div class="code-block">
+              <div class="code-label cue"><span class="dot"></span>CUE — generated</div>
+              <pre class="language-cue"><code>context.output.spec.template != _|_</code></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── ARRAY BUILDERS ──────────────────────── -->
+      <h3 style="font-size:1rem;font-weight:700;margin:2rem 0 1rem;color:var(--md-on-surface);">Array Builders</h3>
+
+      <!-- NewArray / NewArrayElement (advanced) -->
+      <div class="method-card">
+        <div class="method-header">
+          <code class="method-sig">defkit.NewArray().Item(elem) / defkit.NewArrayElement().Set(path, value)</code>
+          <div class="method-meta">
+            <div class="method-title">NewArray / NewArrayElement (inline construction)</div>
+            <div class="method-desc">Builds a CUE array literal with explicit items. Use when you need to construct an array value inline (not iterate over params). <code>NewArrayElement</code> builds a single object element supporting the same <code>.Set()</code>, <code>.SetIf()</code> methods as <code>NewResource</code>.</div>
+          </div>
+        </div>
+        <div class="method-body">
+          <div class="method-applies"><span class="applies-label">Applies to:</span><span class="pill pill-param">Parameter</span></div>
+          <div class="code-pair">
+            <div class="code-block">
+              <div class="code-label go"><span class="dot"></span>Go — defkit</div>
+              <pre class="language-go"><code>defkit.NewArray().Item(
+    defkit.NewArrayElement().Set("kind", defkit.Lit("ServiceAccount")),
+)
+
+defkit.NewArrayElement().
+    Set("name", vela.Name()).
+    Set("namespace", vela.Namespace())</code></pre>
+            </div>
+            <div class="code-block">
+              <div class="code-label cue"><span class="dot"></span>CUE — generated</div>
+              <pre class="language-cue"><code>[{kind: "ServiceAccount"}]
+
+{name: context.name, namespace: context.namespace}</code></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- OpenArray -->
+      <div class="method-card">
+        <div class="method-header">
+          <code class="method-sig">defkit.OpenArray(name string) *Param</code>
+          <div class="method-meta">
+            <div class="method-title">OpenArray</div>
+            <div class="method-desc">Parameter type for an array with open schema (no element type constraint).</div>
+          </div>
+        </div>
+        <div class="method-body">
+          <div class="method-applies"><span class="applies-label">Applies to:</span><span class="pill pill-param">Parameter</span></div>
+          <div class="code-pair">
+            <div class="code-block">
+              <div class="code-label go"><span class="dot"></span>Go — defkit</div>
+              <pre class="language-go"><code>defkit.OpenArray("items")</code></pre>
+            </div>
+            <div class="code-block">
+              <div class="code-label cue"><span class="dot"></span>CUE — generated</div>
+              <pre class="language-cue"><code>items: [...{...}]</code></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- DynamicMap -->
+      <div class="method-card">
+        <div class="method-header">
+          <code class="method-sig">defkit.DynamicMap().ValueTypeUnion(typeStr string) *Param</code>
+          <div class="method-meta">
+            <div class="method-title">DynamicMap</div>
+            <div class="method-desc">Creates a map parameter with a custom value type union. Used for label-style params where values can be mixed types.</div>
+          </div>
+        </div>
+        <div class="method-body">
+          <div class="method-applies"><span class="applies-label">Applies to:</span><span class="pill pill-param">Parameter</span></div>
+          <div class="code-pair">
+            <div class="code-block">
+              <div class="code-label go"><span class="dot"></span>Go — defkit</div>
+              <pre class="language-go"><code>defkit.DynamicMap().ValueTypeUnion("string | null")</code></pre>
+            </div>
+            <div class="code-block">
+              <div class="code-label cue"><span class="dot"></span>CUE — generated</div>
+              <pre class="language-cue"><code>[string]: string | null</code></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── FIELD REFERENCE & TRANSFORMATION ───── -->
+      <h3 style="font-size:1rem;font-weight:700;margin:2rem 0 1rem;color:var(--md-on-surface);">Field Reference &amp; Transformation</h3>
+
+      <!-- ParameterField / ParamPath -->
+      <div class="method-card">
+        <div class="method-header">
+          <code class="method-sig">defkit.ParameterField(path) / defkit.ParamPath(path)</code>
+          <div class="method-meta">
+            <div class="method-title">ParameterField / ParamPath</div>
+            <div class="method-desc"><code>ParameterField</code> returns the value at a dot-notation path inside <code>parameter</code>. <code>ParamPath</code> returns a reference that supports <code>.IsSet()</code> as a condition.</div>
+          </div>
+        </div>
+        <div class="method-body">
+          <div class="method-applies"><span class="applies-label">Applies to:</span><span class="pill pill-template">Template</span></div>
+          <div class="code-pair">
+            <div class="code-block">
+              <div class="code-label go"><span class="dot"></span>Go — defkit</div>
+              <pre class="language-go"><code>defkit.ParameterField("strategy.type")
+defkit.ParamPath("podAffinity.required").IsSet()</code></pre>
+            </div>
+            <div class="code-block">
+              <div class="code-label cue"><span class="dot"></span>CUE — generated</div>
+              <pre class="language-cue"><code>parameter.strategy.type
+parameter.podAffinity.required != _|_</code></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- FieldRef (iteration) -->
+      <div class="method-card">
+        <div class="method-header">
+          <code class="method-sig">defkit.FieldRef(name string) Value</code>
+          <div class="method-meta">
+            <div class="method-title">FieldRef (iteration context)</div>
+            <div class="method-desc">Inside a <code>ForEachIn</code> / <code>From</code> iteration context, references a field of the current element by name.</div>
+          </div>
+        </div>
+        <div class="method-body">
+          <div class="method-applies"><span class="applies-label">Applies to:</span><span class="pill pill-template">Template</span></div>
+          <div class="code-pair">
+            <div class="code-block">
+              <div class="code-label go"><span class="dot"></span>Go — defkit</div>
+              <pre class="language-go"><code>defkit.ForEachIn(constraints).Map(map[string]defkit.Expr{
+    "maxSkew": defkit.FieldRef("maxSkew"),
+})</code></pre>
+            </div>
+            <div class="code-block">
+              <div class="code-label cue"><span class="dot"></span>CUE — generated</div>
+              <pre class="language-cue"><code>[for v in parameter.constraints {
+    maxSkew: v.maxSkew
+}]</code></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ForEachIn -->
+      <div class="method-card">
+        <div class="method-header">
+          <code class="method-sig">defkit.ForEachIn(param).Map(fieldMap) / .MapFields(fields)</code>
+          <div class="method-meta">
+            <div class="method-title">ForEachIn</div>
+            <div class="method-desc">Transforms an array parameter by mapping each element's fields. Returns a CUE list comprehension.</div>
+          </div>
+        </div>
+        <div class="method-body">
+          <div class="method-applies"><span class="applies-label">Applies to:</span><span class="pill pill-template">Template</span></div>
+          <div class="code-pair">
+            <div class="code-block">
+              <div class="code-label go"><span class="dot"></span>Go — defkit</div>
+              <pre class="language-go"><code>defkit.ForEachIn(constraints).Map(map[string]defkit.Expr{
+    "maxSkew":           defkit.FieldRef("maxSkew"),
+    "topologyKey":       defkit.FieldRef("topologyKey"),
+    "whenUnsatisfiable": defkit.FieldRef("whenUnsatisfiable"),
+})</code></pre>
+            </div>
+            <div class="code-block">
+              <div class="code-label cue"><span class="dot"></span>CUE — generated</div>
+              <pre class="language-cue"><code>[for v in parameter.constraints {
+    maxSkew:           v.maxSkew
+    topologyKey:       v.topologyKey
+    whenUnsatisfiable: v.whenUnsatisfiable
+}]</code></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- From (advanced) -->
+      <div class="method-card">
+        <div class="method-header">
+          <code class="method-sig">defkit.From(param).Map(fieldMap) / .Filter(cond) / .Guard(cond)</code>
+          <div class="method-meta">
+            <div class="method-title">From (filter + guard)</div>
+            <div class="method-desc">Similar to <code>ForEachIn</code> but with filter and guard support. <code>.Filter(cond)</code> filters elements, <code>.Guard(cond)</code> wraps the whole expression in an if-guard.</div>
+          </div>
+        </div>
+        <div class="method-body">
+          <div class="method-applies"><span class="applies-label">Applies to:</span><span class="pill pill-template">Template</span></div>
+          <div class="code-pair">
+            <div class="code-block">
+              <div class="code-label go"><span class="dot"></span>Go — defkit</div>
+              <pre class="language-go"><code>defkit.From(privileges).
+    Filter(defkit.FieldEquals("scope", "cluster")).
+    Guard(privileges.IsSet())</code></pre>
+            </div>
+            <div class="code-block">
+              <div class="code-label cue"><span class="dot"></span>CUE — generated</div>
+              <pre class="language-cue"><code>if parameter.privileges != _|_ {
+    [for v in parameter.privileges
+     if v.scope == "cluster" { v }]
+}</code></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- LenGt (advanced) -->
+      <div class="method-card">
+        <div class="method-header">
+          <code class="method-sig">defkit.LenGt(expr Value, n int) Condition</code>
+          <div class="method-meta">
+            <div class="method-title">LenGt</div>
+            <div class="method-desc">Returns a condition that is true when the length of an array expression is greater than <code>n</code>.</div>
+          </div>
+        </div>
+        <div class="method-body">
+          <div class="method-applies"><span class="applies-label">Applies to:</span><span class="pill pill-template">Template</span></div>
+          <div class="code-pair">
+            <div class="code-block">
+              <div class="code-label go"><span class="dot"></span>Go — defkit</div>
+              <pre class="language-go"><code>defkit.LenGt(clusterPrivsRef, 0)</code></pre>
+            </div>
+            <div class="code-block">
+              <div class="code-label cue"><span class="dot"></span>CUE — generated</div>
+              <pre class="language-cue"><code>len(_clusterPrivileges) > 0</code></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════════════════════════════
          FULL EXAMPLES (Phase 4)
     ══════════════════════════════════ -->
     <section id="full-examples" class="section">
@@ -3390,7 +3747,7 @@ customStatus: {
       <p class="section-desc">Complete end-to-end definition examples — one per definition type — showing real-world usage patterns with full Go code, CUE output, and inline annotations.</p>
 
       <!-- EX-01: Component Example -->
-      <div class="method-card" style="margin-bottom:2rem;">
+      <div class="method-card" id="example-component" style="margin-bottom:2rem;">
         <div class="method-header" style="background:rgba(130,177,255,0.06);">
           <div class="method-meta">
             <div class="method-title">EX-01 — Component Definition</div>
@@ -3574,7 +3931,7 @@ if len(exposePorts) > 0 {
       </div>
 
       <!-- EX-02: Trait Example -->
-      <div class="method-card" style="margin-bottom:2rem;">
+      <div class="method-card" id="example-trait" style="margin-bottom:2rem;">
         <div class="method-header" style="background:rgba(167,255,235,0.04);">
           <div class="method-meta">
             <div class="method-title">EX-02 — Trait Definition</div>
@@ -3713,7 +4070,7 @@ patch: spec: template: spec: {
       </div>
 
       <!-- EX-03: Policy Example -->
-      <div class="method-card" style="margin-bottom:2rem;">
+      <div class="method-card" id="example-policy" style="margin-bottom:2rem;">
         <div class="method-header" style="background:rgba(255,183,77,0.04);">
           <div class="method-meta">
             <div class="method-title">EX-03 — Policy Definition</div>
@@ -3838,7 +4195,7 @@ parameter: {
       </div>
 
       <!-- EX-04: WorkflowStep Example -->
-      <div class="method-card" style="margin-bottom:2rem;">
+      <div class="method-card" id="example-workflow" style="margin-bottom:2rem;">
         <div class="method-header" style="background:rgba(206,147,216,0.05);">
           <div class="method-meta">
             <div class="method-title">EX-04 — WorkflowStep Definition</div>
