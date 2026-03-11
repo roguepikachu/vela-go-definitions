@@ -20,6 +20,9 @@
 - [ ] **DEF-03**: `defkit.NewPolicy(name)` documented with description, signature, example
 - [ ] **DEF-04**: `defkit.NewWorkflowStep(name)` documented with description, signature, example
 - [ ] **DEF-05**: Definition chain methods documented per type (Description, Workload, Params, Template, AppliesTo, etc.)
+- [ ] **DEF-06**: `AutodetectWorkload()` documented — for definitions without a fixed workload type
+- [ ] **DEF-07**: `RawCUE(string)` documented — inject raw CUE template body (used in k8s-objects, ref-objects)
+- [ ] **DEF-08**: `WithImports(...)` documented — add CUE import paths to definition
 
 ### Parameter Builders
 
@@ -34,6 +37,8 @@
 - [ ] **TPL-02**: `tpl.Outputs(name, resource)` and `tpl.OutputsIf(...)` documented
 - [ ] **TPL-03**: `tpl.Patch()` builder and `tpl.SetRawPatchBlock()` documented
 - [ ] **TPL-04**: `tpl.UsePatchContainer(config)` documented with PatchContainerConfig fields
+- [ ] **TPL-05**: `tpl.SetRawHeaderBlock()` and `tpl.SetRawOutputsBlock()` documented
+- [ ] **TPL-06**: `tpl.Helper()` builder documented with `.FromArray()`, `.FromFields()`, `.Pick()`, `.Map()`, `.Dedupe()`, `.AfterOutput()`, `.Build()`
 
 ### Resource Builders
 
@@ -42,17 +47,28 @@
 - [ ] **RES-03**: `.Directive()`, `.SetRawBlock()` documented
 - [ ] **RES-04**: `.ForEach()`, `.ForEachWith()`, `.Item()`, `.ItemIf()` documented
 - [ ] **RES-05**: Conditional methods `.If()/.EndIf()`, `.SpreadIf()` documented
+- [ ] **RES-06**: `NewResourceWithConditionalVersion(kind)` and `.VersionIf(condition, version)` documented
+- [ ] **RES-07**: `ItemBuilder` methods documented: `.Set()`, `.SetIf()`, `.IfSet()`, `.IfNotSet()`, `.If()`, `.Let()`, `.Wrap()`
+- [ ] **RES-08**: `ItemFieldIsSet(fieldName)` and `FieldEquals(fieldName, value)` documented
 
 ### Value Expressions
 
 - [ ] **VAL-01**: `defkit.Lit()`, `defkit.Reference()`, `defkit.Interpolation()` documented
-- [ ] **VAL-02**: Value chain methods: `.IsSet()`, `.NotSet()`, `.Eq()`, `.Field()`, `.Or()` documented
+- [ ] **VAL-02**: Value chain methods: `.IsSet()`, `.NotSet()`, `.Eq()`, `.Ne()`, `.Lt()`, `.Le()`, `.Gt()`, `.Ge()`, `.Field()`, `.Or()` documented
 - [ ] **VAL-03**: Logical operators: `defkit.And()`, `defkit.Or()`, `defkit.Not()` documented
-- [ ] **VAL-04**: String operations: `defkit.Plus()`, `defkit.Format()` documented
+- [ ] **VAL-04**: String operations: `defkit.Plus()`, `defkit.Format()`, `defkit.StringsToLower()`, `defkit.StrconvFormatInt()` documented
+- [ ] **VAL-05**: `defkit.PathExists(path)`, `defkit.ParamRef(param)`, `defkit.ParamNotSet(param)` documented
+- [ ] **VAL-06**: `defkit.Let(name, expr)` and `defkit.LetVariable()` documented — let bindings in templates
 
 ### VelaCtx
 
-- [ ] **CTX-01**: `defkit.VelaCtx()` methods documented: Name, AppName, Namespace, Revision
+- [ ] **CTX-01**: `defkit.VelaCtx()` methods documented: Name, AppName, Namespace, Revision, ClusterVersion().Minor()
+
+### Health & Status DSL
+
+- [ ] **HEALTH-01**: `defkit.Health()` builder documented with `.HealthyWhen()`, `.WithDefault()`, `.WithDisableAnnotation()`
+- [ ] **HEALTH-02**: `defkit.Status()` builder documented with `.IntField()`, `.Message()`
+- [ ] **HEALTH-03**: Preset health builders documented: `DeploymentHealth()`, `DaemonSetHealth()`, `JobHealth()`, `DeploymentStatus()`, `DaemonSetStatus()`
 
 ### Full Examples
 
@@ -105,6 +121,9 @@
 | DEF-03 | Phase 2 | Pending |
 | DEF-04 | Phase 2 | Pending |
 | DEF-05 | Phase 2 | Pending |
+| DEF-06 | Phase 2 | Pending |
+| DEF-07 | Phase 2 | Pending |
+| DEF-08 | Phase 2 | Pending |
 | PARAM-01 | Phase 2 | Pending |
 | PARAM-02 | Phase 2 | Pending |
 | PARAM-03 | Phase 2 | Pending |
@@ -113,26 +132,36 @@
 | TPL-02 | Phase 3 | Pending |
 | TPL-03 | Phase 3 | Pending |
 | TPL-04 | Phase 3 | Pending |
+| TPL-05 | Phase 3 | Pending |
+| TPL-06 | Phase 3 | Pending |
 | RES-01 | Phase 3 | Pending |
 | RES-02 | Phase 3 | Pending |
 | RES-03 | Phase 3 | Pending |
 | RES-04 | Phase 3 | Pending |
 | RES-05 | Phase 3 | Pending |
+| RES-06 | Phase 3 | Pending |
+| RES-07 | Phase 3 | Pending |
+| RES-08 | Phase 3 | Pending |
 | VAL-01 | Phase 3 | Pending |
 | VAL-02 | Phase 3 | Pending |
 | VAL-03 | Phase 3 | Pending |
 | VAL-04 | Phase 3 | Pending |
+| VAL-05 | Phase 3 | Pending |
+| VAL-06 | Phase 3 | Pending |
 | CTX-01 | Phase 3 | Pending |
+| HEALTH-01 | Phase 3 | Pending |
+| HEALTH-02 | Phase 3 | Pending |
+| HEALTH-03 | Phase 3 | Pending |
 | EX-01 | Phase 4 | Pending |
 | EX-02 | Phase 4 | Pending |
 | EX-03 | Phase 4 | Pending |
 | EX-04 | Phase 4 | Pending |
 
 **Coverage:**
-- v1 requirements: 35 total
-- Mapped to phases: 35
+- v1 requirements: 48 total
+- Mapped to phases: 48
 - Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-03-11*
-*Last updated: 2026-03-11 — traceability expanded to per-requirement rows, FMT-01/02/03 assigned to Phase 1*
+*Last updated: 2026-03-11 — added DEF-06/07/08, TPL-05/06, RES-06/07/08, VAL-05/06, HEALTH-01/02/03 from full audit*
