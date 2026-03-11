@@ -71,7 +71,7 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Page Shell | 1/1 | Complete | 2026-03-11 |
+| 1. Page Shell | 1/1 | Complete    | 2026-03-11 |
 | 2. Definition + Parameter API | 0/TBD | Not started | - |
 | 3. Template + Resource + Value + VelaCtx | 0/TBD | Not started | - |
 | 4. Full Examples | 0/TBD | Not started | - |
