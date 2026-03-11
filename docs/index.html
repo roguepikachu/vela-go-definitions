@@ -3388,10 +3388,548 @@ customStatus: {
         <div><div class="section-title">Full Examples</div></div>
       </div>
       <p class="section-desc">Complete end-to-end definition examples — one per definition type — showing real-world usage patterns with full Go code, CUE output, and inline annotations.</p>
-      <div class="placeholder-box">
-        <div class="pl-icon"><span class="material-icons-round">hourglass_empty</span></div>
-        <p>Complete worked examples for <strong>Component</strong> (webservice-like), <strong>Trait</strong> (env patch), <strong>Policy</strong> (override), and <strong>WorkflowStep</strong> — coming in Phase 4.</p>
-        <div class="pl-phase">Phase 4</div>
+
+      <!-- EX-01: Component Example -->
+      <div class="method-card" style="margin-bottom:2rem;">
+        <div class="method-header" style="background:rgba(130,177,255,0.06);">
+          <div class="method-meta">
+            <div class="method-title">EX-01 — Component Definition</div>
+            <div class="method-desc">A complete webservice component that deploys a Deployment with configurable image, ports, environment variables, and volume mounts. Uses <code>DeploymentHealth</code> and <code>DeploymentStatus</code> presets. Demonstrates <code>tpl.Helper()</code> for volume transforms, <code>ForEachWith</code> for port name generation, and <code>tpl.OutputsIf()</code> for an optional Service output.</div>
+          </div>
+          <span class="pill pill-component" style="flex-shrink:0;">Component</span>
+        </div>
+        <div class="method-body">
+          <div class="code-pair">
+            <div class="code-block">
+              <div class="code-label go"><span class="dot"></span>Go — components/webservice.go</div>
+              <pre class="language-go"><code>package components
+
+import "github.com/oam-dev/kubevela/pkg/definition/defkit"
+
+func Webservice() *defkit.ComponentDefinition {
+    image := defkit.String("image").Required().
+        Description("Which image would you like to use for your service").Short("i")
+
+    ports := defkit.Array("ports").
+        Description("Which ports do you want customer traffic sent to, defaults to 80").
+        WithFields(
+            defkit.Int("port").Required().
+                Description("Number of port to expose on the pod's IP address"),
+            defkit.String("name").Description("Name of the port"),
+            defkit.Enum("protocol").Values("TCP", "UDP", "SCTP").Default("TCP"),
+            defkit.Bool("expose").Default(false).
+                Description("Specify if the port should be exposed"),
+        )
+
+    env := defkit.List("env").
+        Description("Define arguments by using environment variables").
+        WithFields(
+            defkit.String("name").Required().
+                Description("Environment variable name"),
+            defkit.String("value").
+                Description("The value of the environment variable"),
+        )
+
+    cpu    := defkit.String("cpu").Description("CPU units, e.g. `0.5`, `1`")
+    memory := defkit.String("memory").Description("Memory size, e.g. `128Mi`, `1Gi`")
+
+    return defkit.NewComponent("webservice").
+        Description("Long-running, scalable containerized service with a stable network endpoint.").
+        Workload("apps/v1", "Deployment").
+        CustomStatus(defkit.DeploymentStatus().Build()).
+        HealthPolicy(defkit.DeploymentHealth().Build()).
+        Params(image, ports, env, cpu, memory).
+        Template(webserviceTemplate)
+}
+
+func webserviceTemplate(tpl *defkit.Template) {
+    vela  := defkit.VelaCtx()
+    image := defkit.String("image")
+    ports := defkit.List("ports")
+    env   := defkit.List("env")
+    cpu   := defkit.String("cpu")
+    memory := defkit.String("memory")
+
+    // Build container ports array from ports parameter
+    containerPorts := defkit.NewArray().ForEachWith(ports, func(item *defkit.ItemBuilder) {
+        v := item.Var()
+        item.Set("containerPort", v.Field("port"))
+        item.Set("protocol", v.Field("protocol"))
+        item.IfSet("name", func() {
+            item.Set("name", v.Field("name"))
+        })
+    })
+
+    deployment := defkit.NewResource("apps/v1", "Deployment").
+        Set("metadata.name", vela.Name()).
+        Set("metadata.labels[app.oam.dev/name]", vela.AppName()).
+        Set("spec.selector.matchLabels[app.oam.dev/component]", vela.Name()).
+        Set("spec.template.metadata.labels[app.oam.dev/component]", vela.Name()).
+        Set("spec.template.spec.containers[0].name", vela.Name()).
+        Set("spec.template.spec.containers[0].image", image).
+        SetIf(ports.IsSet(), "spec.template.spec.containers[0].ports", containerPorts).
+        SetIf(env.IsSet(), "spec.template.spec.containers[0].env", env).
+        If(cpu.IsSet()).
+            Set("spec.template.spec.containers[0].resources.limits.cpu", cpu).
+            Set("spec.template.spec.containers[0].resources.requests.cpu", cpu).
+        EndIf().
+        If(memory.IsSet()).
+            Set("spec.template.spec.containers[0].resources.limits.memory", memory).
+            Set("spec.template.spec.containers[0].resources.requests.memory", memory).
+        EndIf()
+
+    tpl.Output(deployment)
+
+    // Service output — only when at least one port has expose: true
+    exposeType := defkit.String("exposeType")
+    exposePortsArray := defkit.NewArray().ForEachWithGuardedFiltered(
+        ports.IsSet(),
+        defkit.FieldEquals("expose", true),
+        ports,
+        func(item *defkit.ItemBuilder) {
+            v := item.Var()
+            item.Set("port", v.Field("port"))
+            item.Set("targetPort", v.Field("port"))
+        },
+    )
+    exposePorts := tpl.Helper("exposePorts").
+        FromArray(exposePortsArray).AfterOutput().Build()
+
+    service := defkit.NewResource("v1", "Service").
+        Set("metadata.name", vela.Name()).
+        Set("spec.selector[app.oam.dev/component]", vela.Name()).
+        Set("spec.ports", exposePorts).
+        Set("spec.type", exposeType)
+
+    tpl.OutputsIf(exposePorts.NotEmpty(), "webserviceExpose", service)
+}
+
+func init() {
+    defkit.Register(Webservice())
+}</code></pre>
+            </div>
+            <div class="code-block">
+              <div class="code-label cue"><span class="dot"></span>CUE — generated output (simplified)</div>
+              <pre class="language-cue"><code>output: {
+    apiVersion: "apps/v1"
+    kind:       "Deployment"
+    metadata: {
+        name: context.name
+        labels: "app.oam.dev/name": context.appName
+    }
+    spec: {
+        selector: matchLabels: "app.oam.dev/component": context.name
+        template: {
+            metadata: labels: "app.oam.dev/component": context.name
+            spec: containers: [{
+                name:  context.name
+                image: parameter.image
+                if parameter.ports != _|_ {
+                    ports: [for v in parameter.ports {
+                        containerPort: v.port
+                        protocol:      v.protocol
+                        if v.name != _|_ { name: v.name }
+                    }]
+                }
+                if parameter.env != _|_ { env: parameter.env }
+                if parameter.cpu != _|_ {
+                    resources: {
+                        limits:   { cpu: parameter.cpu }
+                        requests: { cpu: parameter.cpu }
+                    }
+                }
+            }]
+        }
+    }
+}
+
+// Only emitted when exposed ports exist
+if len(exposePorts) > 0 {
+    outputs: webserviceExpose: {
+        apiVersion: "v1"
+        kind:       "Service"
+        metadata: name: context.name
+        spec: {
+            selector: "app.oam.dev/component": context.name
+            ports:    exposePorts
+            type:     parameter.exposeType
+        }
+    }
+}</code></pre>
+            </div>
+          </div>
+          <div class="info-box" style="margin-top:1rem;">
+            <span class="material-icons-round">tips_and_updates</span>
+            <div>
+              <strong>Key patterns:</strong>
+              <ul style="margin-top:0.4rem;padding-left:1.2rem;font-size:0.82rem;">
+                <li><code>defkit.DeploymentHealth().Build()</code> and <code>defkit.DeploymentStatus().Build()</code> — use preset builders instead of hand-rolling health/status CUE</li>
+                <li><code>ForEachWith</code> + <code>item.IfSet/IfNotSet</code> — complex per-element logic with nested conditionals inside array comprehensions</li>
+                <li><code>tpl.Helper("exposePorts").FromArray(...).AfterOutput().Build()</code> — derives a post-output let variable; <code>.AfterOutput()</code> places it after the primary output block</li>
+                <li><code>tpl.OutputsIf(exposePorts.NotEmpty(), ...)</code> — secondary output only emitted when the helper array is non-empty</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- EX-02: Trait Example -->
+      <div class="method-card" style="margin-bottom:2rem;">
+        <div class="method-header" style="background:rgba(167,255,235,0.04);">
+          <div class="method-meta">
+            <div class="method-title">EX-02 — Trait Definition</div>
+            <div class="method-desc">A complete env trait that injects and merges environment variables into running containers. Uses <code>tpl.UsePatchContainer</code> for the full patchSets/patch CUE structure, <code>PatchContainerConfig</code> for standard params, and <code>CustomPatchContainerBlock</code> for complex merge logic that requires raw CUE (list comprehensions, conditional replace/unset/merge with <code>valueFrom</code> preservation).</div>
+          </div>
+          <span class="pill pill-trait" style="flex-shrink:0;">Trait</span>
+        </div>
+        <div class="method-body">
+          <div class="code-pair">
+            <div class="code-block">
+              <div class="code-label go"><span class="dot"></span>Go — traits/env.go</div>
+              <pre class="language-go"><code>package traits
+
+import "github.com/oam-dev/kubevela/pkg/definition/defkit"
+
+func Env() *defkit.TraitDefinition {
+    return defkit.NewTrait("env").
+        Description("Add env on K8s pod for your workload which follows the pod spec in path 'spec.template'").
+        AppliesTo("deployments.apps", "statefulsets.apps", "daemonsets.apps", "jobs.batch").
+        Template(func(tpl *defkit.Template) {
+            tpl.UsePatchContainer(defkit.PatchContainerConfig{
+                ContainerNameParam:    "containerName",
+                DefaultToContextName:  true,
+                AllowMultiple:         true,
+                ContainersParam:       "containers",
+                ContainersDescription: "Specify the environment variables for multiple containers",
+                PatchFields: []defkit.PatchContainerField{
+                    {
+                        ParamName:    "replace",
+                        TargetField:  "replace",
+                        ParamType:    "bool",
+                        ParamDefault: "false",
+                        Description:  "Specify if replacing the whole environment settings for the container",
+                    },
+                    {
+                        ParamName:   "env",
+                        TargetField: "env",
+                        ParamType:   "[string]: string",
+                        Description: "Specify the environment variables to merge",
+                    },
+                    {
+                        ParamName:    "unset",
+                        TargetField:  "unset",
+                        ParamType:    "[...string]",
+                        ParamDefault: "[]",
+                        Description:  "Specify which existing environment variables to unset",
+                    },
+                },
+                // Raw CUE for complex env merge logic that can't use PatchFields alone
+                CustomPatchContainerBlock: `_params: #PatchParams
+name:    _params.containerName
+_delKeys: {for k in _params.unset {(k): ""}}
+_baseContainers: context.output.spec.template.spec.containers
+_matchContainers_: [for _c_ in _baseContainers if _c_.name == name {_c_}]
+if len(_matchContainers_) == 0 {
+    err: "container \(name) not found"
+}
+if len(_matchContainers_) > 0 {
+    _baseContainer: _matchContainers_[0]
+    _baseEnv:       _baseContainer.env
+    if _baseEnv == _|_ {
+        env: [for k, v in _params.env if _delKeys[k] == _|_ {name: k, value: v}]
+    }
+    if _baseEnv != _|_ {
+        env: [for e in _baseEnv
+              if _delKeys[e.name] == _|_ && !_params.replace {
+                  name: e.name
+                  if _params.env[e.name] != _|_ { value: _params.env[e.name] }
+                  if _params.env[e.name] == _|_ {
+                      if e.value != _|_ { value: e.value }
+                      if e.valueFrom != _|_ { valueFrom: e.valueFrom }
+                  }
+              }] + [for k, v in _params.env
+              if _delKeys[k] == _|_ && (_params.replace || _baseEnvMap[k] == _|_) {
+                  name: k, value: v
+              }]
+    }
+}`,
+            })
+        })
+}
+
+func init() {
+    defkit.Register(Env())
+}</code></pre>
+            </div>
+            <div class="code-block">
+              <div class="code-label cue"><span class="dot"></span>CUE — generated patchSets/patch structure</div>
+              <pre class="language-cue"><code>#PatchParams: {
+    containerName?: *context.name | string
+    containers?: [...{
+        containerName?: string
+        replace:  *false | bool
+        env:      [string]: string
+        unset:    *[] | [...string]
+    }]
+    replace:  *false | bool
+    env:      [string]: string
+    unset:    *[] | [...string]
+}
+
+patchSets: [{
+    name: "container-patch"
+    patches: [{
+        path:  "spec/template/spec/containers/*"
+        op:    "add"
+        value: _
+    }]
+}]
+
+patch: spec: template: spec: {
+    // For each container matching containerName (or context.name),
+    // merge/replace env vars while preserving valueFrom entries.
+    // Generated from CustomPatchContainerBlock:
+    containers: [_params: #PatchParams
+        name:     _params.containerName
+        _delKeys: {for k in _params.unset {(k): ""}}
+        ...
+    ]
+}</code></pre>
+            </div>
+          </div>
+          <div class="info-box" style="margin-top:1rem;">
+            <span class="material-icons-round">tips_and_updates</span>
+            <div>
+              <strong>Key patterns:</strong>
+              <ul style="margin-top:0.4rem;padding-left:1.2rem;font-size:0.82rem;">
+                <li><code>tpl.UsePatchContainer(config)</code> generates the full <code>#PatchParams</code> type, patchSets, and patch block — you only declare what the trait modifies</li>
+                <li><code>PatchFields</code> handles standard typed params; <code>CustomPatchContainerBlock</code> injects raw CUE when list comprehensions or complex merge logic is needed</li>
+                <li><code>AppliesTo("deployments.apps", ...)</code> restricts which workload types the trait can be attached to</li>
+                <li><code>DefaultToContextName: true</code> means <code>containerName</code> defaults to the component name — users only specify it when targeting a non-primary container</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- EX-03: Policy Example -->
+      <div class="method-card" style="margin-bottom:2rem;">
+        <div class="method-header" style="background:rgba(255,183,77,0.04);">
+          <div class="method-meta">
+            <div class="method-title">EX-03 — Policy Definition</div>
+            <div class="method-desc">A complete apply-once policy that allows configuration drift for applied resources. Demonstrates <code>defkit.NewPolicy</code> with inline <code>Helper</code> type definitions, <code>WithSchemaRef</code> for type reuse across params, and how policies use only <code>.Params()</code> — no template function needed since KubeVela's built-in engine handles policy logic.</div>
+          </div>
+          <span class="pill pill-policy" style="flex-shrink:0;">Policy</span>
+        </div>
+        <div class="method-body">
+          <div class="code-pair">
+            <div class="code-block">
+              <div class="code-label go"><span class="dot"></span>Go — policies/apply_once.go</div>
+              <pre class="language-go"><code>package policies
+
+import "github.com/oam-dev/kubevela/pkg/definition/defkit"
+
+func ApplyOnce() *defkit.PolicyDefinition {
+    // Helper type: strategy specifies drift allowance configuration
+    applyOnceStrategy := defkit.Struct("strategy").WithFields(
+        defkit.Field("affect", defkit.ParamTypeString).
+            Description("When the strategy takes effect, e.g. onUpdate, onStateKeep").
+            Optional(),
+        defkit.Field("path", defkit.ParamTypeArray).
+            Of(defkit.ParamTypeString).
+            Description("Specify the path of the resource that allow configuration drift").
+            Required(),
+    )
+
+    // Helper type: a resource-level rule with selector + strategy
+    applyOncePolicyRule := defkit.Struct("rule").WithFields(
+        defkit.Field("selector", defkit.ParamTypeStruct).
+            Description("Specify how to select the targets of the rule").
+            Optional().
+            WithSchemaRef("ResourcePolicyRuleSelector"),
+        defkit.Field("strategy", defkit.ParamTypeStruct).
+            Description("Strategy for resource level configuration drift behaviour").
+            WithSchemaRef("ApplyOnceStrategy").
+            Required(),
+    )
+
+    // Shared selector helper (defined in common.go)
+    resourcePolicyRuleSelector := defkit.Struct("selector").
+        WithFields(RuleSelectorFields()...)
+
+    return defkit.NewPolicy("apply-once").
+        Description("Allow configuration drift for applied resources, " +
+            "delivery the resource without continuously reconciliation.").
+        Helper("ApplyOnceStrategy", applyOnceStrategy).
+        Helper("ApplyOncePolicyRule", applyOncePolicyRule).
+        Helper("ResourcePolicyRuleSelector", resourcePolicyRuleSelector).
+        Params(
+            defkit.Bool("enable").
+                Description("Whether to enable apply-once for the whole application").
+                Default(false),
+            defkit.Array("rules").
+                Description("Rules for configuring apply-once policy in resource level").
+                WithSchemaRef("ApplyOncePolicyRule").
+                Optional(),
+        )
+}
+
+func init() {
+    defkit.Register(ApplyOnce())
+}</code></pre>
+            </div>
+            <div class="code-block">
+              <div class="code-label cue"><span class="dot"></span>CUE — generated parameter schema</div>
+              <pre class="language-cue"><code>#ApplyOnceStrategy: {
+    affect?: string
+    path:    [...string]
+}
+
+#ApplyOncePolicyRule: {
+    selector?: #ResourcePolicyRuleSelector
+    strategy:  #ApplyOnceStrategy
+}
+
+#ResourcePolicyRuleSelector: {
+    componentNames?: [...string]
+    componentTypes?: [...string]
+    oamTypes?:       [...string]
+    traitTypes?:     [...string]
+    resourceTypes?:  [...string]
+    resourceNames?:  [...string]
+}
+
+parameter: {
+    // Whether to enable apply-once for the whole application
+    enable: *false | bool
+
+    // Resource-level rules (optional)
+    rules?: [...#ApplyOncePolicyRule]
+}
+
+// Example usage in an Application manifest:
+//
+// policies:
+//   - name: my-apply-once
+//     type: apply-once
+//     properties:
+//       enable: true
+//       rules:
+//         - selector:
+//             componentNames: ["my-db"]
+//           strategy:
+//             affect: onUpdate
+//             path: ["spec.replicas"]</code></pre>
+            </div>
+          </div>
+          <div class="info-box" style="margin-top:1rem;">
+            <span class="material-icons-round">tips_and_updates</span>
+            <div>
+              <strong>Key patterns:</strong>
+              <ul style="margin-top:0.4rem;padding-left:1.2rem;font-size:0.82rem;">
+                <li>Policies use only <code>.Params()</code> — no <code>.Template()</code> — because KubeVela's built-in engine processes policy params directly</li>
+                <li><code>.Helper("TypeName", struct)</code> registers a named CUE type (<code>#TypeName</code>) that can be referenced via <code>.WithSchemaRef("TypeName")</code> in other params</li>
+                <li><code>defkit.Field("path", defkit.ParamTypeArray).Of(defkit.ParamTypeString)</code> — typed array inside a struct field using the low-level <code>defkit.Field</code> API</li>
+                <li>Shared helpers (e.g., <code>RuleSelectorFields()</code>) defined once in <code>common.go</code> and reused across all resource-policy definitions (apply-once, garbage-collect, read-only)</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- EX-04: WorkflowStep Example -->
+      <div class="method-card" style="margin-bottom:2rem;">
+        <div class="method-header" style="background:rgba(206,147,216,0.05);">
+          <div class="method-meta">
+            <div class="method-title">EX-04 — WorkflowStep Definition</div>
+            <div class="method-desc">A complete apply-component workflow step that applies a specific component and its traits. The simplest definition type — workflow steps often require no template at all because the step execution is handled by KubeVela's built-in step executor. Shows <code>.Category()</code> and <code>.Scope()</code> metadata, and how step parameters map to the step executor's input contract.</div>
+          </div>
+          <span class="pill pill-workflow" style="flex-shrink:0;">WorkflowStep</span>
+        </div>
+        <div class="method-body">
+          <div class="code-pair">
+            <div class="code-block">
+              <div class="code-label go"><span class="dot"></span>Go — workflowsteps/apply_component.go</div>
+              <pre class="language-go"><code>package workflowsteps
+
+import "github.com/oam-dev/kubevela/pkg/definition/defkit"
+
+// ApplyComponent creates the apply-component workflow step definition.
+// This step applies a specific component and its corresponding traits
+// in an application. No template needed — the step executor reads
+// the parameters directly.
+func ApplyComponent() *defkit.WorkflowStepDefinition {
+    component := defkit.String("component").
+        Required().
+        Description("Specify the component name to apply")
+
+    cluster := defkit.String("cluster").
+        Default("").
+        Description("Specify the cluster")
+
+    namespace := defkit.String("namespace").
+        Default("").
+        Description("Specify the namespace")
+
+    return defkit.NewWorkflowStep("apply-component").
+        Description("Apply a specific component and its corresponding traits in application").
+        Category("Application Delivery").
+        Scope("Application").
+        Params(component, cluster, namespace)
+}
+
+func init() {
+    defkit.Register(ApplyComponent())
+}</code></pre>
+            </div>
+            <div class="code-block">
+              <div class="code-label cue"><span class="dot"></span>CUE — generated parameter schema</div>
+              <pre class="language-cue"><code>parameter: {
+    // Specify the component name to apply (required)
+    component: string
+
+    // Specify the cluster (defaults to local cluster)
+    cluster: *"" | string
+
+    // Specify the namespace (defaults to application namespace)
+    namespace: *"" | string
+}
+
+// Example usage in an Application workflow:
+//
+// workflow:
+//   steps:
+//     - name: deploy-backend
+//       type: apply-component
+//       properties:
+//         component: backend
+//
+//     - name: deploy-frontend
+//       type: apply-component
+//       properties:
+//         component: frontend
+//         cluster:   prod-cluster
+//         namespace: production
+//
+// The step executor reads parameter.component, parameter.cluster,
+// and parameter.namespace to locate and apply the component.
+// No template function is needed because the built-in executor
+// handles the apply logic.</code></pre>
+            </div>
+          </div>
+          <div class="info-box" style="margin-top:1rem;">
+            <span class="material-icons-round">tips_and_updates</span>
+            <div>
+              <strong>Key patterns:</strong>
+              <ul style="margin-top:0.4rem;padding-left:1.2rem;font-size:0.82rem;">
+                <li><code>defkit.NewWorkflowStep("name")</code> — workflow steps are the lightest definition type; many built-in steps need only <code>.Params()</code></li>
+                <li><code>.Category("Application Delivery")</code> — groups the step in the KubeVela UI step picker; common categories include <em>Application Delivery</em>, <em>Config Management</em>, <em>Notification</em></li>
+                <li><code>.Scope("Application")</code> — restricts where the step can be used: <code>"Application"</code> (top-level workflow), <code>"WorkflowRun"</code> (standalone workflow), or <code>"Both"</code></li>
+                <li>Steps that do need a template follow the same pattern as components — define a <code>func myStepTemplate(tpl *defkit.Template)</code> and pass it to <code>.Template()</code></li>
+              </ul>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
 
