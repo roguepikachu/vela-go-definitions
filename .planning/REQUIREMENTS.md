@@ -92,21 +92,47 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| STRUCT-01 to STRUCT-05 | Phase 1 | Pending |
-| DEF-01 to DEF-05 | Phase 2 | Pending |
-| PARAM-01 to PARAM-04 | Phase 2 | Pending |
-| TPL-01 to TPL-04 | Phase 3 | Pending |
-| RES-01 to RES-05 | Phase 3 | Pending |
-| VAL-01 to VAL-04 | Phase 3 | Pending |
+| STRUCT-01 | Phase 1 | Pending |
+| STRUCT-02 | Phase 1 | Pending |
+| STRUCT-03 | Phase 1 | Pending |
+| STRUCT-04 | Phase 1 | Pending |
+| STRUCT-05 | Phase 1 | Pending |
+| FMT-01 | Phase 1 | Pending |
+| FMT-02 | Phase 1 | Pending |
+| FMT-03 | Phase 1 | Pending |
+| DEF-01 | Phase 2 | Pending |
+| DEF-02 | Phase 2 | Pending |
+| DEF-03 | Phase 2 | Pending |
+| DEF-04 | Phase 2 | Pending |
+| DEF-05 | Phase 2 | Pending |
+| PARAM-01 | Phase 2 | Pending |
+| PARAM-02 | Phase 2 | Pending |
+| PARAM-03 | Phase 2 | Pending |
+| PARAM-04 | Phase 2 | Pending |
+| TPL-01 | Phase 3 | Pending |
+| TPL-02 | Phase 3 | Pending |
+| TPL-03 | Phase 3 | Pending |
+| TPL-04 | Phase 3 | Pending |
+| RES-01 | Phase 3 | Pending |
+| RES-02 | Phase 3 | Pending |
+| RES-03 | Phase 3 | Pending |
+| RES-04 | Phase 3 | Pending |
+| RES-05 | Phase 3 | Pending |
+| VAL-01 | Phase 3 | Pending |
+| VAL-02 | Phase 3 | Pending |
+| VAL-03 | Phase 3 | Pending |
+| VAL-04 | Phase 3 | Pending |
 | CTX-01 | Phase 3 | Pending |
-| EX-01 to EX-04 | Phase 4 | Pending |
-| FMT-01 to FMT-03 | Phase 1-4 | Pending |
+| EX-01 | Phase 4 | Pending |
+| EX-02 | Phase 4 | Pending |
+| EX-03 | Phase 4 | Pending |
+| EX-04 | Phase 4 | Pending |
 
 **Coverage:**
-- v1 requirements: 30 total
-- Mapped to phases: 30
+- v1 requirements: 35 total
+- Mapped to phases: 35
 - Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-03-11*
-*Last updated: 2026-03-11 after initial definition*
+*Last updated: 2026-03-11 — traceability expanded to per-requirement rows, FMT-01/02/03 assigned to Phase 1*
