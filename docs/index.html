@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>defkit API Reference</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 0.95rem;
+      line-height: 1.7;
+      color: #1a1a2e;
+      background: #ffffff;
+    }
+
+    #sidebar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 260px;
+      height: 100vh;
+      background: #1e1e2e;
+      color: #cdd6f4;
+      overflow-y: auto;
+      padding: 1.5rem 0;
+      z-index: 100;
+    }
+
+    .sidebar-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: #89b4fa;
+      padding: 0 1rem;
+    }
+
+    .sidebar-subtitle {
+      font-size: 12px;
+      color: #6c7086;
+      padding: 0.25rem 1rem 0;
+    }
+
+    .sidebar-divider {
+      border: none;
+      border-top: 1px solid #313244;
+      margin: 1rem 0;
+    }
+
+    #sidebar nav ul {
+      list-style: none;
+      padding: 0 0.5rem;
+    }
+
+    #sidebar nav ul li {
+      margin-bottom: 2px;
+    }
+
+    #sidebar a {
+      display: block;
+      padding: 0.4rem 1rem;
+      color: #cdd6f4;
+      text-decoration: none;
+      border-radius: 6px;
+      border-left: 3px solid transparent;
+      transition: background 0.15s;
+    }
+
+    #sidebar a:hover {
+      background: #313244;
+    }
+
+    #sidebar a.active {
+      background: #313244;
+      border-left: 3px solid #89b4fa;
+      color: #89b4fa;
+      padding-left: calc(1rem - 3px);
+    }
+
+    #content {
+      margin-left: 260px;
+      padding: 2rem 3rem;
+      max-width: 1200px;
+    }
+
+    .hero {
+      padding: 2rem 0 3rem;
+      border-bottom: 2px solid #e8e8f0;
+      margin-bottom: 2rem;
+    }
+
+    .hero h1 {
+      font-size: 2.2rem;
+      font-weight: 700;
+      color: #1a1a2e;
+      margin-bottom: 0.75rem;
+    }
+
+    .hero p {
+      color: #4a4a6a;
+      max-width: 620px;
+    }
+
+    section {
+      margin-top: 4rem;
+      padding-top: 1rem;
+    }
+
+    section h2 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      border-bottom: 2px solid #e8e8f0;
+      padding-bottom: 0.5rem;
+      margin-bottom: 1rem;
+    }
+
+    section h3 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin: 1.5rem 0 0.5rem;
+    }
+
+    section p {
+      color: #3a3a5a;
+      margin-bottom: 1rem;
+    }
+
+    .code-pair {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+      margin-top: 1rem;
+    }
+
+    .code-column-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: #6c7086;
+      margin-bottom: 0.4rem;
+    }
+
+    pre[class*="language-"] {
+      background: #282a36;
+      border-radius: 8px;
+      padding: 1.2rem;
+      overflow-x: auto;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    code[class*="language-"] {
+      font-family: "JetBrains Mono", "Fira Code", "Courier New", monospace;
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+
+<aside id="sidebar">
+  <div class="sidebar-title">defkit API</div>
+  <div class="sidebar-subtitle">KubeVela Definition Reference</div>
+  <hr class="sidebar-divider">
+  <nav>
+    <ul>
+      <li><a href="#definition-builders">Definition Builders</a></li>
+      <li><a href="#parameter-builders">Parameter Builders</a></li>
+      <li><a href="#template-methods">Template Methods</a></li>
+      <li><a href="#resource-builders">Resource Builders</a></li>
+      <li><a href="#value-expressions">Value Expressions</a></li>
+      <li><a href="#velactx">VelaCtx</a></li>
+      <li><a href="#health-status">Health &amp; Status DSL</a></li>
+      <li><a href="#full-examples">Full Examples</a></li>
+    </ul>
+  </nav>
+</aside>
+
+<main id="content">
+
+  <div class="hero">
+    <h1>defkit API Reference</h1>
+    <p>The Go fluent API for building KubeVela X-Definitions programmatically. Replace CUE/YAML templates with type-safe Go code that compiles to standard KubeVela definitions.</p>
+  </div>
+
+  <section id="definition-builders">
+    <h2>Definition Builders</h2>
+    <p>Top-level constructors that create ComponentDefinition, TraitDefinition, PolicyDefinition, and WorkflowStepDefinition objects. Each builder is registered globally via <code>defkit.Register()</code> in an <code>init()</code> function.</p>
+    <div class="code-pair">
+      <div>
+        <div class="code-column-label">Go</div>
+        <pre><code class="language-go">func MyComponent() *defkit.ComponentDefinition {
+    return defkit.NewComponent("my-component").
+        Description("A custom workload component").
+        Workload("apps/v1", "Deployment").
+        Params(imageParam, replicasParam).
+        Template(buildTemplate)
+}</code></pre>
+      </div>
+      <div>
+        <div class="code-column-label">CUE</div>
+        <pre><code class="language-cue">// Generated CUE output
+#my-component: {
+    type: "component"
+    name: "my-component"
+    description: "A custom workload component"
+    workload: {
+        apiVersion: "apps/v1"
+        kind: "Deployment"
+    }
+}</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <section id="parameter-builders">
+    <h2>Parameter Builders</h2>
+    <p>Fluent builders for defining typed input parameters. Each builder supports chaining for required flags, defaults, descriptions, and validation constraints.</p>
+    <div class="code-pair">
+      <div>
+        <div class="code-column-label">Go</div>
+        <pre><code class="language-go">image := defkit.String("image").
+    Required().
+    Description("Container image to deploy")
+
+replicas := defkit.Int("replicas").
+    Default(1).
+    Description("Number of pod replicas")</code></pre>
+      </div>
+      <div>
+        <div class="code-column-label">CUE</div>
+        <pre><code class="language-cue">parameter: {
+    image: string
+    replicas: *1 | int
+}
+// image is required (no default)
+// replicas defaults to 1</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <section id="template-methods">
+    <h2>Template Methods</h2>
+    <p>Methods on <code>*defkit.Template</code> that control what the definition outputs — primary resources, patch containers, and auxiliary outputs.</p>
+    <div class="code-pair">
+      <div>
+        <div class="code-column-label">Go</div>
+        <pre><code class="language-go">func buildTemplate(tpl *defkit.Template) {
+    resource := defkit.NewResource("apps/v1", "Deployment")
+    // ... configure resource
+    tpl.Output(resource)
+    tpl.Outputs("svc", serviceResource)
+}</code></pre>
+      </div>
+      <div>
+        <div class="code-column-label">CUE</div>
+        <pre><code class="language-cue">output: {
+    apiVersion: "apps/v1"
+    kind: "Deployment"
+    // ... resource spec
+}
+outputs: svc: {
+    apiVersion: "v1"
+    kind: "Service"
+}</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <section id="resource-builders">
+    <h2>Resource Builders</h2>
+    <p>Builders for constructing Kubernetes resource objects. Resources are typed by apiVersion and kind, with fluent setters for metadata, spec fields, and nested structures.</p>
+    <div class="code-pair">
+      <div>
+        <div class="code-column-label">Go</div>
+        <pre><code class="language-go">resource := defkit.NewResource("apps/v1", "Deployment").
+    Set("metadata.name", vela.Name()).
+    Set("spec.replicas", defkit.Reference("parameter.replicas")).
+    Set("spec.template.spec.containers[0].image",
+        defkit.Reference("parameter.image"))</code></pre>
+      </div>
+      <div>
+        <div class="code-column-label">CUE</div>
+        <pre><code class="language-cue">output: {
+    apiVersion: "apps/v1"
+    kind:       "Deployment"
+    metadata: name: context.name
+    spec: {
+        replicas: parameter.replicas
+        template: spec: containers: [{
+            image: parameter.image
+        }]
+    }
+}</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <section id="value-expressions">
+    <h2>Value Expressions</h2>
+    <p>Primitives for embedding literal values and parameter references into resource fields. These are the building blocks of dynamic resource construction.</p>
+    <div class="code-pair">
+      <div>
+        <div class="code-column-label">Go</div>
+        <pre><code class="language-go">defkit.Lit("always")
+defkit.Lit(3)
+defkit.Reference("parameter.image")
+defkit.Reference("context.name")
+defkit.Concat(vela.Name(), defkit.Lit("-svc"))</code></pre>
+      </div>
+      <div>
+        <div class="code-column-label">CUE</div>
+        <pre><code class="language-cue">"always"
+3
+parameter.image
+context.name
+context.name + "-svc"</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <section id="velactx">
+    <h2>VelaCtx</h2>
+    <p>The <code>defkit.VelaCtx()</code> accessor provides runtime context values injected by KubeVela — application name, namespace, component name, and more.</p>
+    <div class="code-pair">
+      <div>
+        <div class="code-column-label">Go</div>
+        <pre><code class="language-go">vela := defkit.VelaCtx()
+
+vela.Name()
+vela.Namespace()
+vela.AppName()
+vela.ClusterName()</code></pre>
+      </div>
+      <div>
+        <div class="code-column-label">CUE</div>
+        <pre><code class="language-cue">context.name
+context.namespace
+context.appName
+context.clusterName</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <section id="health-status">
+    <h2>Health &amp; Status DSL</h2>
+    <p>Builders for defining how KubeVela evaluates component and trait health. Conditions map resource field values to healthy/unhealthy states.</p>
+    <div class="code-pair">
+      <div>
+        <div class="code-column-label">Go</div>
+        <pre><code class="language-go">defkit.Health().
+    HealthyWhen(
+        defkit.Field("status.readyReplicas").
+            Equals(defkit.Reference("spec.replicas")),
+    ).
+    Message("Waiting for replicas to be ready")</code></pre>
+      </div>
+      <div>
+        <div class="code-column-label">CUE</div>
+        <pre><code class="language-cue">isHealth: output.status.readyReplicas ==
+          output.spec.replicas
+message: "Waiting for replicas to be ready"</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <section id="full-examples">
+    <h2>Full Examples</h2>
+    <p>Complete, working component definitions showing the full defkit pattern from parameter declaration through template output and registration.</p>
+    <div class="code-pair">
+      <div>
+        <div class="code-column-label">Go</div>
+        <pre><code class="language-go">func WebService() *defkit.ComponentDefinition {
+    image := defkit.String("image").Required().
+        Description("Container image")
+    port := defkit.Int("port").Default(8080).
+        Description("Service port")
+
+    return defkit.NewComponent("webservice").
+        Description("HTTP web service component").
+        Workload("apps/v1", "Deployment").
+        Params(image, port).
+        Template(webServiceTemplate)
+}
+
+func webServiceTemplate(tpl *defkit.Template) {
+    vela := defkit.VelaCtx()
+    deploy := defkit.NewResource("apps/v1", "Deployment").
+        Set("metadata.name", vela.Name()).
+        Set("spec.replicas", defkit.Lit(1)).
+        Set("spec.template.spec.containers[0].image",
+            defkit.Reference("parameter.image"))
+    tpl.Output(deploy)
+}
+
+func init() { defkit.Register(WebService()) }</code></pre>
+      </div>
+      <div>
+        <div class="code-column-label">CUE</div>
+        <pre><code class="language-cue">// Equivalent CUE template
+parameter: {
+    image: string
+    port:  *8080 | int
+}
+
+output: {
+    apiVersion: "apps/v1"
+    kind:       "Deployment"
+    metadata: name: context.name
+    spec: {
+        replicas: 1
+        template: spec: containers: [{
+            image: parameter.image
+        }]
+    }
+}</code></pre>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-go.min.js"></script>
+<script>
+Prism.languages.cue = {
+  'comment': /\/.*/,
+  'string': /"(?:[^"\\]|\\.)*"/,
+  'keyword': /\b(?:if|for|let|import|package|true|false|null|_|close)\b/,
+  'operator': /[=:&|!<>+\-*\/]+/,
+  'punctuation': /[{}[\](),]/,
+  'number': /\b\d+(?:\.\d+)?\b/,
+  'builtin': /\b(?:string|int|bool|float|bytes|list|struct)\b/,
+};
+</script>
+<script>
+const sections = document.querySelectorAll('section[id]');
+const navLinks = document.querySelectorAll('#sidebar a[href^="#"]');
+window.addEventListener('scroll', () => {
+  let current = '';
+  sections.forEach(s => {
+    if (window.scrollY >= s.offsetTop - 120) current = s.id;
+  });
+  navLinks.forEach(a => {
+    a.classList.toggle('active', a.getAttribute('href') === '#' + current);
+  });
+});
+</script>
+
+</body>
+</html>
