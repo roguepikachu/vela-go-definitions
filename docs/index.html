@@ -512,6 +512,16 @@
     </div>
 
     <div class="nav-group">
+      <div class="nav-group-label">Deployment</div>
+      <a href="#placement" class="nav-link"><span class="material-icons-round">place</span>Placement</a>
+    </div>
+
+    <div class="nav-group">
+      <div class="nav-group-label">Testing</div>
+      <a href="#testing" class="nav-link"><span class="material-icons-round">science</span>Testing</a>
+    </div>
+
+    <div class="nav-group">
       <div class="nav-group-label">Examples</div>
       <a href="#example-component" class="nav-link"><span class="material-icons-round">widgets</span>Component Example</a>
       <a href="#example-trait"     class="nav-link"><span class="material-icons-round">layers</span>Trait Example</a>
@@ -746,11 +756,14 @@ template: {
           <div class="qs-num">3</div>
           <div>
             <div class="qs-title">Validate &amp; generate</div>
-            <div class="qs-desc">Validate the module compiles and generates valid CUE.</div>
+            <div class="qs-desc">Validate the module compiles and generates valid CUE. Optionally generate raw CUE files for inspection.</div>
             <div class="code-block">
               <div class="code-label go"><span class="dot"></span>bash</div>
               <pre class="language-bash"><code>vela def validate-module ./my-platform
-vela def list-module ./my-platform</code></pre>
+vela def list-module ./my-platform
+
+# Generate raw CUE files (optional — for inspection)
+vela def gen-module ./my-platform -o ./generated-cue</code></pre>
             </div>
           </div>
         </div>
@@ -1059,7 +1072,12 @@ func main() {
               <tr style="border-bottom:1px solid rgba(73,69,79,0.4);"><td style="padding:0.35rem 0.5rem;"><code style="color:var(--md-primary);">.Helper(name, param)</code></td><td style="padding:0.35rem 0.5rem;color:var(--md-on-surface-var);">Registers a helper variable available inside the template function.</td></tr>
               <tr style="border-bottom:1px solid rgba(73,69,79,0.4);"><td style="padding:0.35rem 0.5rem;"><code style="color:var(--md-primary);">.CustomStatus(status)</code></td><td style="padding:0.35rem 0.5rem;color:var(--md-on-surface-var);">Attaches a custom status DSL expression to the definition.</td></tr>
               <tr style="border-bottom:1px solid rgba(73,69,79,0.4);"><td style="padding:0.35rem 0.5rem;"><code style="color:var(--md-primary);">.HealthPolicy(health)</code></td><td style="padding:0.35rem 0.5rem;color:var(--md-on-surface-var);">Attaches a health evaluation DSL expression. Use preset builders like <code>DeploymentHealth()</code>.</td></tr>
-              <tr><td style="padding:0.35rem 0.5rem;"><code style="color:var(--md-primary);">.WithImports(imports...)</code></td><td style="padding:0.35rem 0.5rem;color:var(--md-on-surface-var);">Adds CUE package import paths required by the template body.</td></tr>
+              <tr style="border-bottom:1px solid rgba(73,69,79,0.4);"><td style="padding:0.35rem 0.5rem;"><code style="color:var(--md-primary);">.WithImports(imports...)</code></td><td style="padding:0.35rem 0.5rem;color:var(--md-on-surface-var);">Adds CUE package import paths required by the template body.</td></tr>
+              <tr style="border-bottom:1px solid rgba(73,69,79,0.4);"><td style="padding:0.35rem 0.5rem;"><code style="color:var(--md-primary);">.RawCUE(cue string)</code></td><td style="padding:0.35rem 0.5rem;color:var(--md-on-surface-var);">Bypasses the builder entirely — the raw CUE string is used as-is for the definition. Use sparingly for patterns the fluent API cannot express.</td></tr>
+              <tr style="border-bottom:1px solid rgba(73,69,79,0.4);"><td style="padding:0.35rem 0.5rem;"><code style="color:var(--md-primary);">.ToCue() string</code></td><td style="padding:0.35rem 0.5rem;color:var(--md-on-surface-var);">Generate the CUE definition as a string.</td></tr>
+              <tr style="border-bottom:1px solid rgba(73,69,79,0.4);"><td style="padding:0.35rem 0.5rem;"><code style="color:var(--md-primary);">.ToCueWithImports(imports...) string</code></td><td style="padding:0.35rem 0.5rem;color:var(--md-on-surface-var);">Generate CUE with explicit import declarations appended.</td></tr>
+              <tr style="border-bottom:1px solid rgba(73,69,79,0.4);"><td style="padding:0.35rem 0.5rem;"><code style="color:var(--md-primary);">.ToYAML() ([]byte, error)</code></td><td style="padding:0.35rem 0.5rem;color:var(--md-on-surface-var);">Generate the Kubernetes YAML manifest for the definition CRD.</td></tr>
+              <tr><td style="padding:0.35rem 0.5rem;"><code style="color:var(--md-primary);">.ToParameterSchema() string</code></td><td style="padding:0.35rem 0.5rem;color:var(--md-on-surface-var);">Generate only the parameter CUE block (without the full definition).</td></tr>
             </tbody>
           </table>
           <div class="code-pair">
@@ -1735,6 +1753,58 @@ ports := defkit.Array("ports").Of(portStruct)</code></pre>
         </div>
       </div>
 
+      <!-- Float -->
+      <div class="method-card">
+        <div class="method-header">
+          <code class="method-sig">defkit.Float(name string) *Param</code>
+          <div class="method-meta">
+            <div class="method-title">Float</div>
+            <div class="method-desc">A floating-point number parameter. Supports <code>.Min(f)</code> and <code>.Max(f)</code> for range constraints. Generates the CUE <code>float</code> type.</div>
+          </div>
+        </div>
+        <div class="method-body">
+          <div class="method-applies"><span class="applies-label">Applies to:</span><span class="pill pill-all">All Definition Types</span></div>
+          <div class="code-pair">
+            <div class="code-block">
+              <div class="code-label go"><span class="dot"></span>Go — defkit</div>
+              <pre class="language-go"><code>ratio   := defkit.Float("ratio").Default(0.5).Min(0.0).Max(1.0)
+weight  := defkit.Float("weight").Required()</code></pre>
+            </div>
+            <div class="code-block">
+              <div class="code-label cue"><span class="dot"></span>CUE — generated</div>
+              <pre class="language-cue"><code>ratio:  *0.5 | float &gt;=0 &amp; &lt;=1
+weight: float</code></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Map -->
+      <div class="method-card">
+        <div class="method-header">
+          <code class="method-sig">defkit.Map(name string) *Param</code>
+          <div class="method-meta">
+            <div class="method-title">Map</div>
+            <div class="method-desc">A generic map parameter with configurable value types. Use <code>StringKeyMap</code> for the common string-to-string case. <code>Map</code> is more flexible but generates a less specific CUE type.</div>
+          </div>
+        </div>
+        <div class="method-body">
+          <div class="method-applies"><span class="applies-label">Applies to:</span><span class="pill pill-all">All Definition Types</span></div>
+          <div class="code-pair">
+            <div class="code-block">
+              <div class="code-label go"><span class="dot"></span>Go — defkit</div>
+              <pre class="language-go"><code>labels      := defkit.Map("labels").Description("Labels to apply")
+annotations := defkit.Map("annotations").Optional()</code></pre>
+            </div>
+            <div class="code-block">
+              <div class="code-label cue"><span class="dot"></span>CUE — generated</div>
+              <pre class="language-cue"><code>labels?:      {...}
+annotations?: {...}</code></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- OneOf -->
       <div class="method-card">
         <div class="method-header">
@@ -2013,6 +2083,176 @@ parameter: {
           </div>
         </div>
       </div>
+
+      <!-- ── STRING CONSTRAINTS ─────────────────── -->
+      <h3 style="font-size:1rem;font-weight:700;margin:2rem 0 1rem;color:var(--md-on-surface);">String &amp; Array Constraints</h3>
+
+      <!-- Pattern / MinLen / MaxLen -->
+      <div class="method-card">
+        <div class="method-header">
+          <code class="method-sig">.Pattern(re string) / .MinLen(n) / .MaxLen(n) *Param</code>
+          <div class="method-meta">
+            <div class="method-title">Pattern / MinLen / MaxLen</div>
+            <div class="method-desc">String constraints. <code>.Pattern()</code> restricts values to those matching the regular expression. <code>.MinLen()</code> and <code>.MaxLen()</code> enforce length bounds. All generate CUE constraint intersections.</div>
+          </div>
+        </div>
+        <div class="method-body">
+          <div class="method-applies"><span class="applies-label">Applies to:</span><span class="pill pill-all">All Definition Types</span></div>
+          <div class="code-pair">
+            <div class="code-block">
+              <div class="code-label go"><span class="dot"></span>Go — defkit</div>
+              <pre class="language-go"><code>name := defkit.String("name").Pattern("^[a-z]+$")
+slug := defkit.String("slug").MinLen(1).MaxLen(63)</code></pre>
+            </div>
+            <div class="code-block">
+              <div class="code-label cue"><span class="dot"></span>CUE — generated</div>
+              <pre class="language-cue"><code>name?: =~"^[a-z]+$"
+slug?: string &amp; strings.MinRunes(1) &amp; strings.MaxRunes(63)</code></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MinItems / MaxItems -->
+      <div class="method-card">
+        <div class="method-header">
+          <code class="method-sig">.MinItems(n int) / .MaxItems(n int) *Param</code>
+          <div class="method-meta">
+            <div class="method-title">MinItems / MaxItems</div>
+            <div class="method-desc">Array constraints enforcing minimum and maximum element counts. Applied to <code>Array</code> and <code>List</code> parameters. Generates CUE list constraint expressions.</div>
+          </div>
+        </div>
+        <div class="method-body">
+          <div class="method-applies"><span class="applies-label">Applies to:</span><span class="pill pill-all">All Definition Types</span></div>
+          <div class="code-pair">
+            <div class="code-block">
+              <div class="code-label go"><span class="dot"></span>Go — defkit</div>
+              <pre class="language-go"><code>ports := defkit.Array("ports").MinItems(1).MaxItems(10)</code></pre>
+            </div>
+            <div class="code-block">
+              <div class="code-label cue"><span class="dot"></span>CUE — generated</div>
+              <pre class="language-cue"><code>ports?: [...] &amp; list.MinItems(1) &amp; list.MaxItems(10)</code></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── PARAMETER AS EXPRESSIONS ──────────── -->
+      <h3 style="font-size:1rem;font-weight:700;margin:2rem 0 1rem;color:var(--md-on-surface);">Parameters as Expressions</h3>
+      <p style="font-size:0.82rem;color:var(--md-on-surface-var);margin-bottom:1.25rem;">Parameters are not just schema declarations — they are expression builders used in conditions and computations inside templates.</p>
+
+      <!-- Arithmetic expressions -->
+      <div class="method-card">
+        <div class="method-header">
+          <code class="method-sig">.Add(v) / .Sub(v) / .Mul(v) / .Div(v) Value</code>
+          <div class="method-meta">
+            <div class="method-title">Arithmetic Expressions</div>
+            <div class="method-desc">Arithmetic operations on numeric parameters. Returns a <code>Value</code> that can be passed to <code>.Set()</code> or used in further expressions. Generates CUE arithmetic operators.</div>
+          </div>
+        </div>
+        <div class="method-body">
+          <div class="method-applies"><span class="applies-label">Applies to:</span><span class="pill pill-all">All Definition Types</span></div>
+          <div class="code-pair">
+            <div class="code-block">
+              <div class="code-label go"><span class="dot"></span>Go — defkit</div>
+              <pre class="language-go"><code>port := defkit.Int("port")
+
+// arithmetic expressions
+port.Add(1)    // port + 1
+port.Sub(1)    // port - 1
+port.Mul(2)    // port * 2
+port.Div(2)    // port / 2
+
+deploy.Set("spec.healthPort", port.Add(1000))</code></pre>
+            </div>
+            <div class="code-block">
+              <div class="code-label cue"><span class="dot"></span>CUE — generated</div>
+              <pre class="language-cue"><code>spec: healthPort: parameter.port + 1000</code></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- String expressions -->
+      <div class="method-card">
+        <div class="method-header">
+          <code class="method-sig">.Concat(suffix) / .Prepend(prefix) / .Contains(s) / .StartsWith(s) / .In(vals...) Value</code>
+          <div class="method-meta">
+            <div class="method-title">String Expressions &amp; Conditions</div>
+            <div class="method-desc">String manipulation and condition methods on string parameters. <code>.Concat()</code> / <code>.Prepend()</code> produce string concatenation values. <code>.Contains()</code>, <code>.StartsWith()</code>, and <code>.In()</code> produce boolean condition expressions usable in <code>.SetIf()</code> or <code>.If()</code> blocks.</div>
+          </div>
+        </div>
+        <div class="method-body">
+          <div class="method-applies"><span class="applies-label">Applies to:</span><span class="pill pill-all">All Definition Types</span></div>
+          <div class="code-pair">
+            <div class="code-block">
+              <div class="code-label go"><span class="dot"></span>Go — defkit</div>
+              <pre class="language-go"><code>name := defkit.String("name")
+env  := defkit.String("env")
+
+// concatenation values
+name.Concat("-suffix")    // name + "-suffix"
+name.Prepend("prefix-")   // "prefix-" + name
+
+// condition expressions
+env.Contains("prod")                    // strings.Contains(env, "prod")
+env.StartsWith("staging")              // strings.HasPrefix(env, "staging")
+env.In("dev", "staging", "prod")       // env in set
+
+// use in conditional
+deploy.SetIf(env.In("prod", "staging"), "metadata.labels.tier", defkit.Lit("production"))</code></pre>
+            </div>
+            <div class="code-block">
+              <div class="code-label cue"><span class="dot"></span>CUE — generated</div>
+              <pre class="language-cue"><code>// Concat/Prepend
+metadata: name: parameter.name + "-suffix"
+
+// Contains condition
+if strings.Contains(parameter.env, "prod") {
+    metadata: labels: tier: "production"
+}</code></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Struct field access -->
+      <div class="method-card">
+        <div class="method-header">
+          <code class="method-sig">structParam.Field(name string) Value</code>
+          <div class="method-meta">
+            <div class="method-title">Struct Field Access</div>
+            <div class="method-desc">Access nested fields within struct parameters for use in conditions or <code>.Set()</code> calls. Returns a <code>Value</code> that references the nested field path. Supports chained condition methods like <code>.IsSet()</code>, <code>.Eq()</code>, etc.</div>
+          </div>
+        </div>
+        <div class="method-body">
+          <div class="method-applies"><span class="applies-label">Applies to:</span><span class="pill pill-all">All Definition Types</span></div>
+          <div class="code-pair">
+            <div class="code-block">
+              <div class="code-label go"><span class="dot"></span>Go — defkit</div>
+              <pre class="language-go"><code>config := defkit.Struct("config").Fields(
+    defkit.Field("enabled", defkit.ParamTypeBool).Default(true),
+    defkit.Field("port", defkit.ParamTypeInt).Default(8080),
+)
+
+// reference nested fields
+config.Field("enabled")             // parameter.config.enabled
+config.Field("enabled").IsSet()     // check if config.enabled is set
+config.Field("port").Eq(8080)       // config.port == 8080
+
+deploy.SetIf(config.Field("enabled").IsSet(),
+    "spec.template.metadata.labels.enabled",
+    config.Field("enabled"))</code></pre>
+            </div>
+            <div class="code-block">
+              <div class="code-label cue"><span class="dot"></span>CUE — generated</div>
+              <pre class="language-cue"><code>if parameter.config.enabled != _|_ {
+    spec: template: metadata: labels: enabled: parameter.config.enabled
+}</code></pre>
+            </div>
+          </div>
+        </div>
+      </div>
     </section>
 
     <!-- ══════════════════════════════════
@@ -2212,6 +2452,94 @@ patchSets: [{
     patches: [...]
 }]
 patch: { ... }</code></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── WORKFLOW STEP ACTIONS ───────────────── -->
+      <h3 style="font-size:1rem;font-weight:700;margin:2rem 0 1rem;color:var(--md-on-surface);">Workflow Step Actions</h3>
+
+      <!-- tpl.Suspend / tpl.SuspendIf -->
+      <div class="method-card">
+        <div class="method-header">
+          <code class="method-sig">tpl.Suspend(message string) / tpl.SuspendIf(cond, message string)</code>
+          <div class="method-meta">
+            <div class="method-title">Suspend / SuspendIf</div>
+            <div class="method-desc"><code>tpl.Suspend()</code> unconditionally pauses the workflow at this step, emitting a message. <code>tpl.SuspendIf()</code> pauses only when the boolean condition is true — typically used to require manual approval when auto-deploy is disabled. Both are available on <code>*WorkflowStepTemplate</code>.</div>
+          </div>
+        </div>
+        <div class="method-body">
+          <div class="method-applies"><span class="applies-label">Applies to:</span><span class="pill pill-workflow">WorkflowStep</span></div>
+          <div class="code-pair">
+            <div class="code-block">
+              <div class="code-label go"><span class="dot"></span>Go — defkit</div>
+              <pre class="language-go"><code>// Unconditional suspend
+step := defkit.NewWorkflowStep("manual-approval").
+    Description("Wait for manual approval").
+    Template(func(tpl *defkit.WorkflowStepTemplate) {
+        tpl.Suspend("Waiting for approval")
+    })
+
+// Conditional suspend — pause when auto == false
+auto := defkit.Bool("auto").Default(true)
+step2 := defkit.NewWorkflowStep("deploy").
+    Params(auto).
+    Template(func(tpl *defkit.WorkflowStepTemplate) {
+        tpl.SuspendIf(defkit.Not(auto.IsTrue()), "Waiting approval to deploy")
+    })</code></pre>
+            </div>
+            <div class="code-block">
+              <div class="code-label cue"><span class="dot"></span>CUE — generated</div>
+              <pre class="language-cue"><code>// SuspendIf output
+if !(parameter.auto) {
+    suspend: builtin.#Suspend &amp; {
+        $params: {
+            message: "Waiting approval to deploy"
+        }
+    }
+}</code></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- tpl.Builtin -->
+      <div class="method-card">
+        <div class="method-header">
+          <code class="method-sig">tpl.Builtin(name, action string).WithParams(map).Build()</code>
+          <div class="method-meta">
+            <div class="method-title">Builtin</div>
+            <div class="method-desc">Calls a KubeVela builtin workflow action (e.g., <code>multicluster.#Deploy</code>). Chain <code>.WithParams(map[string]defkit.Value)</code> to bind parameter references, then call <code>.Build()</code> to emit the CUE action block. Requires declaring the import with <code>.WithImports()</code> on the step definition.</div>
+          </div>
+        </div>
+        <div class="method-body">
+          <div class="method-applies"><span class="applies-label">Applies to:</span><span class="pill pill-workflow">WorkflowStep</span></div>
+          <div class="code-pair">
+            <div class="code-block">
+              <div class="code-label go"><span class="dot"></span>Go — defkit</div>
+              <pre class="language-go"><code>policies    := defkit.StringList("policies")
+parallelism := defkit.Int("parallelism").Default(5)
+
+step := defkit.NewWorkflowStep("deploy").
+    WithImports("vela/multicluster", "vela/builtin").
+    Params(policies, parallelism).
+    Template(func(tpl *defkit.WorkflowStepTemplate) {
+        tpl.Builtin("deploy", "multicluster.#Deploy").
+            WithParams(map[string]defkit.Value{
+                "policies":    policies,
+                "parallelism": parallelism,
+            }).Build()
+    })</code></pre>
+            </div>
+            <div class="code-block">
+              <div class="code-label cue"><span class="dot"></span>CUE — generated</div>
+              <pre class="language-cue"><code>deploy: multicluster.#Deploy &amp; {
+    $params: {
+        policies:    parameter.policies
+        parallelism: parameter.parallelism
+    }
+}</code></pre>
             </div>
           </div>
         </div>
@@ -3317,6 +3645,239 @@ metadata: {
         </div>
       </div>
 
+      <!-- ── COMPOSABLE HEALTH API ──────────────── -->
+      <h3 style="font-size:1rem;font-weight:700;margin:2rem 0 1rem;color:var(--md-on-surface);">Composable Health API</h3>
+      <p style="font-size:0.82rem;color:var(--md-on-surface-var);margin-bottom:1.25rem;">An alternative higher-level API for health expressions. Uses condition-based chaining instead of <code>IntField/HealthyWhen</code>. Wire into definitions with <code>.HealthPolicyExpr()</code>.</p>
+
+      <!-- Health().Condition / AllTrue / AnyTrue -->
+      <div class="method-card">
+        <div class="method-header">
+          <code class="method-sig">h.Condition(type).IsTrue() / h.AllTrue(types...) / h.AnyTrue(types...)</code>
+          <div class="method-meta">
+            <div class="method-title">Condition Checks</div>
+            <div class="method-desc">Check Kubernetes status conditions on the output resource. <code>.Condition(type).IsTrue()</code> / <code>.IsFalse()</code> / <code>.Exists()</code> / <code>.ReasonIs(r)</code> target individual conditions. <code>.AllTrue(types...)</code> requires all listed conditions to be True; <code>.AnyTrue(types...)</code> requires at least one.</div>
+          </div>
+        </div>
+        <div class="method-body">
+          <div class="method-applies"><span class="applies-label">Applies to:</span><span class="pill pill-component">Component</span><span class="pill pill-trait">Trait</span></div>
+          <div class="code-pair">
+            <div class="code-block">
+              <div class="code-label go"><span class="dot"></span>Go — defkit</div>
+              <pre class="language-go"><code>h := defkit.Health()
+
+// Single condition
+h.Condition("Ready").IsTrue()
+h.Condition("Stalled").IsFalse()
+h.Condition("Initialized").Exists()
+h.Condition("Ready").ReasonIs("Available")
+
+// Multiple conditions
+h.AllTrue("Ready", "Synced")    // all must be True
+h.AnyTrue("Ready", "Available") // at least one True
+
+comp := defkit.NewComponent("operator").
+    Workload("apps/v1", "Deployment").
+    HealthPolicyExpr(h.AllTrue("Ready", "Synced"))</code></pre>
+            </div>
+            <div class="code-block">
+              <div class="code-label cue"><span class="dot"></span>CUE — generated</div>
+              <pre class="language-cue"><code>_readyCond:  [ for c in context.output.status.conditions if c.type == "Ready"  { c } ]
+_syncedCond: [ for c in context.output.status.conditions if c.type == "Synced" { c } ]
+isHealth: (len(_readyCond) > 0 &amp;&amp; _readyCond[0].status == "True") &amp;&amp;
+          (len(_syncedCond) > 0 &amp;&amp; _syncedCond[0].status == "True")</code></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Health().Phase / PhaseField -->
+      <div class="method-card">
+        <div class="method-header">
+          <code class="method-sig">h.Phase(phases...) / h.PhaseField(path, phases...)</code>
+          <div class="method-meta">
+            <div class="method-title">Phase Checks</div>
+            <div class="method-desc">Check the resource's phase field. <code>.Phase()</code> checks <code>status.phase</code> against one or more accepted values. <code>.PhaseField()</code> checks an arbitrary field path instead of the standard phase path.</div>
+          </div>
+        </div>
+        <div class="method-body">
+          <div class="method-applies"><span class="applies-label">Applies to:</span><span class="pill pill-component">Component</span></div>
+          <div class="code-pair">
+            <div class="code-block">
+              <div class="code-label go"><span class="dot"></span>Go — defkit</div>
+              <pre class="language-go"><code>h := defkit.Health()
+
+h.Phase("Running", "Succeeded")
+h.PhaseField("status.currentPhase", "Active")</code></pre>
+            </div>
+            <div class="code-block">
+              <div class="code-label cue"><span class="dot"></span>CUE — generated</div>
+              <pre class="language-cue"><code>isHealth: context.output.status.phase == "Running" ||
+          context.output.status.phase == "Succeeded"</code></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Health().Field -->
+      <div class="method-card">
+        <div class="method-header">
+          <code class="method-sig">h.Field(path).Eq(v) / .Gt(v) / .Gte(v) / .Lt(v) / .In(vs...) / .Contains(s) / h.Exists(path) / h.NotExists(path)</code>
+          <div class="method-meta">
+            <div class="method-title">Field Expressions</div>
+            <div class="method-desc">Check arbitrary fields in the output resource. <code>h.Field(path)</code> returns a field builder supporting comparison operators. <code>h.Exists(path)</code> and <code>h.NotExists(path)</code> check for field presence. <code>h.FieldRef(path)</code> creates a reference for comparing two fields.</div>
+          </div>
+        </div>
+        <div class="method-body">
+          <div class="method-applies"><span class="applies-label">Applies to:</span><span class="pill pill-component">Component</span></div>
+          <div class="code-pair">
+            <div class="code-block">
+              <div class="code-label go"><span class="dot"></span>Go — defkit</div>
+              <pre class="language-go"><code>h := defkit.Health()
+
+h.Field("status.state").Eq("active")
+h.Field("status.replicas").Gt(0)
+h.Field("status.availableReplicas").Gte(1)
+h.Field("status.phase").In("Running", "Succeeded")
+h.Field("status.message").Contains("ready")
+
+// compare two fields
+h.Field("status.readyReplicas").Eq(h.FieldRef("spec.replicas"))
+
+// existence checks
+h.Exists("status.loadBalancer.ingress")
+h.NotExists("status.error")</code></pre>
+            </div>
+            <div class="code-block">
+              <div class="code-label cue"><span class="dot"></span>CUE — generated</div>
+              <pre class="language-cue"><code>isHealth: context.output.status.readyReplicas ==
+          context.output.spec.replicas</code></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Health().And / Or / Not -->
+      <div class="method-card">
+        <div class="method-header">
+          <code class="method-sig">h.And(exprs...) / h.Or(exprs...) / h.Not(expr)</code>
+          <div class="method-meta">
+            <div class="method-title">Composite Health Expressions</div>
+            <div class="method-desc">Combine multiple health expressions with logical operators. Expressions can be nested arbitrarily. Pass the composed expression to <code>.HealthPolicyExpr()</code> on the definition builder. Use <code>defkit.HealthPolicy(expr)</code> to generate the raw CUE string from an expression.</div>
+          </div>
+        </div>
+        <div class="method-body">
+          <div class="method-applies"><span class="applies-label">Applies to:</span><span class="pill pill-component">Component</span><span class="pill pill-trait">Trait</span></div>
+          <div class="code-pair">
+            <div class="code-block">
+              <div class="code-label go"><span class="dot"></span>Go — defkit</div>
+              <pre class="language-go"><code>h := defkit.Health()
+
+comp := defkit.NewComponent("database").
+    Workload("apps/v1", "StatefulSet").
+    HealthPolicyExpr(h.And(
+        h.Condition("Ready").IsTrue(),
+        h.Not(h.Condition("Stalled").IsTrue()),
+        h.Or(
+            h.Field("status.replicas").Gte(1),
+            h.Exists("status.endpoint"),
+        ),
+    ))</code></pre>
+            </div>
+            <div class="code-block">
+              <div class="code-label cue"><span class="dot"></span>CUE — generated</div>
+              <pre class="language-cue"><code>_readyCond:   [ for c in context.output.status.conditions if c.type == "Ready"   { c } ]
+_stalledCond: [ for c in context.output.status.conditions if c.type == "Stalled" { c } ]
+isHealth: (len(_readyCond) > 0 &amp;&amp; _readyCond[0].status == "True") &amp;&amp;
+          (!(len(_stalledCond) > 0 &amp;&amp; _stalledCond[0].status == "True")) &amp;&amp;
+          ((context.output.status.replicas >= 1) || (context.output.status.endpoint != _|_))</code></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- HealthPolicyExpr / StatusPolicy -->
+      <div class="method-card">
+        <div class="method-header">
+          <code class="method-sig">.HealthPolicyExpr(expr) / defkit.HealthPolicy(expr) / defkit.StatusPolicy(expr)</code>
+          <div class="method-meta">
+            <div class="method-title">HealthPolicyExpr / StatusPolicy</div>
+            <div class="method-desc"><code>.HealthPolicyExpr()</code> wires a composable health expression directly into the definition (alternative to <code>.HealthPolicy(string)</code>). <code>defkit.HealthPolicy(expr)</code> converts a composed health expression to a raw CUE string. <code>defkit.StatusPolicy(expr)</code> converts a composed status expression to a raw CUE string for use with <code>.CustomStatus()</code>.</div>
+          </div>
+        </div>
+        <div class="method-body">
+          <div class="method-applies"><span class="applies-label">Applies to:</span><span class="pill pill-component">Component</span><span class="pill pill-trait">Trait</span></div>
+          <div class="code-pair">
+            <div class="code-block">
+              <div class="code-label go"><span class="dot"></span>Go — defkit</div>
+              <pre class="language-go"><code>h := defkit.Health()
+s := defkit.Status()
+
+comp := defkit.NewComponent("webservice").
+    Workload("apps/v1", "Deployment").
+    HealthPolicyExpr(h.Condition("Ready").IsTrue()).
+    CustomStatus(defkit.StatusPolicy(
+        s.Format("Ready: %v/%v",
+            s.Field("status.readyReplicas").Default(0),
+            s.SpecField("spec.replicas"),
+        ),
+    ))</code></pre>
+            </div>
+            <div class="code-block">
+              <div class="code-label cue"><span class="dot"></span>CUE — generated</div>
+              <pre class="language-cue"><code>_readyCond: [ for c in context.output.status.conditions if c.type == "Ready" { c } ]
+isHealth: len(_readyCond) > 0 &amp;&amp; _readyCond[0].status == "True"
+
+_readyReplicas: *0 | int
+if context.output.status.readyReplicas != _|_ {
+    _readyReplicas: context.output.status.readyReplicas
+}
+message: "Ready: \(_readyReplicas)/\(context.output.spec.replicas)"</code></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Status().Format / Switch -->
+      <div class="method-card">
+        <div class="method-header">
+          <code class="method-sig">s.Format(fmt, args...) / s.Switch(cases...) / s.Case(cond, msg) / s.Default(msg)</code>
+          <div class="method-meta">
+            <div class="method-title">Status Format &amp; Switch</div>
+            <div class="method-desc"><code>s.Format()</code> builds a status message string using Go-style format with field and spec references. <code>s.Switch()</code> builds a conditional status message — the first matching case wins. Use <code>s.Case(cond, message)</code> for each branch and <code>s.Default(message)</code> for the fallback.</div>
+          </div>
+        </div>
+        <div class="method-body">
+          <div class="method-applies"><span class="applies-label">Applies to:</span><span class="pill pill-component">Component</span></div>
+          <div class="code-pair">
+            <div class="code-block">
+              <div class="code-label go"><span class="dot"></span>Go — defkit</div>
+              <pre class="language-go"><code>s := defkit.Status()
+
+// Format message
+s.Format("Ready: %v/%v",
+    s.Field("status.readyReplicas").Default(0),
+    s.SpecField("spec.replicas"),
+)
+
+// Switch/case message
+s.Switch(
+    s.Case(s.Field("status.phase").Eq("Running"), "Service is running"),
+    s.Case(s.Field("status.phase").Eq("Pending"), "Service is starting..."),
+    s.Default("Unknown status"),
+)</code></pre>
+            </div>
+            <div class="code-block">
+              <div class="code-label cue"><span class="dot"></span>CUE — generated (Format)</div>
+              <pre class="language-cue"><code>_readyReplicas: *0 | int
+if context.output.status.readyReplicas != _|_ {
+    _readyReplicas: context.output.status.readyReplicas
+}
+message: "Ready: \(_readyReplicas)/\(context.output.spec.replicas)"</code></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- ── PRESET BUILDERS ─────────────────────── -->
       <h3 style="font-size:1rem;font-weight:700;margin:2rem 0 1rem;color:var(--text);">Preset Builders</h3>
 
@@ -3730,6 +4291,529 @@ parameter.podAffinity.required != _|_</code></pre>
             <div class="code-block">
               <div class="code-label cue"><span class="dot"></span>CUE — generated</div>
               <pre class="language-cue"><code>len(_clusterPrivileges) > 0</code></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════════════════════════════
+         PLACEMENT
+    ══════════════════════════════════ -->
+    <section id="placement" class="section">
+      <div class="section-header">
+        <div class="section-icon" style="background:var(--c-teal-dim);"><span class="material-icons-round" style="color:var(--c-teal);">place</span></div>
+        <div>
+          <div class="section-title">Cluster Placement</div>
+        </div>
+      </div>
+      <p class="section-desc">The <code>placement</code> sub-package provides a type-safe API for expressing multi-cluster placement constraints. Constraints are evaluated at <code>vela def apply-module</code> time against cluster labels — definitions that don't match are skipped and never applied.</p>
+
+      <!-- Label conditions -->
+      <div class="method-card" id="placement-label">
+        <div class="method-header">
+          <code class="method-sig">placement.Label(key string).Eq(v) / .Ne(v) / .In(vs...) / .NotIn(vs...) / .Exists() / .NotExists()</code>
+          <div class="method-meta">
+            <div class="method-title">Label Conditions</div>
+            <div class="method-desc">Build conditions based on cluster labels. <code>placement.Label(key)</code> creates a builder that supports equality, set membership, and existence checks against the target cluster's labels. Import <code>"github.com/oam-dev/kubevela/pkg/definition/defkit/placement"</code>.</div>
+          </div>
+        </div>
+        <div class="method-body">
+          <div class="method-applies"><span class="applies-label">Applies to:</span><span class="pill pill-all">All Definition Types</span></div>
+          <div class="code-pair">
+            <div class="code-block">
+              <div class="code-label go"><span class="dot"></span>Go — defkit</div>
+              <pre class="language-go"><code>import "github.com/oam-dev/kubevela/pkg/definition/defkit/placement"
+
+placement.Label("provider").Eq("aws")
+placement.Label("provider").Ne("aws")
+placement.Label("cluster-type").In("eks", "self-managed")
+placement.Label("env").NotIn("development", "staging")
+placement.Label("gpu").Exists()
+placement.Label("deprecated").NotExists()</code></pre>
+            </div>
+            <div class="code-block">
+              <div class="code-label cue"><span class="dot"></span>Evaluated at apply time</div>
+              <pre class="language-cue"><code>// Placement constraints are evaluated by the CLI
+// before applying definitions to the cluster.
+// They do NOT appear in generated CUE or YAML output.</code></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Logical combinators -->
+      <div class="method-card">
+        <div class="method-header">
+          <code class="method-sig">placement.All(conds...) / placement.Any(conds...) / placement.Not(cond)</code>
+          <div class="method-meta">
+            <div class="method-title">Logical Combinators</div>
+            <div class="method-desc">Combine conditions with logical operators. <code>All</code> requires every condition to match. <code>Any</code> requires at least one. <code>Not</code> negates a condition. Combinators can be nested to express complex placement rules.</div>
+          </div>
+        </div>
+        <div class="method-body">
+          <div class="method-applies"><span class="applies-label">Applies to:</span><span class="pill pill-all">All Definition Types</span></div>
+          <div class="code-pair">
+            <div class="code-block">
+              <div class="code-label go"><span class="dot"></span>Go — defkit</div>
+              <pre class="language-go"><code>// All conditions must match
+placement.All(
+    placement.Label("provider").Eq("aws"),
+    placement.Label("env").Eq("production"),
+)
+
+// At least one must match
+placement.Any(
+    placement.Label("provider").Eq("aws"),
+    placement.Label("provider").Eq("gcp"),
+)
+
+// Negate
+placement.Not(placement.Label("cluster-type").Eq("vcluster"))
+
+// Nested
+placement.All(
+    placement.Any(
+        placement.Label("provider").In("aws", "gcp"),
+    ),
+    placement.Label("env").Eq("production"),
+)</code></pre>
+            </div>
+            <div class="code-block">
+              <div class="code-label cue"><span class="dot"></span>Evaluation logic</div>
+              <pre class="language-cue"><code>// Evaluation rules (applied by CLI):
+// 1. No constraints → eligible everywhere
+// 2. All RunOn conditions must match
+// 3. No NotRunOn conditions may match
+// 4. Eligible = (RunOn matches || empty) &amp;&amp;
+//              NOT (NotRunOn matches)</code></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RunOn / NotRunOn -->
+      <div class="method-card">
+        <div class="method-header">
+          <code class="method-sig">.RunOn(conds...) / .NotRunOn(conds...) *Definition</code>
+          <div class="method-meta">
+            <div class="method-title">RunOn / NotRunOn</div>
+            <div class="method-desc">Wire placement constraints into any definition type. <code>.RunOn()</code> specifies conditions that must ALL match for the definition to be applied. <code>.NotRunOn()</code> specifies conditions that must NOT match. Multiple calls accumulate (AND semantics).</div>
+          </div>
+        </div>
+        <div class="method-body">
+          <div class="method-applies"><span class="applies-label">Applies to:</span><span class="pill pill-all">All Definition Types</span></div>
+          <div class="code-pair">
+            <div class="code-block">
+              <div class="code-label go"><span class="dot"></span>Go — defkit</div>
+              <pre class="language-go"><code>// AWS-only component
+comp := defkit.NewComponent("aws-load-balancer").
+    Description("AWS Application Load Balancer").
+    RunOn(
+        placement.Label("provider").Eq("aws"),
+        placement.Label("cluster-type").In("eks", "self-managed"),
+    ).
+    NotRunOn(
+        placement.Label("cluster-type").Eq("vcluster"),
+    ).
+    Workload("apps/v1", "Deployment").
+    Params(defkit.String("image").Required())
+
+// Exclude virtual clusters only
+comp2 := defkit.NewComponent("persistent-storage").
+    NotRunOn(placement.Label("cluster-type").Eq("vcluster"))
+
+// GPU trait
+trait := defkit.NewTrait("gpu-resource").
+    RunOn(placement.Label("gpu").Exists()).
+    AppliesTo("deployments.apps")</code></pre>
+            </div>
+            <div class="code-block">
+              <div class="code-label cue"><span class="dot"></span>CUE output (unchanged)</div>
+              <pre class="language-cue"><code>"aws-load-balancer": {
+    type: "component"
+    description: "AWS Application Load Balancer"
+    attributes: workload: definition: {
+        apiVersion: "apps/v1"
+        kind:       "Deployment"
+    }
+}
+// Placement constraints are NOT
+// visible in the generated CUE/YAML</code></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- placement.Evaluate / ValidatePlacement -->
+      <div class="method-card">
+        <div class="method-header">
+          <code class="method-sig">placement.Evaluate(spec, labels) / placement.ValidatePlacement(spec)</code>
+          <div class="method-meta">
+            <div class="method-title">Evaluate &amp; ValidatePlacement</div>
+            <div class="method-desc"><code>placement.Evaluate(spec, labels)</code> programmatically checks whether a cluster (given its label map) satisfies a <code>PlacementSpec</code>. Returns a result with <code>.Eligible</code> bool and <code>.Reason</code> string. <code>placement.ValidatePlacement(spec)</code> detects logically conflicting constraints (e.g., same label in RunOn and NotRunOn) at definition-build time.</div>
+          </div>
+        </div>
+        <div class="method-body">
+          <div class="method-applies"><span class="applies-label">Applies to:</span><span class="pill pill-all">All Definition Types</span></div>
+          <div class="code-pair">
+            <div class="code-block">
+              <div class="code-label go"><span class="dot"></span>Go — defkit</div>
+              <pre class="language-go"><code>spec := placement.PlacementSpec{
+    RunOn: []placement.Condition{
+        placement.Label("provider").Eq("aws"),
+    },
+    NotRunOn: []placement.Condition{
+        placement.Label("cluster-type").Eq("vcluster"),
+    },
+}
+
+labels := map[string]string{
+    "provider":     "aws",
+    "cluster-type": "eks",
+}
+
+result := placement.Evaluate(spec, labels)
+// result.Eligible == true
+// result.Reason describes why
+
+// Validate for logical conflicts
+err := placement.ValidatePlacement(spec)</code></pre>
+            </div>
+            <div class="code-block">
+              <div class="code-label go"><span class="dot"></span>Go — unit test</div>
+              <pre class="language-go"><code>It("should be eligible on AWS EKS clusters", func() {
+    comp := defkit.NewComponent("aws-only").
+        RunOn(placement.Label("provider").Eq("aws"))
+
+    spec := comp.GetPlacement()
+    result := placement.Evaluate(spec, map[string]string{
+        "provider": "aws",
+    })
+    Expect(result.Eligible).To(BeTrue())
+})
+
+It("should be ineligible on GCP clusters", func() {
+    result := placement.Evaluate(spec, map[string]string{
+        "provider": "gcp",
+    })
+    Expect(result.Eligible).To(BeFalse())
+})</code></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- vela def apply-module CLI note -->
+      <div class="info-box">
+        <span class="material-icons-round">info</span>
+        <div>Placement constraints are evaluated by <code>vela def apply-module</code> by reading cluster labels from the <code>vela-cluster-identity</code> ConfigMap in the <code>vela-system</code> namespace. Definitions that do not match are <strong>skipped</strong> silently — no error is reported, and the definition is not applied.</div>
+      </div>
+    </section>
+
+    <!-- ══════════════════════════════════
+         TESTING
+    ══════════════════════════════════ -->
+    <section id="testing" class="section">
+      <div class="section-header">
+        <div class="section-icon" style="background:var(--c-green-dim);"><span class="material-icons-round" style="color:var(--c-green);">science</span></div>
+        <div>
+          <div class="section-title">Testing Definitions</div>
+        </div>
+      </div>
+      <p class="section-desc">Unit-test definitions with standard Go testing, Ginkgo/Gomega, and defkit's built-in matchers. No cluster needed — tests run entirely in-process.</p>
+
+      <!-- defkit.TestContext -->
+      <div class="method-card" id="test-context">
+        <div class="method-header">
+          <code class="method-sig">defkit.TestContext() *TestCtx</code>
+          <div class="method-meta">
+            <div class="method-title">TestContext</div>
+            <div class="method-desc">Creates a test context with runtime values and parameter overrides for unit-testing definitions without a cluster. Chain methods to set name, namespace, parameter values, app revision, and cluster version.</div>
+          </div>
+        </div>
+        <div class="method-body">
+          <div class="method-applies"><span class="applies-label">Applies to:</span><span class="pill pill-all">All Definition Types</span></div>
+          <div class="code-pair">
+            <div class="code-block">
+              <div class="code-label go"><span class="dot"></span>Go — defkit</div>
+              <pre class="language-go"><code>ctx := defkit.TestContext().
+    WithName("my-app").
+    WithNamespace("production").
+    WithParam("image", "nginx:1.21").
+    WithParam("replicas", 3).
+    WithAppRevision("v2").
+    WithClusterVersion(1, 28)</code></pre>
+            </div>
+            <div class="code-block">
+              <div class="code-label go"><span class="dot"></span>Context methods</div>
+              <pre class="language-go"><code>// Available methods on TestContext:
+// .WithName(name)               — component name
+// .WithNamespace(ns)            — application namespace
+// .WithParam(key, value)        — set a parameter value
+// .WithAppRevision(rev)         — app revision string
+// .WithClusterVersion(maj, min) — Kubernetes version</code></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- comp.Render -->
+      <div class="method-card">
+        <div class="method-header">
+          <code class="method-sig">comp.Render(ctx *TestCtx) *RenderedResource</code>
+          <div class="method-meta">
+            <div class="method-title">Render</div>
+            <div class="method-desc">Renders a component definition against a test context, producing the concrete Kubernetes resource map. Use <code>.Data()</code> to get the full resource as <code>map[string]any</code>, <code>.APIVersion()</code> for the API version string, and <code>.Kind()</code> for the resource kind.</div>
+          </div>
+        </div>
+        <div class="method-body">
+          <div class="method-applies"><span class="applies-label">Applies to:</span><span class="pill pill-component">Component</span></div>
+          <div class="code-pair">
+            <div class="code-block">
+              <div class="code-label go"><span class="dot"></span>Go — defkit</div>
+              <pre class="language-go"><code>rendered := comp.Render(
+    defkit.TestContext().WithName("myapp"),
+)
+
+apiVersion := rendered.APIVersion()          // "apps/v1"
+kind        := rendered.Kind()               // "Deployment"
+data        := rendered.Data()               // map[string]any
+name        := data["metadata"].(map[string]any)["name"]  // "myapp"</code></pre>
+            </div>
+            <div class="code-block">
+              <div class="code-label go"><span class="dot"></span>With Ginkgo/Gomega</div>
+              <pre class="language-go"><code>It("should render with context", func() {
+    rendered := comp.Render(
+        defkit.TestContext().WithName("myapp"),
+    )
+
+    Expect(rendered.APIVersion()).To(Equal("apps/v1"))
+    Expect(rendered.Kind()).To(Equal("Deployment"))
+
+    data := rendered.Data()
+    Expect(data["metadata"].(map[string]any)["name"]).
+        To(Equal("myapp"))
+})</code></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Resource matchers -->
+      <div class="method-card">
+        <div class="method-header">
+          <code class="method-sig">BeDeployment() / BeService() / BeConfigMap() / BeSecret() / BeIngress() / BeResourceOfKind(kind) / HaveAPIVersion(v)</code>
+          <div class="method-meta">
+            <div class="method-title">Resource Kind &amp; Version Matchers</div>
+            <div class="method-desc">Gomega matchers for asserting resource kind and API version. Import from <code>github.com/oam-dev/kubevela/pkg/definition/defkit/testing/matchers</code>. Use with <code>Expect(resource).To()</code> on <code>*Resource</code> or <code>*RenderedResource</code> values.</div>
+          </div>
+        </div>
+        <div class="method-body">
+          <div class="method-applies"><span class="applies-label">Applies to:</span><span class="pill pill-all">All Definition Types</span></div>
+          <div class="code-pair">
+            <div class="code-block">
+              <div class="code-label go"><span class="dot"></span>Go — import</div>
+              <pre class="language-go"><code>import (
+    . "github.com/onsi/gomega"
+    . "github.com/oam-dev/kubevela/pkg/definition/defkit/testing/matchers"
+)
+
+r := defkit.NewResource("apps/v1", "Deployment")
+
+Expect(r).To(BeDeployment())
+Expect(r).To(BeService())          // would fail
+Expect(r).To(BeConfigMap())
+Expect(r).To(BeSecret())
+Expect(r).To(BeIngress())
+Expect(r).To(BeResourceOfKind("Deployment"))
+Expect(r).To(HaveAPIVersion("apps/v1"))</code></pre>
+            </div>
+            <div class="code-block">
+              <div class="code-label go"><span class="dot"></span>Go — template assertions</div>
+              <pre class="language-go"><code>tpl := defkit.NewTemplate()
+comp.GetTemplate()(tpl)
+
+output := tpl.GetOutput()
+Expect(output).To(BeDeployment())
+Expect(output).To(HaveAPIVersion("apps/v1"))
+
+outputs := tpl.GetOutputs()
+Expect(outputs).To(HaveKey("service"))
+Expect(outputs["service"]).To(BeService())</code></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Operation matchers -->
+      <div class="method-card">
+        <div class="method-header">
+          <code class="method-sig">HaveSetOp(path string) / HaveOpCount(n int)</code>
+          <div class="method-meta">
+            <div class="method-title">Operation Matchers</div>
+            <div class="method-desc">Assert that specific <code>.Set()</code> operations exist on a resource builder, and check the total number of operations. Useful for verifying that a template correctly wires parameters without rendering the full resource.</div>
+          </div>
+        </div>
+        <div class="method-body">
+          <div class="method-applies"><span class="applies-label">Applies to:</span><span class="pill pill-component">Component</span><span class="pill pill-trait">Trait</span></div>
+          <div class="code-pair">
+            <div class="code-block">
+              <div class="code-label go"><span class="dot"></span>Go — defkit</div>
+              <pre class="language-go"><code>image    := defkit.String("image")
+replicas := defkit.Int("replicas")
+
+r := defkit.NewResource("apps/v1", "Deployment").
+    Set("spec.template.spec.containers[0].image", image).
+    Set("spec.replicas", replicas)
+
+Expect(r).To(HaveSetOp("spec.template.spec.containers[0].image"))
+Expect(r).NotTo(HaveSetOp("spec.volumes"))
+Expect(r).To(HaveOpCount(2))</code></pre>
+            </div>
+            <div class="code-block">
+              <div class="code-label cue"><span class="dot"></span>Why use operation matchers?</div>
+              <pre class="language-cue"><code>// Operation matchers check the builder's internal
+// operation list — they don't require rendering the
+// full template with a context.
+//
+// Use when:
+// - You want fast checks without a test context
+// - You want to verify a field is wired to a param
+// - You want to count total fields set</code></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Parameter matchers -->
+      <div class="method-card">
+        <div class="method-header">
+          <code class="method-sig">BeRequired() / BeOptional() / HaveDefaultValue(v) / HaveDescription(s) / HaveParamNamed(name)</code>
+          <div class="method-meta">
+            <div class="method-title">Parameter Matchers</div>
+            <div class="method-desc">Assert parameter properties directly. <code>BeRequired()</code> / <code>BeOptional()</code> check the optional flag. <code>HaveDefaultValue()</code> checks the default. <code>HaveDescription()</code> checks the description text. <code>HaveParamNamed()</code> checks that a definition has a parameter with the given name.</div>
+          </div>
+        </div>
+        <div class="method-body">
+          <div class="method-applies"><span class="applies-label">Applies to:</span><span class="pill pill-all">All Definition Types</span></div>
+          <div class="code-pair">
+            <div class="code-block">
+              <div class="code-label go"><span class="dot"></span>Go — defkit</div>
+              <pre class="language-go"><code>Expect(defkit.String("image").Required()).To(BeRequired())
+Expect(defkit.Int("replicas")).To(BeOptional())
+
+Expect(defkit.Int("replicas").Default(3)).To(HaveDefaultValue(3))
+Expect(defkit.String("tag").Default("latest")).To(HaveDefaultValue("latest"))
+
+Expect(defkit.String("image").Description("Container image")).
+    To(HaveDescription("Container image"))
+
+comp := defkit.NewComponent("test").
+    Params(
+        defkit.String("image").Required(),
+        defkit.Int("replicas").Default(1),
+    )
+
+Expect(comp).To(HaveParamNamed("image"))
+Expect(comp).To(HaveParamNamed("replicas"))
+Expect(comp).NotTo(HaveParamNamed("cpu"))</code></pre>
+            </div>
+            <div class="code-block">
+              <div class="code-label go"><span class="dot"></span>Go — full test file pattern</div>
+              <pre class="language-go"><code>var _ = Describe("Webservice Component", func() {
+    var comp *defkit.ComponentDefinition
+
+    BeforeEach(func() {
+        image    := defkit.String("image").Required()
+        replicas := defkit.Int("replicas").Default(1)
+
+        comp = defkit.NewComponent("webservice").
+            Workload("apps/v1", "Deployment").
+            Params(image, replicas).
+            Template(func(tpl *defkit.Template) {
+                vela := defkit.VelaCtx()
+                tpl.Output(
+                    defkit.NewResource("apps/v1", "Deployment").
+                        Set("metadata.name", vela.Name()).
+                        Set("spec.replicas", replicas),
+                )
+            })
+    })
+
+    It("should have correct metadata", func() {
+        Expect(comp.GetName()).To(Equal("webservice"))
+        Expect(comp.GetWorkload().Kind()).To(Equal("Deployment"))
+    })
+
+    It("should require image", func() {
+        Expect(comp).To(HaveParamNamed("image"))
+        Expect(comp.GetParams()[0]).To(BeRequired())
+    })
+
+    It("should produce a Deployment", func() {
+        tpl := defkit.NewTemplate()
+        comp.GetTemplate()(tpl)
+        Expect(tpl.GetOutput()).To(BeDeployment())
+        Expect(tpl.GetOutput()).To(HaveSetOp("metadata.name"))
+        Expect(tpl.GetOutput()).To(HaveOpCount(2))
+    })
+
+    It("should generate valid CUE", func() {
+        cue := comp.ToCue()
+        Expect(cue).To(ContainSubstring(`type: "component"`))
+        Expect(cue).To(ContainSubstring(`image: string`))
+        Expect(cue).To(ContainSubstring(`replicas: *1 | int`))
+    })
+})</code></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Running tests -->
+      <div class="method-card">
+        <div class="method-header">
+          <code class="method-sig">go test / ginkgo</code>
+          <div class="method-meta">
+            <div class="method-title">Running Tests</div>
+            <div class="method-desc">Run unit tests with standard <code>go test</code> or the Ginkgo CLI. No cluster is needed for unit tests — they run entirely in-process. Use <code>make test-unit</code> from the project root to run all unit tests in parallel.</div>
+          </div>
+        </div>
+        <div class="method-body">
+          <div class="method-applies"><span class="applies-label">Applies to:</span><span class="pill pill-all">All Definition Types</span></div>
+          <div class="code-pair">
+            <div class="code-block">
+              <div class="code-label go"><span class="dot"></span>bash — run tests</div>
+              <pre class="language-go"><code># Run all unit tests
+go test ./...
+
+# Run with verbose output
+go test -v ./...
+
+# Run a specific test
+go test ./components/... -run TestWebService
+go test ./traits/... -run TestEnv
+
+# Run via make
+make test-unit
+
+# Run E2E tests (requires live cluster)
+make test-e2e-components
+make test-e2e-traits</code></pre>
+            </div>
+            <div class="code-block">
+              <div class="code-label go"><span class="dot"></span>bash — ginkgo CLI</div>
+              <pre class="language-go"><code># Install ginkgo CLI
+make install-ginkgo
+
+# Run specific test suite
+ginkgo -v ./components/...
+ginkgo -v ./traits/...
+
+# Run E2E with label filter
+ginkgo --label-filter=components ./test/e2e/...
+ginkgo --label-filter=traits     ./test/e2e/...</code></pre>
             </div>
           </div>
         </div>
