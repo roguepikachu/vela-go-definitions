@@ -22,3 +22,11 @@ Thumbs.db
 
 # Local
 local/*
+
+# Planning & tooling (local only)
+.planning/
+.claude/
+.archive/
+.devcontainer/
+.mcp.json
+CLAUDE.md
