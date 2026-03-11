@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-03-11)
 ## Current Position
 
 Phase: 1 of 4 (Page Shell)
-Plan: 0 of TBD in current phase
-Status: Ready to plan
-Last activity: 2026-03-11 — Roadmap created
+Plan: 1 of 1 in current phase (awaiting human verify checkpoint)
+Status: Checkpoint — human-verify
+Last activity: 2026-03-11 — 01-01-PLAN.md tasks 1+2 complete, checkpoint pending
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [█░░░░░░░░░] 10%
 
 ## Performance Metrics
 
@@ -43,6 +43,8 @@ Progress: [░░░░░░░░░░] 0%
 - Generate in phases to avoid 32k output token limit — each phase produces a distinct chunk of docs/index.html
 - Side-by-side Go + CUE code blocks — helps developers understand the mapping
 - docs/ directory — GitHub Pages compatible
+- CUE has no official Prism.js component — registered a minimal custom grammar for visual distinction from Go
+- Prism.js 1.29.0 chosen (latest stable); all CSS inlined, no external stylesheet files
 
 ### Pending Todos
 
@@ -55,5 +57,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-11
-Stopped at: Roadmap created, ready to plan Phase 1
-Resume file: None
+Stopped at: 01-01-PLAN.md — tasks 1+2 committed (9a85b36), checkpoint:human-verify pending
+Resume file: .planning/phases/01-page-shell/01-01-PLAN.md (Task 3 checkpoint)
