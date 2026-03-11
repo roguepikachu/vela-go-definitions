@@ -31,20 +31,20 @@ patterns-established:
 
 requirements-completed: [STRUCT-01, STRUCT-02, STRUCT-03, STRUCT-04, STRUCT-05, FMT-01, FMT-02, FMT-03]
 
-duration: 8min
+duration: 15min
 completed: 2026-03-11
 ---
 
 # Phase 1 Plan 01: Page Shell Summary
 
-**Single self-contained docs/index.html with dark sidebar, 8 anchored sections, Prism.js Go+CUE syntax highlighting, and scroll-driven active nav — awaiting human visual verification**
+**Single self-contained docs/index.html with modern dark theme, dark sidebar, 8 anchored sections, Prism.js Go+CUE syntax highlighting, and scroll-driven active nav — human-verified and approved**
 
 ## Performance
 
-- **Duration:** ~8 min
+- **Duration:** ~15 min
 - **Started:** 2026-03-11T04:27:57Z
-- **Completed:** 2026-03-11T04:35:xx Z
-- **Tasks:** 2 of 3 (checkpoint pending human verify)
+- **Completed:** 2026-03-11
+- **Tasks:** 3 of 3 (including human-verify checkpoint)
 - **Files modified:** 1
 
 ## Accomplishments
@@ -53,22 +53,26 @@ completed: 2026-03-11
 - Side-by-side `.code-pair` grid layout with placeholder Go and CUE blocks in every section
 - Prism.js 1.29.0 from CDN: prism-tomorrow theme + Go component + custom CUE language grammar
 - Scroll listener drives active sidebar link highlighting
+- Post-checkpoint redesign: modern dark theme applied throughout, overview content added (commit 004b8ec)
+- Human visual verification passed — approved
 
 ## Task Commits
 
 1. **Tasks 1+2: Create page shell and wire Prism.js** - `9a85b36` (feat)
+2. **Post-checkpoint redesign: modern dark theme + overview content** - `004b8ec` (feat)
 
 ## Files Created/Modified
-- `docs/index.html` - Complete self-contained HTML page shell (455 lines)
+- `docs/index.html` - Complete self-contained HTML page shell with modern dark theme
 
 ## Decisions Made
 - CUE language registered inline as a minimal custom Prism grammar (no official component exists)
 - Prism.js 1.29.0 from cdnjs — matched plan specification exactly
 - Tasks 1 and 2 committed together since both target the same file and were built atomically
+- Post-checkpoint redesign applied dark theme to content area for improved visual cohesion
 
 ## Deviations from Plan
 
-None - plan executed exactly as written.
+None - plan executed exactly as written. Post-checkpoint redesign was user-initiated enhancement.
 
 ## Issues Encountered
 
@@ -79,8 +83,7 @@ None.
 None - no external service configuration required.
 
 ## Next Phase Readiness
-- `docs/index.html` shell is ready for Phase 2 to inject Definition + Parameter API content into the existing section placeholders
-- Visual verification by human required before Phase 2 begins (checkpoint:human-verify pending)
+- `docs/index.html` shell is human-verified and ready for Phase 2 to inject Definition + Parameter API content into the existing section placeholders
 
 ---
 *Phase: 01-page-shell*

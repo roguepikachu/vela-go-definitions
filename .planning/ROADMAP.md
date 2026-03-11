@@ -6,7 +6,7 @@ Four phases build a single-page HTML reference for the defkit Go API. Each phase
 
 ## Phases
 
-- [ ] **Phase 1: Page Shell** - HTML structure, CSS, sidebar, navigation skeleton
+- [x] **Phase 1: Page Shell** - HTML structure, CSS, sidebar, navigation skeleton
 - [ ] **Phase 2: Definition + Parameter API** - NewComponent/Trait/Policy/WorkflowStep + all param types and chain methods
 - [ ] **Phase 3: Template + Resource + Value + VelaCtx** - tpl.Output, resource builders, value expressions, VelaCtx
 - [ ] **Phase 4: Full Examples** - One complete worked example per definition type
@@ -25,7 +25,7 @@ Four phases build a single-page HTML reference for the defkit Go API. Each phase
 **Plans**: 1 plan
 
 Plans:
-- [ ] 01-01-PLAN.md — HTML shell: layout, sidebar, Prism.js syntax highlighting, 8 placeholder sections
+- [x] 01-01-PLAN.md — HTML shell: layout, sidebar, Prism.js syntax highlighting, 8 placeholder sections
 
 ### Phase 2: Definition + Parameter API
 **Goal**: All four definition builder constructors and every parameter type are documented with Go and CUE examples
@@ -71,7 +71,7 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Page Shell | 0/1 | In progress (checkpoint) | - |
+| 1. Page Shell | 1/1 | Complete | 2026-03-11 |
 | 2. Definition + Parameter API | 0/TBD | Not started | - |
 | 3. Template + Resource + Value + VelaCtx | 0/TBD | Not started | - |
 | 4. Full Examples | 0/TBD | Not started | - |

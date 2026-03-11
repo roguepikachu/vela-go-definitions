@@ -7,11 +7,11 @@
 
 ### Page Structure
 
-- [ ] **STRUCT-01**: Single `docs/index.html` file with all content inline (no external files)
-- [ ] **STRUCT-02**: Fixed sidebar navigation with all sections and anchors
-- [ ] **STRUCT-03**: Modern design — dark sidebar, light content area, clean typography
-- [ ] **STRUCT-04**: Responsive layout that works on desktop
-- [ ] **STRUCT-05**: Syntax-highlighted code blocks for Go and CUE
+- [x] **STRUCT-01**: Single `docs/index.html` file with all content inline (no external files)
+- [x] **STRUCT-02**: Fixed sidebar navigation with all sections and anchors
+- [x] **STRUCT-03**: Modern design — dark sidebar, light content area, clean typography
+- [x] **STRUCT-04**: Responsive layout that works on desktop
+- [x] **STRUCT-05**: Syntax-highlighted code blocks for Go and CUE
 
 ### Definition Builders
 
@@ -79,9 +79,9 @@
 
 ### Code Examples Format
 
-- [ ] **FMT-01**: Every method has a Go defkit snippet
-- [ ] **FMT-02**: Every method has a side-by-side CUE equivalent
-- [ ] **FMT-03**: Full definition examples show the init() registration pattern
+- [x] **FMT-01**: Every method has a Go defkit snippet
+- [x] **FMT-02**: Every method has a side-by-side CUE equivalent
+- [x] **FMT-03**: Full definition examples show the init() registration pattern
 
 ## v2 Requirements
 
@@ -108,14 +108,14 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| STRUCT-01 | Phase 1 | Pending |
-| STRUCT-02 | Phase 1 | Pending |
-| STRUCT-03 | Phase 1 | Pending |
-| STRUCT-04 | Phase 1 | Pending |
-| STRUCT-05 | Phase 1 | Pending |
-| FMT-01 | Phase 1 | Pending |
-| FMT-02 | Phase 1 | Pending |
-| FMT-03 | Phase 1 | Pending |
+| STRUCT-01 | Phase 1 | Complete |
+| STRUCT-02 | Phase 1 | Complete |
+| STRUCT-03 | Phase 1 | Complete |
+| STRUCT-04 | Phase 1 | Complete |
+| STRUCT-05 | Phase 1 | Complete |
+| FMT-01 | Phase 1 | Complete |
+| FMT-02 | Phase 1 | Complete |
+| FMT-03 | Phase 1 | Complete |
 | DEF-01 | Phase 2 | Pending |
 | DEF-02 | Phase 2 | Pending |
 | DEF-03 | Phase 2 | Pending |
