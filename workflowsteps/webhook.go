@@ -23,15 +23,16 @@ import (
 // Webhook creates the webhook workflow step definition.
 // This step sends a POST request to the specified Webhook URL. If no request body is specified, the current Application body will be sent by default.
 func Webhook() *defkit.WorkflowStepDefinition {
-	// url is a discriminated union: either {value: string} or {secretRef: {name, key}}
-	url := defkit.OneOf("url").
+	// url is a closed struct disjunction: either {value: string} or {secretRef: {name, key}}
+	url := defkit.ClosedUnion("url").
+		Required().
 		Description("Specify the webhook url").
-		Variants(
-			defkit.Variant("value").WithFields(
-				defkit.Field("value", defkit.ParamTypeString),
+		Options(
+			defkit.ClosedStruct().WithFields(
+				defkit.Field("value", defkit.ParamTypeString).Required(),
 			),
-			defkit.Variant("secretRef").WithFields(
-				defkit.Field("secretRef", defkit.ParamTypeStruct).Nested(
+			defkit.ClosedStruct().WithFields(
+				defkit.Field("secretRef", defkit.ParamTypeStruct).Required().Nested(
 					defkit.Struct("secretRef").WithFields(
 						defkit.Field("name", defkit.ParamTypeString).Description("name is the name of the secret"),
 						defkit.Field("key", defkit.ParamTypeString).Description("key is the key in the secret"),
