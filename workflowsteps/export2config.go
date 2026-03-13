@@ -43,8 +43,8 @@ func Export2Config() *defkit.WorkflowStepDefinition {
 		Set("kind", defkit.Lit("ConfigMap")).
 		Set("metadata", defkit.NewArrayElement().
 			Set("name", configName).
-			Set("namespace", vela.Namespace()).
-			SetIf(namespace.IsSet(), "namespace", namespace),
+			SetIf(namespace.IsSet(), "namespace", namespace).
+			SetIf(namespace.NotSet(), "namespace", vela.Namespace()),
 		).
 		Set("data", data)
 
