@@ -36,10 +36,7 @@ func ListConfig() *defkit.WorkflowStepDefinition {
 		Params(template, namespace).
 		Template(func(tpl *defkit.WorkflowStepTemplate) {
 			tpl.Builtin("output", "config.#ListConfig").
-				WithParams(map[string]defkit.Value{
-					"template":  template,
-					"namespace": namespace,
-				}).
+				WithFullParameter().
 				Build()
 		})
 }
