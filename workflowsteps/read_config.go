@@ -38,10 +38,7 @@ func ReadConfig() *defkit.WorkflowStepDefinition {
 		Params(name, namespace).
 		Template(func(tpl *defkit.WorkflowStepTemplate) {
 			tpl.Builtin("output", "config.#ReadConfig").
-				WithParams(map[string]defkit.Value{
-					"name":      name,
-					"namespace": namespace,
-				}).
+				WithFullParameter().
 				Build()
 		})
 }
