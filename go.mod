@@ -13,6 +13,8 @@ require (
 	sigs.k8s.io/yaml v1.4.0
 )
 
+replace github.com/oam-dev/kubevela => github.com/guidewire-oss/kubevela v0.0.0-20260315184223-d86bdcb823fd
+
 require (
 	cuelang.org/go v0.14.1 // indirect
 	dario.cat/mergo v1.0.0 // indirect

@@ -26,24 +26,24 @@ import (
 func HealthProbeParam() *defkit.MapParam {
 	return defkit.Object("probe").
 		WithFields(
-			defkit.Object("exec").Description("Instructions for assessing container health by executing a command. Either this attribute or the httpGet attribute or the tcpSocket attribute MUST be specified. This attribute is mutually exclusive with both the httpGet attribute and the tcpSocket attribute.").
+			defkit.Object("exec").Optional().Description("Instructions for assessing container health by executing a command. Either this attribute or the httpGet attribute or the tcpSocket attribute MUST be specified. This attribute is mutually exclusive with both the httpGet attribute and the tcpSocket attribute.").
 				WithFields(
-					defkit.StringList("command").Mandatory().Description("A command to be executed inside the container to assess its health. Each space delimited token of the command is a separate array element. Commands exiting 0 are considered to be successful probes, whilst all other exit codes are considered failures."),
+					defkit.StringList("command").Description("A command to be executed inside the container to assess its health. Each space delimited token of the command is a separate array element. Commands exiting 0 are considered to be successful probes, whilst all other exit codes are considered failures."),
 				),
-			defkit.Object("httpGet").Description("Instructions for assessing container health by executing an HTTP GET request. Either this attribute or the exec attribute or the tcpSocket attribute MUST be specified. This attribute is mutually exclusive with both the exec attribute and the tcpSocket attribute.").
+			defkit.Object("httpGet").Optional().Description("Instructions for assessing container health by executing an HTTP GET request. Either this attribute or the exec attribute or the tcpSocket attribute MUST be specified. This attribute is mutually exclusive with both the exec attribute and the tcpSocket attribute.").
 				WithFields(
-					defkit.String("path").Mandatory().Description("The endpoint, relative to the port, to which the HTTP GET request should be directed."),
-					defkit.Int("port").Mandatory().Description("The TCP socket within the container to which the HTTP GET request should be directed."),
-					defkit.String("host"),
-					defkit.String("scheme").Default("HTTP").ForceOptional(),
-					defkit.List("httpHeaders").WithFields(
-						defkit.String("name").Mandatory(),
-						defkit.String("value").Mandatory(),
+					defkit.String("path").Description("The endpoint, relative to the port, to which the HTTP GET request should be directed."),
+					defkit.Int("port").Description("The TCP socket within the container to which the HTTP GET request should be directed."),
+					defkit.String("host").Optional(),
+					defkit.String("scheme").Default("HTTP").Optional(),
+					defkit.List("httpHeaders").Optional().WithFields(
+						defkit.String("name"),
+						defkit.String("value"),
 					),
 				),
-			defkit.Object("tcpSocket").Description("Instructions for assessing container health by probing a TCP socket. Either this attribute or the exec attribute or the httpGet attribute MUST be specified. This attribute is mutually exclusive with both the exec attribute and the httpGet attribute.").
+			defkit.Object("tcpSocket").Optional().Description("Instructions for assessing container health by probing a TCP socket. Either this attribute or the exec attribute or the httpGet attribute MUST be specified. This attribute is mutually exclusive with both the exec attribute and the httpGet attribute.").
 				WithFields(
-					defkit.Int("port").Mandatory().Description("The TCP socket within the container that should be probed to assess container health."),
+					defkit.Int("port").Description("The TCP socket within the container that should be probed to assess container health."),
 				),
 			defkit.Int("initialDelaySeconds").Default(0).Description("Number of seconds after the container is started before the first probe is initiated."),
 			defkit.Int("periodSeconds").Default(10).Description("How often, in seconds, to execute the probe."),

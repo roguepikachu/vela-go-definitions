@@ -29,11 +29,11 @@ import (
 // that cannot be expressed in the fluent field tree model.
 // Parameters and helper definitions are defined fluently.
 func ServiceBinding() *defkit.TraitDefinition {
-	envMappings := defkit.Map("envMappings").Mandatory().WithSchema("[string]: #KeySecret").Description("The mapping of environment variables to secret")
+	envMappings := defkit.Map("envMappings").WithSchema("[string]: #KeySecret").Description("The mapping of environment variables to secret")
 
 	keySecretHelper := defkit.Struct("KeySecret").WithFields(
-		defkit.Field("key", defkit.ParamTypeString),
-		defkit.Field("secret", defkit.ParamTypeString).Mandatory(),
+		defkit.Field("key", defkit.ParamTypeString).Optional(),
+		defkit.Field("secret", defkit.ParamTypeString),
 	)
 
 	return defkit.NewTrait("service-binding").

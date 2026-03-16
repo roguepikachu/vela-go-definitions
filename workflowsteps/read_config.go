@@ -24,10 +24,8 @@ import (
 // This step reads a config.
 func ReadConfig() *defkit.WorkflowStepDefinition {
 	name := defkit.String("name").
-		Mandatory().
 		Description("Specify the name of the config.")
 	namespace := defkit.Object("namespace").
-		Mandatory().
 		Description("Specify the namespace of the config.").
 		WithSchema("*context.namespace | string")
 

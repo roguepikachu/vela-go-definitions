@@ -28,13 +28,10 @@ func ExportService() *defkit.WorkflowStepDefinition {
 	namespace := defkit.String("namespace").
 		Description("Specify the namespace of the export destination")
 	ip := defkit.String("ip").
-		Mandatory().
 		Description("Specify the ip to be export")
 	port := defkit.Int("port").
-		Mandatory().
 		Description("Specify the port to be used in service")
 	targetPort := defkit.Int("targetPort").
-		Mandatory().
 		Description("Specify the port to be export")
 	topology := defkit.String("topology").
 		Description("Specify the topology to export")

@@ -25,43 +25,45 @@ import (
 func VelaCli() *defkit.WorkflowStepDefinition {
 	vela := defkit.VelaCtx()
 
-	command := defkit.StringList("command").Mandatory().Description("Specify the vela command")
+	command := defkit.StringList("command").Description("Specify the vela command")
 	image := defkit.String("image").Default("oamdev/vela-cli:v1.6.4").Description("Specify the image")
 	serviceAccountName := defkit.String("serviceAccountName").Default("kubevela-vela-core").Description("specify serviceAccountName want to use")
 
 	// items array inside secret
-	items := defkit.Array("items").WithFields(
-		defkit.String("key").Mandatory(),
-		defkit.String("path").Mandatory(),
+	items := defkit.Array("items").Optional().WithFields(
+		defkit.String("key"),
+		defkit.String("path"),
 		defkit.Int("mode").Default(511),
 	)
 
 	// secret array
 	secret := defkit.Array("secret").
+		Optional().
 		Description("Mount Secret type storage").
 		WithFields(
-			defkit.String("name").Mandatory(),
-			defkit.String("mountPath").Mandatory(),
-			defkit.String("subPath"),
+			defkit.String("name"),
+			defkit.String("mountPath"),
+			defkit.String("subPath").Optional(),
 			defkit.Int("defaultMode").Default(420),
-			defkit.String("secretName").Mandatory(),
+			defkit.String("secretName"),
 			items,
 		)
 
 	// hostPath array
 	hostPath := defkit.Array("hostPath").
+		Optional().
 		Description("Declare host path type storage").
 		WithFields(
-			defkit.String("name").Mandatory(),
-			defkit.String("path").Mandatory(),
-			defkit.String("mountPath").Mandatory(),
+			defkit.String("name"),
+			defkit.String("path"),
+			defkit.String("mountPath"),
 			defkit.String("type").Default("Directory").Values(
 				"Directory", "DirectoryOrCreate", "FileOrCreate",
 				"File", "Socket", "CharDevice", "BlockDevice",
 			),
 		)
 
-	storage := defkit.Object("storage").WithFields(secret, hostPath)
+	storage := defkit.Object("storage").Optional().WithFields(secret, hostPath)
 	hasSecretStorage := defkit.And(
 		defkit.PathExists("parameter.storage"),
 		defkit.PathExists("parameter.storage.secret"),

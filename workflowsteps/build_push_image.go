@@ -32,7 +32,6 @@ func BuildPushImage() *defkit.WorkflowStepDefinition {
 		Default("./Dockerfile").
 		Description("Specify the dockerfile")
 	image := defkit.String("image").
-		Mandatory().
 		Description("Specify the image")
 	platform := defkit.String("platform").
 		Optional().
@@ -47,13 +46,13 @@ func BuildPushImage() *defkit.WorkflowStepDefinition {
 			defkit.Field("git", defkit.ParamTypeStruct).Optional().
 				Description("Specify the credentials to access git").
 				Nested(defkit.Struct("git").WithFields(
-					defkit.Field("name", defkit.ParamTypeString).Mandatory().Description("Specify the secret name"),
-					defkit.Field("key", defkit.ParamTypeString).Mandatory().Description("Specify the secret key"),
+					defkit.Field("name", defkit.ParamTypeString).Description("Specify the secret name"),
+					defkit.Field("key", defkit.ParamTypeString).Description("Specify the secret key"),
 				)),
 			defkit.Field("image", defkit.ParamTypeStruct).Optional().
 				Description("Specify the credentials to access image registry").
 				Nested(defkit.Struct("image").WithFields(
-					defkit.Field("name", defkit.ParamTypeString).Mandatory().Description("Specify the secret name"),
+					defkit.Field("name", defkit.ParamTypeString).Description("Specify the secret name"),
 					defkit.Field("key", defkit.ParamTypeString).Default(".dockerconfigjson").Description("Specify the secret key"),
 				)),
 		)
@@ -62,7 +61,6 @@ func BuildPushImage() *defkit.WorkflowStepDefinition {
 		Default("info").
 		Description("Specify the verbosity level")
 	context := defkit.Object("context").
-		Mandatory().
 		Description("Specify the context to build image, you can use context with git and branch or directly specify the context, please refer to https://github.com/GoogleContainerTools/kaniko#kaniko-build-contexts").
 		WithSchema("#git | string")
 
@@ -75,11 +73,11 @@ func BuildPushImage() *defkit.WorkflowStepDefinition {
 		Alias("").
 		WithImports("vela/builtin", "vela/kube", "vela/util", "encoding/json", "strings").
 		Helper("secret", defkit.Struct("secret").WithFields(
-			defkit.Field("name", defkit.ParamTypeString).Mandatory(),
-			defkit.Field("key", defkit.ParamTypeString).Mandatory(),
+			defkit.Field("name", defkit.ParamTypeString),
+			defkit.Field("key", defkit.ParamTypeString),
 		)).
 		Helper("git", defkit.Struct("git").WithFields(
-			defkit.Field("git", defkit.ParamTypeString).Mandatory(),
+			defkit.Field("git", defkit.ParamTypeString),
 			defkit.Field("branch", defkit.ParamTypeString).Default("master"),
 		)).
 		Params(kanikoExecutor, dockerfile, image, platform, buildArgs, credentials, verbosity, context).

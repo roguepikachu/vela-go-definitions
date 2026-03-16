@@ -25,28 +25,28 @@ import (
 func TopologySpreadConstraints() *defkit.TraitDefinition {
 	// Define #labSelector helper type for closed struct generation
 	labSelectorParam := defkit.Map("labSelector").WithFields(
-		defkit.StringKeyMap("matchLabels"),
-		defkit.Array("matchExpressions").WithFields(
-			defkit.String("key").Mandatory(),
+		defkit.StringKeyMap("matchLabels").Optional(),
+		defkit.Array("matchExpressions").Optional().WithFields(
+			defkit.String("key"),
 			defkit.String("operator").Default("In").Values("In", "NotIn", "Exists", "DoesNotExist"),
-			defkit.Array("values").Of(defkit.ParamTypeString),
+			defkit.Array("values").Optional().Of(defkit.ParamTypeString),
 		),
 	)
 
 	// Define constraints array parameter using WithFields for inline struct definition
-	constraints := defkit.Array("constraints").Description("List of topology spread constraints").Mandatory().
+	constraints := defkit.Array("constraints").Description("List of topology spread constraints").
 		WithFields(
-			defkit.Int("maxSkew").Description("Describe the degree to which Pods may be unevenly distributed").Mandatory(),
-			defkit.String("topologyKey").Description("Specify the key of node labels").Mandatory(),
+			defkit.Int("maxSkew").Description("Describe the degree to which Pods may be unevenly distributed"),
+			defkit.String("topologyKey").Description("Specify the key of node labels"),
 			defkit.String("whenUnsatisfiable").Default("DoNotSchedule").Values("DoNotSchedule", "ScheduleAnyway").
 				Description("Indicate how to deal with a Pod if it doesn't satisfy the spread constraint"),
-			defkit.Map("labelSelector").Description("labelSelector to find matching Pods").Mandatory().WithSchemaRef("labSelector"),
-			defkit.Int("minDomains").Description("Indicate a minimum number of eligible domains"),
-			defkit.Array("matchLabelKeys").Of(defkit.ParamTypeString).
+			defkit.Map("labelSelector").Description("labelSelector to find matching Pods").WithSchemaRef("labSelector"),
+			defkit.Int("minDomains").Optional().Description("Indicate a minimum number of eligible domains"),
+			defkit.Array("matchLabelKeys").Optional().Of(defkit.ParamTypeString).
 				Description("A list of pod label keys to select the pods over which spreading will be calculated"),
-			defkit.String("nodeAffinityPolicy").Default("Honor").ForceOptional().Values("Honor", "Ignore").
+			defkit.String("nodeAffinityPolicy").Default("Honor").Optional().Values("Honor", "Ignore").
 				Description("Indicate how we will treat Pod's nodeAffinity/nodeSelector when calculating pod topology spread skew"),
-			defkit.String("nodeTaintsPolicy").Default("Honor").ForceOptional().Values("Honor", "Ignore").
+			defkit.String("nodeTaintsPolicy").Default("Honor").Optional().Values("Honor", "Ignore").
 				Description("Indicate how we will treat node taints when calculating pod topology spread skew"),
 		)
 

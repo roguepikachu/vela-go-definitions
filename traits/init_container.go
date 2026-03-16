@@ -26,36 +26,36 @@ func InitContainer() *defkit.TraitDefinition {
 	vela := defkit.VelaCtx()
 
 	// Parameters
-	name := defkit.String("name").Mandatory().Description("Specify the name of init container")
-	image := defkit.String("image").Mandatory().Description("Specify the image of init container")
+	name := defkit.String("name").Description("Specify the name of init container")
+	image := defkit.String("image").Description("Specify the image of init container")
 	imagePullPolicy := defkit.String("imagePullPolicy").Default("IfNotPresent").Values("IfNotPresent", "Always", "Never").Description("Specify image pull policy for your service")
 	cmd := defkit.Array("cmd").Of(defkit.ParamTypeString).Optional().Description("Specify the commands run in the init container")
 	args := defkit.Array("args").Of(defkit.ParamTypeString).Optional().Description("Specify the args run in the init container")
 	env := defkit.Array("env").WithFields(
-		defkit.String("name").Mandatory().Description("Environment variable name"),
+		defkit.String("name").Description("Environment variable name"),
 		defkit.String("value").Optional().Description("The value of the environment variable"),
 		defkit.Struct("valueFrom").Optional().Description("Specifies a source the value of this var should come from").WithFields(
 			defkit.Field("secretKeyRef", defkit.ParamTypeStruct).Optional().Description("Selects a key of a secret in the pod's namespace").Nested(
 				defkit.Struct("").WithFields(
-					defkit.Field("name", defkit.ParamTypeString).Mandatory().Description("The name of the secret in the pod's namespace to select from"),
-					defkit.Field("key", defkit.ParamTypeString).Mandatory().Description("The key of the secret to select from. Must be a valid secret key"),
+					defkit.Field("name", defkit.ParamTypeString).Description("The name of the secret in the pod's namespace to select from"),
+					defkit.Field("key", defkit.ParamTypeString).Description("The key of the secret to select from. Must be a valid secret key"),
 				),
 			),
 			defkit.Field("configMapKeyRef", defkit.ParamTypeStruct).Optional().Description("Selects a key of a config map in the pod's namespace").Nested(
 				defkit.Struct("").WithFields(
-					defkit.Field("name", defkit.ParamTypeString).Mandatory().Description("The name of the config map in the pod's namespace to select from"),
-					defkit.Field("key", defkit.ParamTypeString).Mandatory().Description("The key of the config map to select from. Must be a valid secret key"),
+					defkit.Field("name", defkit.ParamTypeString).Description("The name of the config map in the pod's namespace to select from"),
+					defkit.Field("key", defkit.ParamTypeString).Description("The key of the config map to select from. Must be a valid secret key"),
 				),
 			),
 		),
 	).Optional().Description("Specify the env run in the init container")
 	mountName := defkit.String("mountName").Default("workdir").Description("Specify the mount name of shared volume")
-	appMountPath := defkit.String("appMountPath").Mandatory().Description("Specify the mount path of app container")
-	initMountPath := defkit.String("initMountPath").Mandatory().Description("Specify the mount path of init container")
+	appMountPath := defkit.String("appMountPath").Description("Specify the mount path of app container")
+	initMountPath := defkit.String("initMountPath").Description("Specify the mount path of init container")
 	extraVolumeMounts := defkit.Array("extraVolumeMounts").WithFields(
-		defkit.String("name").Mandatory().Description("The name of the volume to be mounted"),
-		defkit.String("mountPath").Mandatory().Description("The mountPath for mount in the init container"),
-	).Mandatory().Description("Specify the extra volume mounts for the init container")
+		defkit.String("name").Description("The name of the volume to be mounted"),
+		defkit.String("mountPath").Description("The mountPath for mount in the init container"),
+	).Description("Specify the extra volume mounts for the init container")
 
 	// Build the container element (app container gets shared volume mount)
 	containerElem := defkit.NewArrayElement().

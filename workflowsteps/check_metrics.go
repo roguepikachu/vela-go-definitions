@@ -24,7 +24,6 @@ import (
 // This step verifies application's metrics.
 func CheckMetrics() *defkit.WorkflowStepDefinition {
 	query := defkit.String("query").
-		Mandatory().
 		Description("Query is a raw prometheus query to perform")
 	metricEndpoint := defkit.String("metricEndpoint").
 		Optional().
@@ -32,15 +31,14 @@ func CheckMetrics() *defkit.WorkflowStepDefinition {
 		OpenEnum().
 		Description("The HTTP address and port of the prometheus server")
 	condition := defkit.String("condition").
-		Mandatory().
 		Description("Condition is an expression which determines if a measurement is considered successful. eg: >=0.95")
 	duration := defkit.String("duration").
 		Default("5m").
-		ForceOptional().
+		Optional().
 		Description("Duration defines the duration of time required for this step to be considered successful.")
 	failDuration := defkit.String("failDuration").
 		Default("2m").
-		ForceOptional().
+		Optional().
 		Description("FailDuration is the duration of time that, if the check fails, will result in the step being marked as failed.")
 
 	return defkit.NewWorkflowStep("check-metrics").

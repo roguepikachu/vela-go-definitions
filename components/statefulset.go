@@ -25,35 +25,39 @@ import (
 // and stable network identities.
 func StatefulSet() *defkit.ComponentDefinition {
 	// Use StringKeyMap for labels and annotations (generates [string]: string)
-	labels := defkit.StringKeyMap("labels").Description("Specify the labels in the workload")
-	annotations := defkit.StringKeyMap("annotations").Description("Specify the annotations in the workload")
+	labels := defkit.StringKeyMap("labels").Optional().Description("Specify the labels in the workload")
+	annotations := defkit.StringKeyMap("annotations").Optional().Description("Specify the annotations in the workload")
 
-	image := defkit.String("image").Mandatory().Description("Which image would you like to use for your service").Short("i")
+	image := defkit.String("image").Description("Which image would you like to use for your service").Short("i")
 
 	// Use Enum for imagePullPolicy to generate proper CUE enum type
 	imagePullPolicy := defkit.Enum("imagePullPolicy").
+		Optional().
 		Values("Always", "Never", "IfNotPresent").
 		Description("Specify image pull policy for your service")
 
 	imagePullSecrets := defkit.StringList("imagePullSecrets").
+		Optional().
 		Description("Specify image pull secrets for your service")
 
 	// Deprecated port parameter - fallback for older definitions
 	port := defkit.Int("port").
+		Optional().
 		Ignore().
 		Description("Deprecated field, please use ports instead").
 		Short("p")
 
 	// Structured ports array with containerPort and nodePort fields
 	ports := defkit.Array("ports").
+		Optional().
 		Description("Which ports do you want customer traffic sent to, defaults to 80").
 		WithFields(
-			defkit.Int("port").Mandatory().Description("Number of port to expose on the pod's IP address"),
-			defkit.Int("containerPort").Description("Number of container port to connect to, defaults to port"),
-			defkit.String("name").Description("Name of the port"),
+			defkit.Int("port").Description("Number of port to expose on the pod's IP address"),
+			defkit.Int("containerPort").Optional().Description("Number of container port to connect to, defaults to port"),
+			defkit.String("name").Optional().Description("Name of the port"),
 			defkit.Enum("protocol").Values("TCP", "UDP", "SCTP").Default("TCP").Description("Protocol for port. Must be UDP, TCP, or SCTP"),
 			defkit.Bool("expose").Default(false).Description("Specify if the port should be exposed"),
-			defkit.Int("nodePort").Description("exposed node port. Only Valid when exposeType is NodePort"),
+			defkit.Int("nodePort").Optional().Description("exposed node port. Only Valid when exposeType is NodePort"),
 		)
 
 	exposeType := defkit.Enum("exposeType").
@@ -67,110 +71,112 @@ func StatefulSet() *defkit.ComponentDefinition {
 		Ignore().
 		Description("If addRevisionLabel is true, the revision label will be added to the underlying pods")
 
-	cmd := defkit.StringList("cmd").Description("Commands to run in the container")
-	args := defkit.StringList("args").Description("Arguments to the entrypoint")
+	cmd := defkit.StringList("cmd").Optional().Description("Commands to run in the container")
+	args := defkit.StringList("args").Optional().Description("Arguments to the entrypoint")
 
 	// Structured env array with detailed valueFrom schema
 	env := defkit.List("env").
+		Optional().
 		Description("Define arguments by using environment variables").
 		WithFields(
-			defkit.String("name").Mandatory().Description("Environment variable name"),
-			defkit.String("value").Description("The value of the environment variable"),
-			defkit.Object("valueFrom").Description("Specifies a source the value of this var should come from").
+			defkit.String("name").Description("Environment variable name"),
+			defkit.String("value").Optional().Description("The value of the environment variable"),
+			defkit.Object("valueFrom").Optional().Description("Specifies a source the value of this var should come from").
 				WithFields(
-					defkit.Object("secretKeyRef").Description("Selects a key of a secret in the pod's namespace").
+					defkit.Object("secretKeyRef").Optional().Description("Selects a key of a secret in the pod's namespace").
 						WithFields(
-							defkit.String("name").Mandatory().Description("The name of the secret in the pod's namespace to select from"),
-							defkit.String("key").Mandatory().Description("The key of the secret to select from. Must be a valid secret key"),
+							defkit.String("name").Description("The name of the secret in the pod's namespace to select from"),
+							defkit.String("key").Description("The key of the secret to select from. Must be a valid secret key"),
 						),
-					defkit.Object("configMapKeyRef").Description("Selects a key of a config map in the pod's namespace").
+					defkit.Object("configMapKeyRef").Optional().Description("Selects a key of a config map in the pod's namespace").
 						WithFields(
-							defkit.String("name").Mandatory().Description("The name of the config map in the pod's namespace to select from"),
-							defkit.String("key").Mandatory().Description("The key of the config map to select from. Must be a valid secret key"),
+							defkit.String("name").Description("The name of the config map in the pod's namespace to select from"),
+							defkit.String("key").Description("The key of the config map to select from. Must be a valid secret key"),
 						),
 				),
 		)
 
-	cpu := defkit.String("cpu").Description("Number of CPU units for the service, like `0.5` (0.5 CPU core), `1` (1 CPU core)")
-	memory := defkit.String("memory").Description("Specifies the attributes of the memory resource required for the container.")
+	cpu := defkit.String("cpu").Optional().Description("Number of CPU units for the service, like `0.5` (0.5 CPU core), `1` (1 CPU core)")
+	memory := defkit.String("memory").Optional().Description("Specifies the attributes of the memory resource required for the container.")
 
 	// VolumeMounts with subPath in all volume types
 	volumeMounts := defkit.Object("volumeMounts").
+		Optional().
 		WithFields(
-			defkit.List("pvc").Description("Mount PVC type volume").WithFields(
-				defkit.String("name").Mandatory(),
-				defkit.String("mountPath").Mandatory(),
-				defkit.String("subPath"),
-				defkit.String("claimName").Mandatory().Description("The name of the PVC"),
+			defkit.List("pvc").Optional().Description("Mount PVC type volume").WithFields(
+				defkit.String("name"),
+				defkit.String("mountPath"),
+				defkit.String("subPath").Optional(),
+				defkit.String("claimName").Description("The name of the PVC"),
 			),
-			defkit.List("configMap").Description("Mount ConfigMap type volume").WithFields(
-				defkit.String("name").Mandatory(),
-				defkit.String("mountPath").Mandatory(),
-				defkit.String("subPath"),
+			defkit.List("configMap").Optional().Description("Mount ConfigMap type volume").WithFields(
+				defkit.String("name"),
+				defkit.String("mountPath"),
+				defkit.String("subPath").Optional(),
 				defkit.Int("defaultMode").Default(420),
-				defkit.String("cmName").Mandatory(),
-				defkit.List("items").WithFields(
-					defkit.String("key").Mandatory(),
-					defkit.String("path").Mandatory(),
+				defkit.String("cmName"),
+				defkit.List("items").Optional().WithFields(
+					defkit.String("key"),
+					defkit.String("path"),
 					defkit.Int("mode").Default(511),
 				),
 			),
-			defkit.List("secret").Description("Mount Secret type volume").WithFields(
-				defkit.String("name").Mandatory(),
-				defkit.String("mountPath").Mandatory(),
-				defkit.String("subPath"),
+			defkit.List("secret").Optional().Description("Mount Secret type volume").WithFields(
+				defkit.String("name"),
+				defkit.String("mountPath"),
+				defkit.String("subPath").Optional(),
 				defkit.Int("defaultMode").Default(420),
-				defkit.String("secretName").Mandatory(),
-				defkit.List("items").WithFields(
-					defkit.String("key").Mandatory(),
-					defkit.String("path").Mandatory(),
+				defkit.String("secretName"),
+				defkit.List("items").Optional().WithFields(
+					defkit.String("key"),
+					defkit.String("path"),
 					defkit.Int("mode").Default(511),
 				),
 			),
-			defkit.List("emptyDir").Description("Mount EmptyDir type volume").WithFields(
-				defkit.String("name").Mandatory(),
-				defkit.String("mountPath").Mandatory(),
-				defkit.String("subPath"),
+			defkit.List("emptyDir").Optional().Description("Mount EmptyDir type volume").WithFields(
+				defkit.String("name"),
+				defkit.String("mountPath"),
+				defkit.String("subPath").Optional(),
 				defkit.Enum("medium").Values("", "Memory").Default(""),
 			),
-			defkit.List("hostPath").Description("Mount HostPath type volume").WithFields(
-				defkit.String("name").Mandatory(),
-				defkit.String("mountPath").Mandatory(),
-				defkit.String("subPath"),
-				defkit.String("path").Mandatory(),
+			defkit.List("hostPath").Optional().Description("Mount HostPath type volume").WithFields(
+				defkit.String("name"),
+				defkit.String("mountPath"),
+				defkit.String("subPath").Optional(),
+				defkit.String("path"),
 			),
 		)
 
 	// Deprecated volumes parameter - discriminated union with type-based conditional fields
-	volumes := defkit.List("volumes").Description("Deprecated field, use volumeMounts instead.").
+	volumes := defkit.List("volumes").Optional().Description("Deprecated field, use volumeMounts instead.").
 		WithFields(
-			defkit.String("name").Mandatory(),
-			defkit.String("mountPath").Mandatory(),
+			defkit.String("name"),
+			defkit.String("mountPath"),
 			defkit.OneOf("type").
 				Description(`Specify volume type, options: "pvc","configMap","secret","emptyDir", default to emptyDir`).
 				Default("emptyDir").
 				Variants(
 					defkit.Variant("pvc").WithFields(
-						defkit.Field("claimName", defkit.ParamTypeString).Mandatory(),
+						defkit.Field("claimName", defkit.ParamTypeString),
 					),
 					defkit.Variant("configMap").WithFields(
 						defkit.Field("defaultMode", defkit.ParamTypeInt).Default(420),
-						defkit.Field("cmName", defkit.ParamTypeString).Mandatory(),
-						defkit.Field("items", defkit.ParamTypeArray).Nested(
+						defkit.Field("cmName", defkit.ParamTypeString),
+						defkit.Field("items", defkit.ParamTypeArray).Optional().Nested(
 							defkit.Struct("").WithFields(
-								defkit.Field("key", defkit.ParamTypeString).Mandatory(),
-								defkit.Field("path", defkit.ParamTypeString).Mandatory(),
+								defkit.Field("key", defkit.ParamTypeString),
+								defkit.Field("path", defkit.ParamTypeString),
 								defkit.Field("mode", defkit.ParamTypeInt).Default(511),
 							),
 						),
 					),
 					defkit.Variant("secret").WithFields(
 						defkit.Field("defaultMode", defkit.ParamTypeInt).Default(420),
-						defkit.Field("secretName", defkit.ParamTypeString).Mandatory(),
-						defkit.Field("items", defkit.ParamTypeArray).Nested(
+						defkit.Field("secretName", defkit.ParamTypeString),
+						defkit.Field("items", defkit.ParamTypeArray).Optional().Nested(
 							defkit.Struct("").WithFields(
-								defkit.Field("key", defkit.ParamTypeString).Mandatory(),
-								defkit.Field("path", defkit.ParamTypeString).Mandatory(),
+								defkit.Field("key", defkit.ParamTypeString),
+								defkit.Field("path", defkit.ParamTypeString),
 								defkit.Field("mode", defkit.ParamTypeInt).Default(511),
 							),
 						),
@@ -183,18 +189,21 @@ func StatefulSet() *defkit.ComponentDefinition {
 
 	// Health probes referencing the helper definition
 	livenessProbe := defkit.Object("livenessProbe").
+		Optional().
 		Description("Instructions for assessing whether the container is alive.").
 		WithSchemaRef("HealthProbe")
 	readinessProbe := defkit.Object("readinessProbe").
+		Optional().
 		Description("Instructions for assessing whether the container is in a suitable state to serve traffic.").
 		WithSchemaRef("HealthProbe")
 
 	// Structured hostAliases with required hostnames
 	hostAliases := defkit.List("hostAliases").
+		Optional().
 		Description("Specify the hostAliases to add").
 		WithFields(
-			defkit.String("ip").Mandatory(),
-			defkit.StringList("hostnames").Mandatory(),
+			defkit.String("ip"),
+			defkit.StringList("hostnames"),
 		)
 
 	return defkit.NewComponent("statefulset").

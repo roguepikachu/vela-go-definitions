@@ -28,8 +28,7 @@ func Replication() *defkit.PolicyDefinition {
 		Params(
 			defkit.Array("keys").
 				Of(defkit.ParamTypeString).
-				Description("Specify the keys of replication. Every key corresponds to a replication components").
-				Mandatory(),
+				Description("Specify the keys of replication. Every key corresponds to a replication components"),
 			defkit.Array("selector").
 				Of(defkit.ParamTypeString).
 				Description("Specify the components which will be replicated").

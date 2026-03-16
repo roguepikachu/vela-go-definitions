@@ -29,8 +29,7 @@ func SharedResource() *defkit.PolicyDefinition {
 	sharedResourcePolicyRule := defkit.Struct("rule").WithFields(
 		defkit.Field("selector", defkit.ParamTypeStruct).
 			Description("Specify how to select the targets of the rule").
-			WithSchemaRef("ResourcePolicyRuleSelector").
-			Mandatory(),
+			WithSchemaRef("ResourcePolicyRuleSelector"),
 	)
 
 	return defkit.NewPolicy("shared-resource").

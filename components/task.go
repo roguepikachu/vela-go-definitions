@@ -23,66 +23,67 @@ import (
 // Task creates a task component definition.
 // It describes a one-time task that runs to completion.
 func Task() *defkit.ComponentDefinition {
-	labels := defkit.StringKeyMap("labels").Description("Specify the labels in the workload")
-	annotations := defkit.StringKeyMap("annotations").Description("Specify the annotations in the workload")
+	labels := defkit.StringKeyMap("labels").Optional().Description("Specify the labels in the workload")
+	annotations := defkit.StringKeyMap("annotations").Optional().Description("Specify the annotations in the workload")
 	count := defkit.Int("count").Default(1).Description("Specify number of tasks to run in parallel").Short("c")
-	image := defkit.String("image").Mandatory().Description("Which image would you like to use for your service").Short("i")
+	image := defkit.String("image").Description("Which image would you like to use for your service").Short("i")
 	imagePullPolicy := defkit.String("imagePullPolicy").
+		Optional().
 		Values("Always", "Never", "IfNotPresent").
 		Description("Specify image pull policy for your service")
-	imagePullSecrets := defkit.StringList("imagePullSecrets").Description("Specify image pull secrets for your service")
+	imagePullSecrets := defkit.StringList("imagePullSecrets").Optional().Description("Specify image pull secrets for your service")
 	restart := defkit.String("restart").Default("Never").
 		Description("Define the job restart policy, the value can only be Never or OnFailure. By default, it's Never.")
-	cmd := defkit.StringList("cmd").Description("Commands to run in the container")
-	env := defkit.List("env").Description("Define arguments by using environment variables").
+	cmd := defkit.StringList("cmd").Optional().Description("Commands to run in the container")
+	env := defkit.List("env").Optional().Description("Define arguments by using environment variables").
 		WithFields(
-			defkit.String("name").Mandatory().Description("Environment variable name"),
-			defkit.String("value").Description("The value of the environment variable"),
-			defkit.Object("valueFrom").Description("Specifies a source the value of this var should come from").
+			defkit.String("name").Description("Environment variable name"),
+			defkit.String("value").Optional().Description("The value of the environment variable"),
+			defkit.Object("valueFrom").Optional().Description("Specifies a source the value of this var should come from").
 				WithFields(
-					defkit.Object("secretKeyRef").Description("Selects a key of a secret in the pod's namespace").
+					defkit.Object("secretKeyRef").Optional().Description("Selects a key of a secret in the pod's namespace").
 						WithFields(
-							defkit.String("name").Mandatory().Description("The name of the secret in the pod's namespace to select from"),
-							defkit.String("key").Mandatory().Description("The key of the secret to select from. Must be a valid secret key"),
+							defkit.String("name").Description("The name of the secret in the pod's namespace to select from"),
+							defkit.String("key").Description("The key of the secret to select from. Must be a valid secret key"),
 						),
-					defkit.Object("configMapKeyRef").Description("Selects a key of a config map in the pod's namespace").
+					defkit.Object("configMapKeyRef").Optional().Description("Selects a key of a config map in the pod's namespace").
 						WithFields(
-							defkit.String("name").Mandatory().Description("The name of the config map in the pod's namespace to select from"),
-							defkit.String("key").Mandatory().Description("The key of the config map to select from. Must be a valid secret key"),
+							defkit.String("name").Description("The name of the config map in the pod's namespace to select from"),
+							defkit.String("key").Description("The key of the config map to select from. Must be a valid secret key"),
 						),
 				),
 		)
-	cpu := defkit.String("cpu").Description("Number of CPU units for the service, like `0.5` (0.5 CPU core), `1` (1 CPU core)")
-	memory := defkit.String("memory").Description("Specifies the attributes of the memory resource required for the container.")
-	volumes := defkit.List("volumes").Description("Declare volumes and volumeMounts").
+	cpu := defkit.String("cpu").Optional().Description("Number of CPU units for the service, like `0.5` (0.5 CPU core), `1` (1 CPU core)")
+	memory := defkit.String("memory").Optional().Description("Specifies the attributes of the memory resource required for the container.")
+	volumes := defkit.List("volumes").Optional().Description("Declare volumes and volumeMounts").
 		WithFields(
-			defkit.String("name").Mandatory(),
-			defkit.String("mountPath").Mandatory(),
+			defkit.String("name"),
+			defkit.String("mountPath"),
 			defkit.OneOf("type").
 				Description("Specify volume type, options: \"pvc\",\"configMap\",\"secret\",\"emptyDir\", default to emptyDir").
 				Default("emptyDir").
 				Variants(
 					defkit.Variant("pvc").WithFields(
-						defkit.Field("claimName", defkit.ParamTypeString).Mandatory(),
+						defkit.Field("claimName", defkit.ParamTypeString),
 					),
 					defkit.Variant("configMap").WithFields(
 						defkit.Field("defaultMode", defkit.ParamTypeInt).Default(420),
-						defkit.Field("cmName", defkit.ParamTypeString).Mandatory(),
-						defkit.Field("items", defkit.ParamTypeArray).Nested(
+						defkit.Field("cmName", defkit.ParamTypeString),
+						defkit.Field("items", defkit.ParamTypeArray).Optional().Nested(
 							defkit.Struct("").WithFields(
-								defkit.Field("key", defkit.ParamTypeString).Mandatory(),
-								defkit.Field("path", defkit.ParamTypeString).Mandatory(),
+								defkit.Field("key", defkit.ParamTypeString),
+								defkit.Field("path", defkit.ParamTypeString),
 								defkit.Field("mode", defkit.ParamTypeInt).Default(511),
 							),
 						),
 					),
 					defkit.Variant("secret").WithFields(
 						defkit.Field("defaultMode", defkit.ParamTypeInt).Default(420),
-						defkit.Field("secretName", defkit.ParamTypeString).Mandatory(),
-						defkit.Field("items", defkit.ParamTypeArray).Nested(
+						defkit.Field("secretName", defkit.ParamTypeString),
+						defkit.Field("items", defkit.ParamTypeArray).Optional().Nested(
 							defkit.Struct("").WithFields(
-								defkit.Field("key", defkit.ParamTypeString).Mandatory(),
-								defkit.Field("path", defkit.ParamTypeString).Mandatory(),
+								defkit.Field("key", defkit.ParamTypeString),
+								defkit.Field("path", defkit.ParamTypeString),
 								defkit.Field("mode", defkit.ParamTypeInt).Default(511),
 							),
 						),
@@ -93,9 +94,11 @@ func Task() *defkit.ComponentDefinition {
 				),
 		)
 	livenessProbe := defkit.Object("livenessProbe").
+		Optional().
 		WithSchemaRef("HealthProbe").
 		Description("Instructions for assessing whether the container is alive.")
 	readinessProbe := defkit.Object("readinessProbe").
+		Optional().
 		WithSchemaRef("HealthProbe").
 		Description("Instructions for assessing whether the container is in a suitable state to serve traffic.")
 

@@ -23,12 +23,12 @@ import (
 // Request creates the request workflow step definition.
 // This step sends a request to the url.
 func Request() *defkit.WorkflowStepDefinition {
-	url := defkit.String("url").Mandatory()
+	url := defkit.String("url")
 	method := defkit.String("method").
 		Default("GET").
 		Values("GET", "POST", "PUT", "DELETE")
-	body := defkit.Object("body")
-	header := defkit.StringKeyMap("header")
+	body := defkit.Object("body").Optional()
+	header := defkit.StringKeyMap("header").Optional()
 
 	requestBody := defkit.NewArrayElement().
 		SetIf(body.IsSet(), "body", defkit.Reference("json.Marshal(parameter.body)")).

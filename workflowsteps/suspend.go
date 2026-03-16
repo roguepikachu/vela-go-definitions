@@ -23,8 +23,8 @@ import (
 // Suspend creates the suspend workflow step definition.
 // This step suspends the current workflow until resumed.
 func Suspend() *defkit.WorkflowStepDefinition {
-	duration := defkit.String("duration").Description("Specify the wait duration time to resume workflow such as \"30s\", \"1min\" or \"2m15s\"")
-	message := defkit.String("message").Description("The suspend message to show")
+	duration := defkit.String("duration").Optional().Description("Specify the wait duration time to resume workflow such as \"30s\", \"1min\" or \"2m15s\"")
+	message := defkit.String("message").Optional().Description("The suspend message to show")
 
 	return defkit.NewWorkflowStep("suspend").
 		Description("Suspend the current workflow, it can be resumed by 'vela workflow resume' command.").

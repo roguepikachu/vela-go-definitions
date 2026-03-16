@@ -30,11 +30,11 @@ import (
 // Parameters are still defined fluently.
 func Resource() *defkit.TraitDefinition {
 	// Shorthand parameters for simple cases - using custom schema for union types
-	cpu := defkit.Map("cpu").WithSchema(`*1 | number | string`).Description("Specify the amount of cpu for requests and limits")
-	memory := defkit.Map("memory").WithSchema(`*"2048Mi" | =~"^([1-9][0-9]{0,63})(E|P|T|G|M|K|Ei|Pi|Ti|Gi|Mi|Ki)$"`).Description("Specify the amount of memory for requests and limits")
+	cpu := defkit.Map("cpu").Optional().WithSchema(`*1 | number | string`).Description("Specify the amount of cpu for requests and limits")
+	memory := defkit.Map("memory").Optional().WithSchema(`*"2048Mi" | =~"^([1-9][0-9]{0,63})(E|P|T|G|M|K|Ei|Pi|Ti|Gi|Mi|Ki)$"`).Description("Specify the amount of memory for requests and limits")
 
 	// Explicit requests parameter - using custom schema for the structured type
-	requests := defkit.Map("requests").Description("Specify the resources in requests").WithSchema(`{
+	requests := defkit.Map("requests").Optional().Description("Specify the resources in requests").WithSchema(`{
 		// +usage=Specify the amount of cpu for requests
 		cpu: *1 | number | string
 		// +usage=Specify the amount of memory for requests
@@ -42,7 +42,7 @@ func Resource() *defkit.TraitDefinition {
 	}`)
 
 	// Explicit limits parameter
-	limits := defkit.Map("limits").Description("Specify the resources in limits").WithSchema(`{
+	limits := defkit.Map("limits").Optional().Description("Specify the resources in limits").WithSchema(`{
 		// +usage=Specify the amount of cpu for limits
 		cpu: *1 | number | string
 		// +usage=Specify the amount of memory for limits

@@ -22,17 +22,16 @@ import (
 
 func stringValueOrSecretRef(name, usage, valueUsage string) *defkit.OneOfParam {
 	return defkit.OneOf(name).
-		Mandatory().
 		Description(usage).
 		Variants(
 			defkit.Variant("value").WithFields(
-				defkit.Field("value", defkit.ParamTypeString).Mandatory().Description(valueUsage),
+				defkit.Field("value", defkit.ParamTypeString).Description(valueUsage),
 			),
 			defkit.Variant("secretRef").WithFields(
-				defkit.Field("secretRef", defkit.ParamTypeStruct).Mandatory().Nested(
+				defkit.Field("secretRef", defkit.ParamTypeStruct).Nested(
 					defkit.Struct("secretRef").WithFields(
-						defkit.Field("name", defkit.ParamTypeString).Mandatory().Description("name is the name of the secret"),
-						defkit.Field("key", defkit.ParamTypeString).Mandatory().Description("key is the key in the secret"),
+						defkit.Field("name", defkit.ParamTypeString).Description("name is the name of the secret"),
+						defkit.Field("key", defkit.ParamTypeString).Description("key is the key in the secret"),
 					),
 				),
 			),
@@ -43,15 +42,15 @@ func stringValueOrSecretRef(name, usage, valueUsage string) *defkit.OneOfParam {
 // This step sends notifications to Email, DingTalk, Slack, Lark or webhook in your workflow.
 func Notification() *defkit.WorkflowStepDefinition {
 	textType := defkit.Object("textType").WithFields(
-		defkit.String("type").Mandatory(),
-		defkit.String("text").Mandatory(),
+		defkit.String("type"),
+		defkit.String("text"),
 		defkit.Bool("emoji").Optional(),
 		defkit.Bool("verbatim").Optional(),
 	)
 
 	option := defkit.Object("option").WithFields(
-		defkit.Object("text").Mandatory().WithSchemaRef("TextType"),
-		defkit.String("value").Mandatory(),
+		defkit.Object("text").WithSchemaRef("TextType"),
+		defkit.String("value"),
 		defkit.Object("description").Optional().WithSchemaRef("TextType"),
 		defkit.String("url").Optional(),
 	)
@@ -64,20 +63,20 @@ func Notification() *defkit.WorkflowStepDefinition {
 	)
 
 	block := defkit.Object("block").WithFields(
-		defkit.String("type").Mandatory(),
+		defkit.String("type"),
 		defkit.String("block_id").Optional(),
 		defkit.Array("elements").Optional().WithFields(
-			defkit.String("type").Mandatory(),
+			defkit.String("type"),
 			defkit.String("action_id").Optional(),
 			defkit.String("url").Optional(),
 			defkit.String("value").Optional(),
 			defkit.String("style").Optional(),
 			defkit.Object("text").Optional().WithSchemaRef("TextType"),
 			defkit.Object("confirm").Optional().WithFields(
-				defkit.Object("title").Mandatory().WithSchemaRef("TextType"),
-				defkit.Object("text").Mandatory().WithSchemaRef("TextType"),
-				defkit.Object("confirm").Mandatory().WithSchemaRef("TextType"),
-				defkit.Object("deny").Mandatory().WithSchemaRef("TextType"),
+				defkit.Object("title").WithSchemaRef("TextType"),
+				defkit.Object("text").WithSchemaRef("TextType"),
+				defkit.Object("confirm").WithSchemaRef("TextType"),
+				defkit.Object("deny").WithSchemaRef("TextType"),
 				defkit.String("style").Optional(),
 			),
 			defkit.Array("options").Optional().WithSchemaRef("Option"),
@@ -109,11 +108,10 @@ func Notification() *defkit.WorkflowStepDefinition {
 				"the url address content in string",
 			),
 			defkit.Object("message").
-				Mandatory().
 				Description("Specify the message that you want to sent, refer to [Lark messaging](https://open.feishu.cn/document/ukTMukTMukTM/ucTM5YjL3ETO24yNxkjN#8b0f2a1b).").
 				WithFields(
-					defkit.String("msg_type").Mandatory().Description("msg_type can be text, post, image, interactive, share_chat, share_user, audio, media, file, sticker"),
-					defkit.String("content").Mandatory().Description("content should be json encode string"),
+					defkit.String("msg_type").Description("msg_type can be text, post, image, interactive, share_chat, share_user, audio, media, file, sticker"),
+					defkit.String("content").Description("content should be json encode string"),
 				),
 		)
 
@@ -127,11 +125,10 @@ func Notification() *defkit.WorkflowStepDefinition {
 				"the url address content in string",
 			),
 			defkit.Object("message").
-				Mandatory().
 				Description("Specify the message that you want to sent, refer to [dingtalk messaging](https://developers.dingtalk.com/document/robots/custom-robot-access/title-72m-8ag-pqw)").
 				WithFields(
 					defkit.Object("text").Optional().Description("Specify the message content of dingtalk notification").WithFields(
-						defkit.String("content").Mandatory(),
+						defkit.String("content"),
 					),
 					defkit.String("msgtype").
 						Description("msgType can be text, link, mardown, actionCard, feedCard").
@@ -139,27 +136,27 @@ func Notification() *defkit.WorkflowStepDefinition {
 						Values("text", "link", "markdown", "actionCard", "feedCard"),
 					defkit.Object("link").Optional().WithSchemaRef("DingLink"),
 					defkit.Object("markdown").Optional().WithFields(
-						defkit.String("text").Mandatory(),
-						defkit.String("title").Mandatory(),
+						defkit.String("text"),
+						defkit.String("title"),
 					),
 					defkit.Object("at").Optional().WithFields(
 						defkit.StringList("atMobiles").Optional(),
 						defkit.Bool("isAtAll").Optional(),
 					),
 					defkit.Object("actionCard").Optional().WithFields(
-						defkit.String("text").Mandatory(),
-						defkit.String("title").Mandatory(),
-						defkit.String("hideAvatar").Mandatory(),
-						defkit.String("btnOrientation").Mandatory(),
-						defkit.String("singleTitle").Mandatory(),
-						defkit.String("singleURL").Mandatory(),
+						defkit.String("text"),
+						defkit.String("title"),
+						defkit.String("hideAvatar"),
+						defkit.String("btnOrientation"),
+						defkit.String("singleTitle"),
+						defkit.String("singleURL"),
 						defkit.Array("btns").Optional().WithFields(
-							defkit.String("title").Mandatory(),
-							defkit.String("actionURL").Mandatory(),
+							defkit.String("title"),
+							defkit.String("actionURL"),
 						),
 					),
 					defkit.Object("feedCard").Optional().WithFields(
-						defkit.Array("links").Mandatory().WithSchemaRef("DingLink"),
+						defkit.Array("links").WithSchemaRef("DingLink"),
 					),
 				),
 		)
@@ -174,17 +171,16 @@ func Notification() *defkit.WorkflowStepDefinition {
 				"the url address content in string",
 			),
 			defkit.Object("message").
-				Mandatory().
 				Description("Specify the message that you want to sent, refer to [slack messaging](https://api.slack.com/reference/messaging/payload)").
 				WithFields(
-					defkit.String("text").Mandatory().Description("Specify the message text for slack notification"),
+					defkit.String("text").Description("Specify the message text for slack notification"),
 					defkit.Array("blocks").Optional().WithSchemaRef("Block"),
 					defkit.Object("attachments").Optional().WithFields(
 						defkit.Array("blocks").Optional().WithSchemaRef("Block"),
 						defkit.String("color").Optional(),
 					),
 					defkit.String("thread_ts").Optional(),
-					defkit.Bool("mrkdwn").Optional().Default(true).ForceOptional().Description("Specify the message text format in markdown for slack notification"),
+					defkit.Bool("mrkdwn").Optional().Default(true).Description("Specify the message text format in markdown for slack notification"),
 				),
 		)
 
@@ -193,26 +189,24 @@ func Notification() *defkit.WorkflowStepDefinition {
 		Description("Please fulfill its from, to and content if you want to send email").
 		WithFields(
 			defkit.Object("from").
-				Mandatory().
 				Description("Specify the email info that you want to send from").
 				WithFields(
-					defkit.String("address").Mandatory().Description("Specify the email address that you want to send from"),
+					defkit.String("address").Description("Specify the email address that you want to send from"),
 					defkit.String("alias").Optional().Description("The alias is the email alias to show after sending the email"),
 					stringValueOrSecretRef(
 						"password",
 						"Specify the password of the email, you can either sepcify it in value or use secretRef",
 						"the password content in string",
 					),
-					defkit.String("host").Mandatory().Description("Specify the host of your email"),
+					defkit.String("host").Description("Specify the host of your email"),
 					defkit.Int("port").Default(587).Description("Specify the port of the email host, default to 587"),
 				),
-			defkit.StringList("to").Mandatory().Description("Specify the email address that you want to send to"),
+			defkit.StringList("to").Description("Specify the email address that you want to send to"),
 			defkit.Object("content").
-				Mandatory().
 				Description("Specify the content of the email").
 				WithFields(
-					defkit.String("subject").Mandatory().Description("Specify the subject of the email"),
-					defkit.String("body").Mandatory().Description("Specify the context body of the email"),
+					defkit.String("subject").Description("Specify the subject of the email"),
+					defkit.String("body").Description("Specify the context body of the email"),
 				),
 		)
 

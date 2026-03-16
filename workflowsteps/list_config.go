@@ -24,10 +24,8 @@ import (
 // This step lists the configs.
 func ListConfig() *defkit.WorkflowStepDefinition {
 	template := defkit.String("template").
-		Mandatory().
 		Description("Specify the template of the config.")
 	namespace := defkit.Object("namespace").
-		Mandatory().
 		Description("Specify the namespace of the config.").
 		WithSchema("*context.namespace | string")
 

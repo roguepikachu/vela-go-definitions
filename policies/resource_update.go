@@ -41,12 +41,10 @@ func ResourceUpdate() *defkit.PolicyDefinition {
 	policyRule := defkit.Struct("rule").WithFields(
 		defkit.Field("selector", defkit.ParamTypeStruct).
 			Description("Specify how to select the targets of the rule").
-			WithSchemaRef("RuleSelector").
-			Mandatory(),
+			WithSchemaRef("RuleSelector"),
 		defkit.Field("strategy", defkit.ParamTypeStruct).
 			Description("The update strategy for the target resources").
-			WithSchemaRef("Strategy").
-			Mandatory(),
+			WithSchemaRef("Strategy"),
 	)
 
 	return defkit.NewPolicy("resource-update").
