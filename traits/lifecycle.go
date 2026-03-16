@@ -24,8 +24,8 @@ import (
 // This trait adds lifecycle hooks for every container of K8s pod.
 func Lifecycle() *defkit.TraitDefinition {
 	// Define parameters for lifecycle hooks
-	postStart := defkit.Map("postStart").Description("Specify the postStart hook").WithSchemaRef("LifeCycleHandler")
-	preStop := defkit.Map("preStop").Description("Specify the preStop hook").WithSchemaRef("LifeCycleHandler")
+	postStart := defkit.Map("postStart").Optional().Description("Specify the postStart hook").WithSchemaRef("LifeCycleHandler")
+	preStop := defkit.Map("preStop").Optional().Description("Specify the preStop hook").WithSchemaRef("LifeCycleHandler")
 
 	return defkit.NewTrait("lifecycle").
 		Description("Add lifecycle hooks for every container of K8s pod for your workload which follows the pod spec in path 'spec.template'.").
@@ -46,32 +46,32 @@ func Lifecycle() *defkit.TraitDefinition {
 
 // portHelper returns the #Port helper definition schema.
 func portHelper() defkit.Param {
-	return defkit.Int("Port").Min(1).Max(65535)
+	return defkit.Int("Port").Optional().Min(1).Max(65535)
 }
 
 // lifecycleHandlerHelper returns the #LifeCycleHandler helper definition schema.
 func lifecycleHandlerHelper() defkit.Param {
 	return defkit.Struct("LifeCycleHandler").WithFields(
-		defkit.Field("exec", defkit.ParamTypeStruct).
+		defkit.Field("exec", defkit.ParamTypeStruct).Optional().
 			Nested(defkit.Struct("exec").WithFields(
-				defkit.Field("command", defkit.ParamTypeArray).Of(defkit.ParamTypeString).Mandatory(),
+				defkit.Field("command", defkit.ParamTypeArray).Of(defkit.ParamTypeString),
 			)),
-		defkit.Field("httpGet", defkit.ParamTypeStruct).
+		defkit.Field("httpGet", defkit.ParamTypeStruct).Optional().
 			Nested(defkit.Struct("httpGet").WithFields(
-				defkit.Field("path", defkit.ParamTypeString),
-				defkit.Field("port", defkit.ParamTypeInt).WithSchemaRef("Port").Mandatory(),
-				defkit.Field("host", defkit.ParamTypeString),
+				defkit.Field("path", defkit.ParamTypeString).Optional(),
+				defkit.Field("port", defkit.ParamTypeInt).WithSchemaRef("Port"),
+				defkit.Field("host", defkit.ParamTypeString).Optional(),
 				defkit.Field("scheme", defkit.ParamTypeString).Default("HTTP").Values("HTTP", "HTTPS"),
-				defkit.Field("httpHeaders", defkit.ParamTypeArray).
+				defkit.Field("httpHeaders", defkit.ParamTypeArray).Optional().
 					Nested(defkit.Struct("httpHeaders").WithFields(
-						defkit.Field("name", defkit.ParamTypeString).Mandatory(),
-						defkit.Field("value", defkit.ParamTypeString).Mandatory(),
+						defkit.Field("name", defkit.ParamTypeString),
+						defkit.Field("value", defkit.ParamTypeString),
 					)),
 			)),
-		defkit.Field("tcpSocket", defkit.ParamTypeStruct).
+		defkit.Field("tcpSocket", defkit.ParamTypeStruct).Optional().
 			Nested(defkit.Struct("tcpSocket").WithFields(
-				defkit.Field("port", defkit.ParamTypeInt).WithSchemaRef("Port").Mandatory(),
-				defkit.Field("host", defkit.ParamTypeString),
+				defkit.Field("port", defkit.ParamTypeInt).WithSchemaRef("Port"),
+				defkit.Field("host", defkit.ParamTypeString).Optional(),
 			)),
 	)
 }

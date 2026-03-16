@@ -67,7 +67,7 @@ var _ = Describe("Replication Policy", func() {
 
 		Describe("keys parameter", func() {
 			It("should be mandatory", func() {
-				Expect(policy.GetParams()[0].IsMandatory()).To(BeTrue())
+				Expect(policy.GetParams()[0].IsOptional()).To(BeFalse())
 			})
 
 			It("should be an ArrayParam", func() {

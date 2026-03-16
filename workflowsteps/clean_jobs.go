@@ -25,9 +25,8 @@ import (
 func CleanJobs() *defkit.WorkflowStepDefinition {
 	vela := defkit.VelaCtx()
 
-	labelselector := defkit.Object("labelselector")
+	labelselector := defkit.Object("labelselector").Optional()
 	namespace := defkit.Object("namespace").
-		Mandatory().
 		WithSchema("*context.namespace | string")
 
 	jobValue := defkit.NewArrayElement().

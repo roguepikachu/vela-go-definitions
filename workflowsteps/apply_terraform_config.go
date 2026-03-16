@@ -26,7 +26,6 @@ func ApplyTerraformConfig() *defkit.WorkflowStepDefinition {
 	vela := defkit.VelaCtx()
 
 	source := defkit.Object("source").
-		Mandatory().
 		Description("specify the source of the terraform configuration").
 		WithSchema(`close({
 	// +usage=directly specify the hcl of the terraform configuration
@@ -41,7 +40,6 @@ func ApplyTerraformConfig() *defkit.WorkflowStepDefinition {
 		Default(true).
 		Description("whether to delete resource")
 	variable := defkit.Object("variable").
-		Mandatory().
 		Description("the variable in the configuration").
 		WithSchema("{...}")
 	writeConnectionSecretToRef := defkit.Object("writeConnectionSecretToRef").

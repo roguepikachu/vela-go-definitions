@@ -24,16 +24,13 @@ import (
 // This step creates or updates a config.
 func CreateConfig() *defkit.WorkflowStepDefinition {
 	name := defkit.String("name").
-		Mandatory().
 		Description("Specify the name of the config.")
 	namespace := defkit.Object("namespace").
-		Mandatory().
 		Description("Specify the namespace of the config.").
 		WithSchema("*context.namespace | string")
 	template := defkit.String("template").
 		Description("Specify the template of the config.")
 	config := defkit.Object("config").
-		Mandatory().
 		Description("Specify the content of the config.")
 
 	return defkit.NewWorkflowStep("create-config").

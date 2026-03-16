@@ -26,7 +26,6 @@ func ShareCloudResource() *defkit.WorkflowStepDefinition {
 	vela := defkit.VelaCtx()
 
 	placements := defkit.Array("placements").
-		Mandatory().
 		Description("Declare the location to bind").
 		WithFields(
 			defkit.String("namespace").Optional(),
@@ -36,7 +35,6 @@ func ShareCloudResource() *defkit.WorkflowStepDefinition {
 		Default("").
 		Description("Declare the name of the env-binding policy, if empty, the first env-binding policy will be used")
 	env := defkit.String("env").
-		Mandatory().
 		Description("Declare the name of the env in policy")
 
 	return defkit.NewWorkflowStep("share-cloud-resource").

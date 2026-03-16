@@ -26,8 +26,7 @@ func Override() *defkit.PolicyDefinition {
 	// Define helper type for trait patch
 	traitPatch := defkit.Struct("trait").WithFields(
 		defkit.Field("type", defkit.ParamTypeString).
-			Description("Specify the type of the trait to be patched").
-			Mandatory(),
+			Description("Specify the type of the trait to be patched"),
 		defkit.Field("properties", defkit.ParamTypeMap).
 			Description("Specify the properties to override").
 			Optional(),
@@ -60,8 +59,7 @@ func Override() *defkit.PolicyDefinition {
 		Params(
 			defkit.Array("components").
 				Description("Specify the overridden component configuration").
-				WithSchemaRef("PatchParams").
-				Mandatory(),
+				WithSchemaRef("PatchParams"),
 			defkit.Array("selector").
 				Of(defkit.ParamTypeString).
 				Description("Specify a list of component names to use, if empty, all components will be selected").

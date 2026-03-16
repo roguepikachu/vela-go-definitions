@@ -24,10 +24,8 @@ import (
 // This step waits for the specified Application to complete.
 func DependsOnApp() *defkit.WorkflowStepDefinition {
 	name := defkit.String("name").
-		Mandatory().
 		Description("Specify the name of the dependent Application")
 	namespace := defkit.String("namespace").
-		Mandatory().
 		Description("Specify the namespace of the dependent Application")
 
 	appObject := defkit.NewArrayElement().

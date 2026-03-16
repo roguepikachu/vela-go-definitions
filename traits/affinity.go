@@ -24,38 +24,38 @@ import (
 // This trait specifies affinity and toleration for K8s pods.
 func Affinity() *defkit.TraitDefinition {
 	// Define parameters using fluent API (same pattern as sidecar, webservice, etc.)
-	podAffinity := defkit.Map("podAffinity").Description("Specify the pod affinity scheduling rules").WithFields(
-		defkit.Array("required").Description("Specify the required during scheduling ignored during execution").WithSchemaRef("podAffinityTerm"),
-		defkit.Array("preferred").Description("Specify the preferred during scheduling ignored during execution").WithFields(
-			defkit.Int("weight").Description("Specify weight associated with matching the corresponding podAffinityTerm").Mandatory().Min(1).Max(100),
-			defkit.Map("podAffinityTerm").Description("Specify a set of pods").WithSchemaRef("podAffinityTerm").Mandatory(),
+	podAffinity := defkit.Map("podAffinity").Optional().Description("Specify the pod affinity scheduling rules").WithFields(
+		defkit.Array("required").Optional().Description("Specify the required during scheduling ignored during execution").WithSchemaRef("podAffinityTerm"),
+		defkit.Array("preferred").Optional().Description("Specify the preferred during scheduling ignored during execution").WithFields(
+			defkit.Int("weight").Description("Specify weight associated with matching the corresponding podAffinityTerm").Min(1).Max(100),
+			defkit.Map("podAffinityTerm").Description("Specify a set of pods").WithSchemaRef("podAffinityTerm"),
 		),
 	)
 
-	podAntiAffinity := defkit.Map("podAntiAffinity").Description("Specify the pod anti-affinity scheduling rules").WithFields(
-		defkit.Array("required").Description("Specify the required during scheduling ignored during execution").WithSchemaRef("podAffinityTerm"),
-		defkit.Array("preferred").Description("Specify the preferred during scheduling ignored during execution").WithFields(
-			defkit.Int("weight").Description("Specify weight associated with matching the corresponding podAffinityTerm").Mandatory().Min(1).Max(100),
-			defkit.Map("podAffinityTerm").Description("Specify a set of pods").WithSchemaRef("podAffinityTerm").Mandatory(),
+	podAntiAffinity := defkit.Map("podAntiAffinity").Optional().Description("Specify the pod anti-affinity scheduling rules").WithFields(
+		defkit.Array("required").Optional().Description("Specify the required during scheduling ignored during execution").WithSchemaRef("podAffinityTerm"),
+		defkit.Array("preferred").Optional().Description("Specify the preferred during scheduling ignored during execution").WithFields(
+			defkit.Int("weight").Description("Specify weight associated with matching the corresponding podAffinityTerm").Min(1).Max(100),
+			defkit.Map("podAffinityTerm").Description("Specify a set of pods").WithSchemaRef("podAffinityTerm"),
 		),
 	)
 
-	nodeAffinity := defkit.Map("nodeAffinity").Description("Specify the node affinity scheduling rules for the pod").WithFields(
-		defkit.Map("required").Description("Specify the required during scheduling ignored during execution").WithFields(
-			defkit.Array("nodeSelectorTerms").Description("Specify a list of node selector").WithSchemaRef("nodeSelectorTerm").Mandatory(),
+	nodeAffinity := defkit.Map("nodeAffinity").Optional().Description("Specify the node affinity scheduling rules for the pod").WithFields(
+		defkit.Map("required").Optional().Description("Specify the required during scheduling ignored during execution").WithFields(
+			defkit.Array("nodeSelectorTerms").Description("Specify a list of node selector").WithSchemaRef("nodeSelectorTerm"),
 		),
-		defkit.Array("preferred").Description("Specify the preferred during scheduling ignored during execution").WithFields(
-			defkit.Int("weight").Description("Specify weight associated with matching the corresponding nodeSelector").Mandatory().Min(1).Max(100),
-			defkit.Map("preference").Description("Specify a node selector").WithSchemaRef("nodeSelectorTerm").Mandatory(),
+		defkit.Array("preferred").Optional().Description("Specify the preferred during scheduling ignored during execution").WithFields(
+			defkit.Int("weight").Description("Specify weight associated with matching the corresponding nodeSelector").Min(1).Max(100),
+			defkit.Map("preference").Description("Specify a node selector").WithSchemaRef("nodeSelectorTerm"),
 		),
 	)
 
-	tolerations := defkit.Array("tolerations").Description("Specify tolerant taint").WithFields(
-		defkit.String("key"),
+	tolerations := defkit.Array("tolerations").Optional().Description("Specify tolerant taint").WithFields(
+		defkit.String("key").Optional(),
 		defkit.String("operator").Default("Equal").Values("Equal", "Exists"),
-		defkit.String("value"),
-		defkit.String("effect").Values("NoSchedule", "PreferNoSchedule", "NoExecute"),
-		defkit.Int("tolerationSeconds").Description("Specify the period of time the toleration"),
+		defkit.String("value").Optional(),
+		defkit.String("effect").Optional().Values("NoSchedule", "PreferNoSchedule", "NoExecute"),
+		defkit.Int("tolerationSeconds").Optional().Description("Specify the period of time the toleration"),
 	)
 
 	return defkit.NewTrait("affinity").
@@ -144,11 +144,11 @@ func Affinity() *defkit.TraitDefinition {
 // labelSelectorHelper returns the #labelSelector helper definition schema.
 func labelSelectorHelper() defkit.Param {
 	return defkit.Map("labelSelector").WithFields(
-		defkit.StringKeyMap("matchLabels").Description("A map of {key,value} pairs"),
-		defkit.Array("matchExpressions").Description("A list of label selector requirements").WithFields(
-			defkit.String("key").Mandatory(),
+		defkit.StringKeyMap("matchLabels").Optional().Description("A map of {key,value} pairs"),
+		defkit.Array("matchExpressions").Optional().Description("A list of label selector requirements").WithFields(
+			defkit.String("key"),
 			defkit.String("operator").Default("In").Values("In", "NotIn", "Exists", "DoesNotExist"),
-			defkit.Array("values").Of(defkit.ParamTypeString),
+			defkit.Array("values").Optional().Of(defkit.ParamTypeString),
 		),
 	)
 }
@@ -156,28 +156,28 @@ func labelSelectorHelper() defkit.Param {
 // podAffinityTermHelper returns the #podAffinityTerm helper definition schema.
 func podAffinityTermHelper() defkit.Param {
 	return defkit.Struct("podAffinityTerm").WithFields(
-		defkit.Field("labelSelector", defkit.ParamTypeStruct).WithSchemaRef("labelSelector"),
-		defkit.Field("namespace", defkit.ParamTypeString),
-		defkit.Field("namespaces", defkit.ParamTypeArray).Of(defkit.ParamTypeString),
-		defkit.Field("topologyKey", defkit.ParamTypeString).Mandatory(),
-		defkit.Field("namespaceSelector", defkit.ParamTypeStruct).WithSchemaRef("labelSelector"),
+		defkit.Field("labelSelector", defkit.ParamTypeStruct).Optional().WithSchemaRef("labelSelector"),
+		defkit.Field("namespace", defkit.ParamTypeString).Optional(),
+		defkit.Field("namespaces", defkit.ParamTypeArray).Optional().Of(defkit.ParamTypeString),
+		defkit.Field("topologyKey", defkit.ParamTypeString),
+		defkit.Field("namespaceSelector", defkit.ParamTypeStruct).Optional().WithSchemaRef("labelSelector"),
 	)
 }
 
 // nodeSelectorHelper returns the #nodeSelector helper definition schema.
 func nodeSelectorHelper() defkit.Param {
 	return defkit.Struct("nodeSelector").WithFields(
-		defkit.Field("key", defkit.ParamTypeString).Mandatory(),
+		defkit.Field("key", defkit.ParamTypeString),
 		defkit.Field("operator", defkit.ParamTypeString).Default("In").Values("In", "NotIn", "Exists", "DoesNotExist", "Gt", "Lt"),
-		defkit.Field("values", defkit.ParamTypeArray).Of(defkit.ParamTypeString),
+		defkit.Field("values", defkit.ParamTypeArray).Optional().Of(defkit.ParamTypeString),
 	)
 }
 
 // nodeSelectorTermHelper returns the #nodeSelectorTerm helper definition schema.
 func nodeSelectorTermHelper() defkit.Param {
 	return defkit.Struct("nodeSelectorTerm").WithFields(
-		defkit.Field("matchExpressions", defkit.ParamTypeArray).WithSchemaRef("nodeSelector"),
-		defkit.Field("matchFields", defkit.ParamTypeArray).WithSchemaRef("nodeSelector"),
+		defkit.Field("matchExpressions", defkit.ParamTypeArray).Optional().WithSchemaRef("nodeSelector"),
+		defkit.Field("matchFields", defkit.ParamTypeArray).Optional().WithSchemaRef("nodeSelector"),
 	)
 }
 

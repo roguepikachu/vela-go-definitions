@@ -27,10 +27,10 @@ func ApplyDeployment() *defkit.WorkflowStepDefinition {
 	stepName := defkit.Reference("context.stepName")
 	stepLabel := defkit.Interpolation(vela.Name(), defkit.Lit("-"), stepName)
 
-	image := defkit.String("image").Mandatory()
+	image := defkit.String("image")
 	replicas := defkit.Int("replicas").Default(1)
 	cluster := defkit.String("cluster").Default("")
-	cmd := defkit.StringList("cmd")
+	cmd := defkit.StringList("cmd").Optional()
 
 	deployment := defkit.NewArrayElement().
 		Set("apiVersion", defkit.Lit("apps/v1")).

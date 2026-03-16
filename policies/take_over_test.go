@@ -118,7 +118,7 @@ var _ = Describe("TakeOver Policy", func() {
 					It("should be optional", func() {
 						f := selectorParam.GetField(sf.name)
 						Expect(f).NotTo(BeNil(), "field %s should exist", sf.name)
-						Expect(f.IsMandatory()).To(BeFalse())
+						Expect(f.IsOptional()).To(BeTrue())
 					})
 
 					It("should be array type with string elements", func() {
@@ -154,7 +154,7 @@ var _ = Describe("TakeOver Policy", func() {
 				It("should be required", func() {
 					f := ruleParam.GetField("selector")
 					Expect(f).NotTo(BeNil())
-					Expect(f.IsMandatory()).To(BeTrue())
+					Expect(f.IsOptional()).To(BeFalse())
 				})
 
 				It("should reference RuleSelector", func() {

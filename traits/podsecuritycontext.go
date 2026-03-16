@@ -24,17 +24,17 @@ import (
 // This trait adds security context to the pod spec.
 func PodSecurityContext() *defkit.TraitDefinition {
 	// Define parameters with nested struct for profile types
-	appArmorProfile := defkit.Map("appArmorProfile").Description("Specify the AppArmor profile for the pod").WithFields(
-		defkit.String("type").Mandatory().Values("RuntimeDefault", "Unconfined", "Localhost"),
-		defkit.String("localhostProfile").Description("localhostProfile is required when type is 'Localhost'"),
+	appArmorProfile := defkit.Map("appArmorProfile").Optional().Description("Specify the AppArmor profile for the pod").WithFields(
+		defkit.String("type").Values("RuntimeDefault", "Unconfined", "Localhost"),
+		defkit.String("localhostProfile").Optional().Description("localhostProfile is required when type is 'Localhost'"),
 	)
-	fsGroup := defkit.Int("fsGroup")
-	runAsGroup := defkit.Int("runAsGroup")
-	runAsUser := defkit.Int("runAsUser").Description("Specify the UID to run the entrypoint of the container process")
+	fsGroup := defkit.Int("fsGroup").Optional()
+	runAsGroup := defkit.Int("runAsGroup").Optional()
+	runAsUser := defkit.Int("runAsUser").Optional().Description("Specify the UID to run the entrypoint of the container process")
 	runAsNonRoot := defkit.Bool("runAsNonRoot").Description("Specify if the container runs as a non-root user").Default(true)
-	seccompProfile := defkit.Map("seccompProfile").Description("Specify the seccomp profile for the pod").WithFields(
-		defkit.String("type").Mandatory().Values("RuntimeDefault", "Unconfined", "Localhost"),
-		defkit.String("localhostProfile").Description("localhostProfile is required when type is 'Localhost'"),
+	seccompProfile := defkit.Map("seccompProfile").Optional().Description("Specify the seccomp profile for the pod").WithFields(
+		defkit.String("type").Values("RuntimeDefault", "Unconfined", "Localhost"),
+		defkit.String("localhostProfile").Optional().Description("localhostProfile is required when type is 'Localhost'"),
 	)
 
 	return defkit.NewTrait("podsecuritycontext").

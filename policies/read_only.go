@@ -29,8 +29,7 @@ func ReadOnly() *defkit.PolicyDefinition {
 	policyRule := defkit.Struct("rule").WithFields(
 		defkit.Field("selector", defkit.ParamTypeStruct).
 			Description("Specify how to select the targets of the rule").
-			WithSchemaRef("RuleSelector").
-			Mandatory(),
+			WithSchemaRef("RuleSelector"),
 	)
 
 	return defkit.NewPolicy("read-only").

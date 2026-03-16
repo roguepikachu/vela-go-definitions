@@ -23,11 +23,11 @@ import (
 // Topology creates the topology policy definition.
 // This policy describes the destination where components should be deployed to.
 func Topology() *defkit.PolicyDefinition {
-	clusters := defkit.StringList("clusters").Description("Specify the names of the clusters to select.")
-	clusterLabelSelector := defkit.StringKeyMap("clusterLabelSelector").Description("Specify the label selector for clusters")
-	allowEmpty := defkit.Bool("allowEmpty").Description("Ignore empty cluster error")
-	clusterSelector := defkit.StringKeyMap("clusterSelector").Description("Deprecated: Use clusterLabelSelector instead.")
-	namespace := defkit.String("namespace").Description("Specify the target namespace to deploy in the selected clusters, default inherit the original namespace.")
+	clusters := defkit.StringList("clusters").Optional().Description("Specify the names of the clusters to select.")
+	clusterLabelSelector := defkit.StringKeyMap("clusterLabelSelector").Optional().Description("Specify the label selector for clusters")
+	allowEmpty := defkit.Bool("allowEmpty").Optional().Description("Ignore empty cluster error")
+	clusterSelector := defkit.StringKeyMap("clusterSelector").Optional().Description("Deprecated: Use clusterLabelSelector instead.")
+	namespace := defkit.String("namespace").Optional().Description("Specify the target namespace to deploy in the selected clusters, default inherit the original namespace.")
 
 	return defkit.NewPolicy("topology").
 		Description("Describe the destination where components should be deployed to.").
