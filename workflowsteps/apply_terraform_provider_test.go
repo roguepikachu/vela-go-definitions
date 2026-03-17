@@ -115,23 +115,54 @@ var _ = Describe("ApplyTerraformProvider WorkflowStep", func() {
 			Expect(cueOutput).To(ContainSubstring("namespace: context.namespace"))
 			Expect(cueOutput).To(ContainSubstring(`"terraform-\(parameter.type)"`))
 
+			// Alibaba provider env keys
 			Expect(cueOutput).To(ContainSubstring(`parameter.type == "alibaba"`))
 			Expect(cueOutput).To(ContainSubstring("ALICLOUD_ACCESS_KEY: parameter.accessKey"))
+			Expect(cueOutput).To(ContainSubstring("ALICLOUD_SECRET_KEY: parameter.secretKey"))
+			Expect(cueOutput).To(ContainSubstring("ALICLOUD_REGION: parameter.region"))
+
+			// AWS provider env keys
 			Expect(cueOutput).To(ContainSubstring(`parameter.type == "aws"`))
 			Expect(cueOutput).To(ContainSubstring("AWS_ACCESS_KEY_ID: parameter.accessKey"))
+			Expect(cueOutput).To(ContainSubstring("AWS_SECRET_ACCESS_KEY: parameter.secretKey"))
+			Expect(cueOutput).To(ContainSubstring("AWS_DEFAULT_REGION: parameter.region"))
 			Expect(cueOutput).To(ContainSubstring("AWS_SESSION_TOKEN: parameter.token"))
+
+			// Azure provider env keys
 			Expect(cueOutput).To(ContainSubstring(`parameter.type == "azure"`))
 			Expect(cueOutput).To(ContainSubstring("ARM_CLIENT_ID: parameter.clientID"))
-			Expect(cueOutput).To(ContainSubstring(`parameter.type == "gcp"`))
-			Expect(cueOutput).To(ContainSubstring("GOOGLE_CREDENTIALS: parameter.credentials"))
+			Expect(cueOutput).To(ContainSubstring("ARM_CLIENT_SECRET: parameter.clientSecret"))
+			Expect(cueOutput).To(ContainSubstring("ARM_SUBSCRIPTION_ID: parameter.subscriptionID"))
+			Expect(cueOutput).To(ContainSubstring("ARM_TENANT_ID: parameter.tenantID"))
+
+			// Baidu provider env keys
 			Expect(cueOutput).To(ContainSubstring(`parameter.type == "baidu"`))
 			Expect(cueOutput).To(ContainSubstring("BAIDUCLOUD_ACCESS_KEY: parameter.accessKey"))
+			Expect(cueOutput).To(ContainSubstring("BAIDUCLOUD_SECRET_KEY: parameter.secretKey"))
+			Expect(cueOutput).To(ContainSubstring("BAIDUCLOUD_REGION: parameter.region"))
+
+			// EC provider env keys
 			Expect(cueOutput).To(ContainSubstring(`parameter.type == "ec"`))
 			Expect(cueOutput).To(ContainSubstring("EC_API_KEY: parameter.apiKey"))
+
+			// GCP provider env keys
+			Expect(cueOutput).To(ContainSubstring(`parameter.type == "gcp"`))
+			Expect(cueOutput).To(ContainSubstring("GOOGLE_CREDENTIALS: parameter.credentials"))
+			Expect(cueOutput).To(ContainSubstring("GOOGLE_REGION: parameter.region"))
+			Expect(cueOutput).To(ContainSubstring("GOOGLE_PROJECT: parameter.project"))
+
+			// Tencent provider env keys
 			Expect(cueOutput).To(ContainSubstring(`parameter.type == "tencent"`))
 			Expect(cueOutput).To(ContainSubstring("TENCENTCLOUD_SECRET_ID: parameter.secretID"))
+			Expect(cueOutput).To(ContainSubstring("TENCENTCLOUD_SECRET_KEY: parameter.secretKey"))
+			Expect(cueOutput).To(ContainSubstring("TENCENTCLOUD_REGION: parameter.region"))
+
+			// UCloud provider env keys
 			Expect(cueOutput).To(ContainSubstring(`parameter.type == "ucloud"`))
 			Expect(cueOutput).To(ContainSubstring("UCLOUD_PRIVATE_KEY: parameter.privateKey"))
+			Expect(cueOutput).To(ContainSubstring("UCLOUD_PUBLIC_KEY: parameter.publicKey"))
+			Expect(cueOutput).To(ContainSubstring("UCLOUD_PROJECT_ID: parameter.projectID"))
+			Expect(cueOutput).To(ContainSubstring("UCLOUD_REGION: parameter.region"))
 		})
 
 		It("should read terraform Provider and wait for ready state", func() {

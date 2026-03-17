@@ -74,6 +74,7 @@ var _ = Describe("Request WorkflowStep", func() {
 			Expect(cueOutput).To(ContainSubstring("op.#Steps & {"))
 			Expect(cueOutput).To(ContainSubstring("req.$returns.statusCode > 400"))
 			Expect(cueOutput).To(ContainSubstring("requestFail: op.#Fail & {"))
+			Expect(cueOutput).To(ContainSubstring(`message: "request of \(parameter.url) is fail: \(req.$returns.statusCode)"`))
 			Expect(cueOutput).To(ContainSubstring("response: json.Unmarshal(req.$returns.body)"))
 		})
 

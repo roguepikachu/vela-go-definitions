@@ -125,12 +125,19 @@ var _ = Describe("VelaCli WorkflowStep", func() {
 		It("should have log, fail, and wait actions for job lifecycle", func() {
 			Expect(cueOutput).To(ContainSubstring("log: util.#Log & {"))
 			Expect(cueOutput).To(ContainSubstring("labelSelector:"))
+			Expect(cueOutput).To(ContainSubstring(`"workflow.oam.dev/step-name"`))
+
+			// Fail action with status guards
 			Expect(cueOutput).To(ContainSubstring("job.$returns.value.status != _|_"))
 			Expect(cueOutput).To(ContainSubstring("job.$returns.value.status.failed != _|_"))
 			Expect(cueOutput).To(ContainSubstring("job.$returns.value.status.failed > 2"))
 			Expect(cueOutput).To(ContainSubstring("breakWorkflow: builtin.#Fail & {"))
 			Expect(cueOutput).To(ContainSubstring(`$params: message: "failed to execute vela command"`))
+
+			// Wait action with status guards for safe dereference
 			Expect(cueOutput).To(ContainSubstring("wait: builtin.#ConditionalWait & {"))
+			Expect(cueOutput).To(ContainSubstring("if job.$returns.value.status != _|_"))
+			Expect(cueOutput).To(ContainSubstring("if job.$returns.value.status.succeeded != _|_"))
 			Expect(cueOutput).To(ContainSubstring("$params: continue: job.$returns.value.status.succeeded > 0"))
 		})
 

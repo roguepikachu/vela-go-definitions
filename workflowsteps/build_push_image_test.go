@@ -58,6 +58,11 @@ var _ = Describe("BuildPushImage WorkflowStep", func() {
 
 		It("should define #secret and #git helper types", func() {
 			Expect(cueOutput).To(ContainSubstring("#secret: {"))
+			secretIdx := strings.Index(cueOutput, "#secret: {")
+			secretBlock := cueOutput[secretIdx : secretIdx+60]
+			Expect(secretBlock).To(ContainSubstring("name: string"))
+			Expect(secretBlock).To(ContainSubstring("key: string"))
+
 			Expect(cueOutput).To(ContainSubstring("#git: {"))
 			Expect(cueOutput).To(ContainSubstring("git: string"))
 			Expect(cueOutput).To(ContainSubstring(`branch: *"master" | string`))
@@ -115,6 +120,12 @@ var _ = Describe("BuildPushImage WorkflowStep", func() {
 		It("should have log, read, and wait actions for kaniko Pod lifecycle", func() {
 			Expect(cueOutput).To(ContainSubstring("util.#Log & {"))
 			Expect(cueOutput).To(ContainSubstring("read: kube.#Read & {"))
+
+			// Verify read targets a Pod (comment 5: prevent read-kind regressions)
+			readIdx := strings.Index(cueOutput, "read: kube.#Read & {")
+			readBlock := cueOutput[readIdx : readIdx+200]
+			Expect(readBlock).To(ContainSubstring(`kind: "Pod"`))
+
 			Expect(cueOutput).To(ContainSubstring("builtin.#ConditionalWait & {"))
 			Expect(cueOutput).To(ContainSubstring("read.$returns.value.status != _|_"))
 			Expect(cueOutput).To(ContainSubstring(`read.$returns.value.status.phase == "Succeeded"`))

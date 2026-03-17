@@ -61,9 +61,9 @@ var _ = Describe("RestartWorkflow WorkflowStep", func() {
 
 		It("should validate exactly one parameter and set _script conditionally for each", func() {
 			Expect(cueOutput).To(ContainSubstring("_paramCount"))
-			Expect(cueOutput).To(ContainSubstring("parameter.at != _|_"))
-			Expect(cueOutput).To(ContainSubstring("parameter.after != _|_"))
-			Expect(cueOutput).To(ContainSubstring("parameter.every != _|_"))
+			Expect(cueOutput).To(ContainSubstring("if parameter.at != _|_"))
+			Expect(cueOutput).To(ContainSubstring("if parameter.after != _|_"))
+			Expect(cueOutput).To(ContainSubstring("if parameter.every != _|_"))
 			Expect(cueOutput).To(ContainSubstring("_script: string"))
 			Expect(cueOutput).To(ContainSubstring("app.oam.dev/restart-workflow"))
 			Expect(cueOutput).To(ContainSubstring("Convert duration to seconds"))
