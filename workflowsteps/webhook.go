@@ -40,7 +40,7 @@ func Webhook() *defkit.WorkflowStepDefinition {
 			),
 		)
 
-	data := defkit.Object("data").Description("Specify the data you want to send")
+	data := defkit.Object("data").Optional().Description("Specify the data you want to send")
 	hasData := defkit.PathExists("parameter.data")
 	noData := defkit.Eq(defkit.ParamRef("data"), defkit.Reference("_|_"))
 	hasURLValue := defkit.PathExists("parameter.url.value")

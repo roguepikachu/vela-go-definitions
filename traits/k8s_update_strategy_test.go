@@ -59,4 +59,12 @@ var _ = Describe("K8sUpdateStrategy", func() {
 		Expect(cue).To(ContainSubstring(`targetKind: *"Deployment" | "StatefulSet" | "DaemonSet"`))
 		Expect(cue).To(ContainSubstring(`type: *"RollingUpdate" | "Recreate" | "OnDelete"`))
 	})
+
+	It("should have optional rollingStrategy field", func() {
+		trait := traits.K8sUpdateStrategy()
+		cue := trait.ToCue()
+
+		// rollingStrategy must be optional (not needed for Recreate strategy)
+		Expect(cue).To(ContainSubstring(`rollingStrategy?: {`))
+	})
 })

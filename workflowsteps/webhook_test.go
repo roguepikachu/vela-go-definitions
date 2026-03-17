@@ -109,8 +109,8 @@ var _ = Describe("Webhook WorkflowStep", func() {
 		})
 
 		Describe("Parameter: data", func() {
-			It("should generate data parameter", func() {
-				Expect(cueOutput).To(ContainSubstring("data: {...}"))
+			It("should generate data as optional parameter", func() {
+				Expect(cueOutput).To(ContainSubstring("data?: {...}"))
 			})
 
 			It("should have description for data parameter", func() {
