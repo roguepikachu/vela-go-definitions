@@ -26,16 +26,10 @@ import (
 )
 
 var _ = Describe("Export2Secret WorkflowStep", func() {
-	Describe("Metadata", func() {
-		It("should have the correct name", func() {
-			step := workflowsteps.Export2Secret()
-			Expect(step.GetName()).To(Equal("export2secret"))
-		})
-
-		It("should have the correct description", func() {
-			step := workflowsteps.Export2Secret()
-			Expect(step.GetDescription()).To(Equal("Export data to Kubernetes Secret in your workflow."))
-		})
+	It("should have the correct name and description", func() {
+		step := workflowsteps.Export2Secret()
+		Expect(step.GetName()).To(Equal("export2secret"))
+		Expect(step.GetDescription()).To(Equal("Export data to Kubernetes Secret in your workflow."))
 	})
 
 	Describe("CUE Generation", func() {
@@ -47,178 +41,91 @@ var _ = Describe("Export2Secret WorkflowStep", func() {
 			Expect(cueOutput).NotTo(BeEmpty())
 		})
 
-		Describe("Step header", func() {
-			It("should generate workflow-step type", func() {
-				Expect(cueOutput).To(ContainSubstring(`type: "workflow-step"`))
-			})
-
-			It("should generate correct category", func() {
-				Expect(cueOutput).To(ContainSubstring(`"category": "Resource Management"`))
-			})
+		It("should generate correct step header with type and category", func() {
+			Expect(cueOutput).To(ContainSubstring(`type: "workflow-step"`))
+			Expect(cueOutput).To(ContainSubstring(`"category": "Resource Management"`))
 		})
 
-		Describe("Imports", func() {
-			It("should import vela/kube", func() {
-				Expect(cueOutput).To(ContainSubstring(`"vela/kube"`))
-			})
-
-			It("should import encoding/base64", func() {
-				Expect(cueOutput).To(ContainSubstring(`"encoding/base64"`))
-			})
-
-			It("should import encoding/json", func() {
-				Expect(cueOutput).To(ContainSubstring(`"encoding/json"`))
-			})
+		It("should import vela/kube, encoding/base64, and encoding/json", func() {
+			Expect(cueOutput).To(ContainSubstring(`"vela/kube"`))
+			Expect(cueOutput).To(ContainSubstring(`"encoding/base64"`))
+			Expect(cueOutput).To(ContainSubstring(`"encoding/json"`))
 		})
 
-		Describe("Parameters", func() {
-			It("should have required secretName", func() {
-				Expect(cueOutput).To(ContainSubstring("secretName: string"))
-			})
-
-			It("should have optional namespace", func() {
-				Expect(cueOutput).To(ContainSubstring("namespace?: string"))
-			})
-
-			It("should have optional type", func() {
-				Expect(cueOutput).To(ContainSubstring("type?: string"))
-			})
-
-			It("should have required data as open struct", func() {
-				Expect(cueOutput).To(ContainSubstring("data: {}"))
-			})
-
-			It("should have cluster with empty default", func() {
-				Expect(cueOutput).To(ContainSubstring(`cluster: *"" | string`))
-			})
-
-			It("should have kind with generic default and enum", func() {
-				Expect(cueOutput).To(ContainSubstring(`kind: *"generic" | "docker-registry"`))
-			})
-
-			It("should have optional dockerRegistry struct", func() {
-				Expect(cueOutput).To(ContainSubstring("dockerRegistry?: {"))
-				Expect(cueOutput).To(ContainSubstring("username: string"))
-				Expect(cueOutput).To(ContainSubstring("password: string"))
-				Expect(cueOutput).To(ContainSubstring(`server: *"https://index.docker.io/v1/" | string`))
-			})
+		It("should declare all parameters with correct types and defaults", func() {
+			Expect(cueOutput).To(ContainSubstring("secretName: string"))
+			Expect(cueOutput).To(ContainSubstring("namespace?: string"))
+			Expect(cueOutput).To(ContainSubstring("type?: string"))
+			Expect(cueOutput).To(ContainSubstring("data: {}"))
+			Expect(cueOutput).To(ContainSubstring(`cluster: *"" | string`))
+			Expect(cueOutput).To(ContainSubstring(`kind: *"generic" | "docker-registry"`))
+			Expect(cueOutput).To(ContainSubstring("dockerRegistry?: {"))
+			Expect(cueOutput).To(ContainSubstring("username: string"))
+			Expect(cueOutput).To(ContainSubstring("password: string"))
+			Expect(cueOutput).To(ContainSubstring(`server: *"https://index.docker.io/v1/" | string`))
 		})
 
-		Describe("Template: secret wrapper block", func() {
-			It("should wrap everything in secret: {}", func() {
-				Expect(cueOutput).To(ContainSubstring("secret: {"))
-			})
-
-			It("should define data helper variable with fallback", func() {
-				Expect(cueOutput).To(ContainSubstring("data: *parameter.data | {}"))
-			})
+		It("should wrap template in secret block with data helper", func() {
+			Expect(cueOutput).To(ContainSubstring("secret: {"))
+			Expect(cueOutput).To(ContainSubstring("data: *parameter.data | {}"))
 		})
 
-		Describe("Template: namespace guards", func() {
-			It("should use mutually exclusive namespace guards", func() {
-				Expect(cueOutput).To(ContainSubstring(`parameter["namespace"] != _|_`))
-				Expect(cueOutput).To(ContainSubstring(`parameter["namespace"] == _|_`))
-			})
+		It("should use mutually exclusive namespace guards", func() {
+			Expect(cueOutput).To(ContainSubstring(`parameter["namespace"] != _|_`))
+			Expect(cueOutput).To(ContainSubstring(`parameter["namespace"] == _|_`))
+			Expect(cueOutput).To(ContainSubstring("namespace: parameter.namespace"))
+			Expect(cueOutput).To(ContainSubstring("namespace: context.namespace"))
 
-			It("should set namespace to parameter.namespace when set", func() {
-				Expect(cueOutput).To(ContainSubstring("namespace: parameter.namespace"))
-			})
-
-			It("should set namespace to context.namespace when not set", func() {
-				Expect(cueOutput).To(ContainSubstring("namespace: context.namespace"))
-			})
-
-			It("should NOT have unconditional namespace assignment", func() {
-				// Ensure there's no bare "namespace: context.namespace" outside an if block
-				lines := strings.Split(cueOutput, "\n")
-				for i, line := range lines {
-					trimmed := strings.TrimSpace(line)
-					if trimmed == "namespace: context.namespace" {
-						// Check that the preceding non-empty line contains "if"
-						found := false
-						for j := i - 1; j >= 0; j-- {
-							prev := strings.TrimSpace(lines[j])
-							if prev == "" {
-								continue
-							}
-							if strings.Contains(prev, "if ") {
-								found = true
-							}
-							break
+			lines := strings.Split(cueOutput, "\n")
+			for i, line := range lines {
+				trimmed := strings.TrimSpace(line)
+				if trimmed == "namespace: context.namespace" {
+					found := false
+					for j := i - 1; j >= 0; j-- {
+						prev := strings.TrimSpace(lines[j])
+						if prev == "" {
+							continue
 						}
-						Expect(found).To(BeTrue(), "namespace: context.namespace should be inside an if block")
+						if strings.Contains(prev, "if ") {
+							found = true
+						}
+						break
 					}
+					Expect(found).To(BeTrue(), "namespace: context.namespace should be inside an if block")
 				}
-			})
+			}
 		})
 
-		Describe("Template: kube.#Apply", func() {
-			It("should use kube.#Apply", func() {
-				Expect(cueOutput).To(ContainSubstring("kube.#Apply & {"))
-			})
-
-			It("should create a v1 Secret", func() {
-				Expect(cueOutput).To(ContainSubstring(`apiVersion: "v1"`))
-				Expect(cueOutput).To(ContainSubstring(`kind: "Secret"`))
-			})
-
-			It("should set metadata name from parameter", func() {
-				Expect(cueOutput).To(ContainSubstring("name: parameter.secretName"))
-			})
-
-			It("should reference local data variable for stringData", func() {
-				Expect(cueOutput).To(ContainSubstring("stringData: data"))
-			})
-
-			It("should pass cluster parameter", func() {
-				Expect(cueOutput).To(ContainSubstring("cluster: parameter.cluster"))
-			})
+		It("should create a v1 Secret via kube.#Apply with correct fields", func() {
+			Expect(cueOutput).To(ContainSubstring("kube.#Apply & {"))
+			Expect(cueOutput).To(ContainSubstring(`apiVersion: "v1"`))
+			Expect(cueOutput).To(ContainSubstring(`kind: "Secret"`))
+			Expect(cueOutput).To(ContainSubstring("name: parameter.secretName"))
+			Expect(cueOutput).To(ContainSubstring("stringData: data"))
+			Expect(cueOutput).To(ContainSubstring("cluster: parameter.cluster"))
 		})
 
-		Describe("Template: conditional type", func() {
-			It("should set dockerconfigjson type when kind is docker-registry and type not set", func() {
-				Expect(cueOutput).To(ContainSubstring(`parameter["type"] == _|_ && parameter.kind == "docker-registry"`))
-				Expect(cueOutput).To(ContainSubstring(`type: "kubernetes.io/dockerconfigjson"`))
-			})
-
-			It("should use explicit type when set", func() {
-				Expect(cueOutput).To(ContainSubstring(`parameter["type"] != _|_`))
-				Expect(cueOutput).To(ContainSubstring("type: parameter.type"))
-			})
+		It("should conditionally set type based on kind and type parameter", func() {
+			Expect(cueOutput).To(ContainSubstring(`parameter["type"] == _|_ && parameter.kind == "docker-registry"`))
+			Expect(cueOutput).To(ContainSubstring(`type: "kubernetes.io/dockerconfigjson"`))
+			Expect(cueOutput).To(ContainSubstring(`parameter["type"] != _|_`))
+			Expect(cueOutput).To(ContainSubstring("type: parameter.type"))
 		})
 
-		Describe("Template: docker registry mode", func() {
-			It("should conditionally define registryData", func() {
-				Expect(cueOutput).To(ContainSubstring(`parameter.kind == "docker-registry" && parameter["dockerRegistry"] != _|_`))
-				Expect(cueOutput).To(ContainSubstring("registryData:"))
-			})
-
-			It("should build auths with string interpolation", func() {
-				Expect(cueOutput).To(ContainSubstring("auths:"))
-				Expect(cueOutput).To(ContainSubstring(`"\(parameter.dockerRegistry.server)"`))
-				Expect(cueOutput).To(ContainSubstring("username: parameter.dockerRegistry.username"))
-				Expect(cueOutput).To(ContainSubstring("password: parameter.dockerRegistry.password"))
-			})
-
-			It("should encode auth with base64", func() {
-				Expect(cueOutput).To(ContainSubstring("base64.Encode(null,"))
-			})
-
-			It("should conditionally augment data with dockerconfigjson", func() {
-				Expect(cueOutput).To(ContainSubstring(`".dockerconfigjson": json.Marshal(registryData)`))
-			})
+		It("should handle docker registry mode with base64-encoded auth", func() {
+			Expect(cueOutput).To(ContainSubstring(`parameter.kind == "docker-registry" && parameter["dockerRegistry"] != _|_`))
+			Expect(cueOutput).To(ContainSubstring("registryData:"))
+			Expect(cueOutput).To(ContainSubstring("auths:"))
+			Expect(cueOutput).To(ContainSubstring(`"\(parameter.dockerRegistry.server)"`))
+			Expect(cueOutput).To(ContainSubstring("username: parameter.dockerRegistry.username"))
+			Expect(cueOutput).To(ContainSubstring("password: parameter.dockerRegistry.password"))
+			Expect(cueOutput).To(ContainSubstring("base64.Encode(null,"))
+			Expect(cueOutput).To(ContainSubstring(`".dockerconfigjson": json.Marshal(registryData)`))
 		})
 
-		Describe("Template: structural correctness", func() {
-			It("should have exactly one kube.#Apply", func() {
-				count := strings.Count(cueOutput, "kube.#Apply & {")
-				Expect(count).To(Equal(1))
-			})
-
-			It("should have exactly one secret block", func() {
-				count := strings.Count(cueOutput, "\tsecret: {")
-				Expect(count).To(Equal(1))
-			})
+		It("should have exactly one kube.#Apply and one secret block", func() {
+			Expect(strings.Count(cueOutput, "kube.#Apply & {")).To(Equal(1))
+			Expect(strings.Count(cueOutput, "\tsecret: {")).To(Equal(1))
 		})
 	})
 })

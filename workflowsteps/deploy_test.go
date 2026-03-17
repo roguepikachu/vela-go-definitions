@@ -26,16 +26,10 @@ import (
 )
 
 var _ = Describe("Deploy WorkflowStep", func() {
-	Describe("Metadata", func() {
-		It("should have the correct name", func() {
-			step := workflowsteps.Deploy()
-			Expect(step.GetName()).To(Equal("deploy"))
-		})
-
-		It("should have the correct description", func() {
-			step := workflowsteps.Deploy()
-			Expect(step.GetDescription()).To(Equal("A powerful and unified deploy step for components multi-cluster delivery with policies."))
-		})
+	It("should have correct name and description", func() {
+		step := workflowsteps.Deploy()
+		Expect(step.GetName()).To(Equal("deploy"))
+		Expect(step.GetDescription()).To(Equal("A powerful and unified deploy step for components multi-cluster delivery with policies."))
 	})
 
 	Describe("CUE Generation", func() {
@@ -47,90 +41,40 @@ var _ = Describe("Deploy WorkflowStep", func() {
 			Expect(cueOutput).NotTo(BeEmpty())
 		})
 
-		Describe("Step header", func() {
-			It("should generate workflow-step type", func() {
-				Expect(cueOutput).To(ContainSubstring(`type: "workflow-step"`))
-			})
-
-			It("should generate correct category", func() {
-				Expect(cueOutput).To(ContainSubstring(`"category": "Application Delivery"`))
-			})
-
-			It("should have Application scope label", func() {
-				Expect(cueOutput).To(ContainSubstring(`"scope": "Application"`))
-			})
+		It("should generate correct step header with type, category, and scope", func() {
+			Expect(cueOutput).To(ContainSubstring(`type: "workflow-step"`))
+			Expect(cueOutput).To(ContainSubstring(`"category": "Application Delivery"`))
+			Expect(cueOutput).To(ContainSubstring(`"scope": "Application"`))
 		})
 
-		Describe("Imports", func() {
-			It("should import vela/multicluster", func() {
-				Expect(cueOutput).To(ContainSubstring(`"vela/multicluster"`))
-			})
-
-			It("should import vela/builtin", func() {
-				Expect(cueOutput).To(ContainSubstring(`"vela/builtin"`))
-			})
+		It("should import vela/multicluster and vela/builtin", func() {
+			Expect(cueOutput).To(ContainSubstring(`"vela/multicluster"`))
+			Expect(cueOutput).To(ContainSubstring(`"vela/builtin"`))
 		})
 
-		Describe("Parameters", func() {
-			It("should have auto with true default", func() {
-				Expect(cueOutput).To(ContainSubstring("auto: *true | bool"))
-			})
-
-			It("should have policies with empty array default", func() {
-				Expect(cueOutput).To(ContainSubstring("policies: *[] | [...string]"))
-			})
-
-			It("should have parallelism with default 5", func() {
-				Expect(cueOutput).To(ContainSubstring("parallelism: *5 | int"))
-			})
-
-			It("should have ignoreTerraformComponent with true default", func() {
-				Expect(cueOutput).To(ContainSubstring("ignoreTerraformComponent: *true | bool"))
-			})
+		It("should declare all parameters with correct types and defaults", func() {
+			Expect(cueOutput).To(ContainSubstring("auto: *true | bool"))
+			Expect(cueOutput).To(ContainSubstring("policies: *[] | [...string]"))
+			Expect(cueOutput).To(ContainSubstring("parallelism: *5 | int"))
+			Expect(cueOutput).To(ContainSubstring("ignoreTerraformComponent: *true | bool"))
 		})
 
-		Describe("Template: conditional suspend", func() {
-			It("should guard suspend on auto == false", func() {
-				Expect(cueOutput).To(ContainSubstring("if parameter.auto == false"))
-			})
-
-			It("should use builtin.#Suspend", func() {
-				Expect(cueOutput).To(ContainSubstring("builtin.#Suspend & {"))
-			})
-
-			It("should pass message with step name interpolation", func() {
-				Expect(cueOutput).To(ContainSubstring(`"Waiting approval to the deploy step \"\(context.stepName)\""`))
-			})
+		It("should conditionally suspend when auto is false with correct message", func() {
+			Expect(cueOutput).To(ContainSubstring("if parameter.auto == false"))
+			Expect(cueOutput).To(ContainSubstring("builtin.#Suspend & {"))
+			Expect(cueOutput).To(ContainSubstring(`"Waiting approval to the deploy step \"\(context.stepName)\""`))
 		})
 
-		Describe("Template: deploy action", func() {
-			It("should use multicluster.#Deploy", func() {
-				Expect(cueOutput).To(ContainSubstring("multicluster.#Deploy & {"))
-			})
-
-			It("should pass policies parameter", func() {
-				Expect(cueOutput).To(ContainSubstring("policies: parameter.policies"))
-			})
-
-			It("should pass parallelism parameter", func() {
-				Expect(cueOutput).To(ContainSubstring("parallelism: parameter.parallelism"))
-			})
-
-			It("should pass ignoreTerraformComponent parameter", func() {
-				Expect(cueOutput).To(ContainSubstring("ignoreTerraformComponent: parameter.ignoreTerraformComponent"))
-			})
+		It("should invoke multicluster.#Deploy with all required parameters", func() {
+			Expect(cueOutput).To(ContainSubstring("multicluster.#Deploy & {"))
+			Expect(cueOutput).To(ContainSubstring("policies: parameter.policies"))
+			Expect(cueOutput).To(ContainSubstring("parallelism: parameter.parallelism"))
+			Expect(cueOutput).To(ContainSubstring("ignoreTerraformComponent: parameter.ignoreTerraformComponent"))
 		})
 
-		Describe("Template: structural correctness", func() {
-			It("should have exactly one multicluster.#Deploy", func() {
-				count := strings.Count(cueOutput, "multicluster.#Deploy & {")
-				Expect(count).To(Equal(1))
-			})
-
-			It("should have exactly one builtin.#Suspend", func() {
-				count := strings.Count(cueOutput, "builtin.#Suspend & {")
-				Expect(count).To(Equal(1))
-			})
+		It("should have exactly one multicluster.#Deploy and one builtin.#Suspend", func() {
+			Expect(strings.Count(cueOutput, "multicluster.#Deploy & {")).To(Equal(1))
+			Expect(strings.Count(cueOutput, "builtin.#Suspend & {")).To(Equal(1))
 		})
 	})
 })

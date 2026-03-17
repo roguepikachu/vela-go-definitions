@@ -26,16 +26,10 @@ import (
 )
 
 var _ = Describe("DependsOnApp WorkflowStep", func() {
-	Describe("Metadata", func() {
-		It("should have the correct name", func() {
-			step := workflowsteps.DependsOnApp()
-			Expect(step.GetName()).To(Equal("depends-on-app"))
-		})
-
-		It("should have the correct description", func() {
-			step := workflowsteps.DependsOnApp()
-			Expect(step.GetDescription()).To(Equal("Wait for the specified Application to complete."))
-		})
+	It("should have the correct name and description", func() {
+		step := workflowsteps.DependsOnApp()
+		Expect(step.GetName()).To(Equal("depends-on-app"))
+		Expect(step.GetDescription()).To(Equal("Wait for the specified Application to complete."))
 	})
 
 	Describe("CUE Generation", func() {
@@ -47,131 +41,54 @@ var _ = Describe("DependsOnApp WorkflowStep", func() {
 			Expect(cueOutput).NotTo(BeEmpty())
 		})
 
-		Describe("Step header", func() {
-			It("should generate workflow-step type", func() {
-				Expect(cueOutput).To(ContainSubstring(`type: "workflow-step"`))
-			})
-
-			It("should generate correct category", func() {
-				Expect(cueOutput).To(ContainSubstring(`"category": "Application Delivery"`))
-			})
-
-			It("should quote the hyphenated name", func() {
-				Expect(cueOutput).To(ContainSubstring(`"depends-on-app": {`))
-			})
+		It("should generate correct step header with type, category, and quoted name", func() {
+			Expect(cueOutput).To(ContainSubstring(`type: "workflow-step"`))
+			Expect(cueOutput).To(ContainSubstring(`"category": "Application Delivery"`))
+			Expect(cueOutput).To(ContainSubstring(`"depends-on-app": {`))
 		})
 
-		Describe("Imports", func() {
-			It("should import vela/kube", func() {
-				Expect(cueOutput).To(ContainSubstring(`"vela/kube"`))
-			})
-
-			It("should import vela/builtin", func() {
-				Expect(cueOutput).To(ContainSubstring(`"vela/builtin"`))
-			})
-
-			It("should import encoding/yaml", func() {
-				Expect(cueOutput).To(ContainSubstring(`"encoding/yaml"`))
-			})
+		It("should import vela/kube, vela/builtin, and encoding/yaml", func() {
+			Expect(cueOutput).To(ContainSubstring(`"vela/kube"`))
+			Expect(cueOutput).To(ContainSubstring(`"vela/builtin"`))
+			Expect(cueOutput).To(ContainSubstring(`"encoding/yaml"`))
 		})
 
-		Describe("Parameters", func() {
-			It("should have required name", func() {
-				Expect(cueOutput).To(ContainSubstring("name: string"))
-			})
-
-			It("should have required namespace", func() {
-				Expect(cueOutput).To(ContainSubstring("namespace: string"))
-			})
+		It("should declare name and namespace as required string parameters", func() {
+			Expect(cueOutput).To(ContainSubstring("name: string"))
+			Expect(cueOutput).To(ContainSubstring("namespace: string"))
 		})
 
-		Describe("Template: dependsOn kube.#Read", func() {
-			It("should read an Application resource", func() {
-				Expect(cueOutput).To(ContainSubstring(`apiVersion: "core.oam.dev/v1beta1"`))
-				Expect(cueOutput).To(ContainSubstring(`kind:       "Application"`))
-			})
-
-			It("should use kube.#Read for dependsOn", func() {
-				Expect(cueOutput).To(ContainSubstring("dependsOn: kube.#Read & {"))
-			})
-
-			It("should set name and namespace from parameters", func() {
-				Expect(cueOutput).To(ContainSubstring("name:      parameter.name"))
-				Expect(cueOutput).To(ContainSubstring("namespace: parameter.namespace"))
-			})
+		It("should read an Application resource via kube.#Read", func() {
+			Expect(cueOutput).To(ContainSubstring("dependsOn: kube.#Read & {"))
+			Expect(cueOutput).To(ContainSubstring(`apiVersion: "core.oam.dev/v1beta1"`))
+			Expect(cueOutput).To(ContainSubstring(`kind:       "Application"`))
+			Expect(cueOutput).To(ContainSubstring("name:      parameter.name"))
+			Expect(cueOutput).To(ContainSubstring("namespace: parameter.namespace"))
 		})
 
-		Describe("Template: load block", func() {
-			It("should define a load block", func() {
-				Expect(cueOutput).To(ContainSubstring("load: {"))
-			})
-
-			Describe("error path (dependsOn.$returns.err != _|_)", func() {
-				It("should guard configMap read on error", func() {
-					Expect(cueOutput).To(ContainSubstring("dependsOn.$returns.err != _|_"))
-					Expect(cueOutput).To(ContainSubstring("configMap: kube.#Read & {"))
-				})
-
-				It("should read a v1 ConfigMap", func() {
-					Expect(cueOutput).To(ContainSubstring(`apiVersion: "v1"`))
-					Expect(cueOutput).To(ContainSubstring(`kind:       "ConfigMap"`))
-				})
-
-				It("should extract application template from configMap data", func() {
-					Expect(cueOutput).To(ContainSubstring(`configMap.$returns.value.data["application"]`))
-				})
-
-				It("should apply the unmarshaled template", func() {
-					Expect(cueOutput).To(ContainSubstring("kube.#Apply & {"))
-					Expect(cueOutput).To(ContainSubstring("yaml.Unmarshal(template)"))
-				})
-
-				It("should wait for apply result status to be running", func() {
-					Expect(cueOutput).To(ContainSubstring(`apply.$returns.value.status.status == "running"`))
-				})
-			})
-
-			Describe("success path (dependsOn.$returns.err == _|_)", func() {
-				It("should guard wait on no error", func() {
-					Expect(cueOutput).To(ContainSubstring("dependsOn.$returns.err == _|_"))
-				})
-
-				It("should wait for dependsOn result status to be running", func() {
-					Expect(cueOutput).To(ContainSubstring(`dependsOn.$returns.value.status.status == "running"`))
-				})
-			})
-
-			It("should use builtin.#ConditionalWait for both paths", func() {
-				count := strings.Count(cueOutput, "builtin.#ConditionalWait & {")
-				Expect(count).To(Equal(2))
-			})
+		It("should define a load block with error path that reads configMap and applies unmarshaled template", func() {
+			Expect(cueOutput).To(ContainSubstring("load: {"))
+			Expect(cueOutput).To(ContainSubstring("dependsOn.$returns.err != _|_"))
+			Expect(cueOutput).To(ContainSubstring("configMap: kube.#Read & {"))
+			Expect(cueOutput).To(ContainSubstring(`apiVersion: "v1"`))
+			Expect(cueOutput).To(ContainSubstring(`kind:       "ConfigMap"`))
+			Expect(cueOutput).To(ContainSubstring(`configMap.$returns.value.data["application"]`))
+			Expect(cueOutput).To(ContainSubstring("kube.#Apply & {"))
+			Expect(cueOutput).To(ContainSubstring("yaml.Unmarshal(template)"))
+			Expect(cueOutput).To(ContainSubstring(`apply.$returns.value.status.status == "running"`))
 		})
 
-		Describe("Template: structural correctness", func() {
-			It("should have exactly two kube.#Read operations", func() {
-				count := strings.Count(cueOutput, "kube.#Read & {")
-				Expect(count).To(Equal(2))
-			})
+		It("should define a success path that waits for dependsOn status running", func() {
+			Expect(cueOutput).To(ContainSubstring("dependsOn.$returns.err == _|_"))
+			Expect(cueOutput).To(ContainSubstring(`dependsOn.$returns.value.status.status == "running"`))
+		})
 
-			It("should have exactly one kube.#Apply operation", func() {
-				count := strings.Count(cueOutput, "kube.#Apply & {")
-				Expect(count).To(Equal(1))
-			})
-
-			It("should have exactly two ConditionalWait operations", func() {
-				count := strings.Count(cueOutput, "builtin.#ConditionalWait & {")
-				Expect(count).To(Equal(2))
-			})
-
-			It("should have error guard appearing four times", func() {
-				count := strings.Count(cueOutput, "dependsOn.$returns.err != _|_")
-				Expect(count).To(Equal(4))
-			})
-
-			It("should have success guard appearing once", func() {
-				count := strings.Count(cueOutput, "dependsOn.$returns.err == _|_")
-				Expect(count).To(Equal(1))
-			})
+		It("should be structurally correct with expected action counts", func() {
+			Expect(strings.Count(cueOutput, "builtin.#ConditionalWait & {")).To(Equal(2))
+			Expect(strings.Count(cueOutput, "kube.#Read & {")).To(Equal(2))
+			Expect(strings.Count(cueOutput, "kube.#Apply & {")).To(Equal(1))
+			Expect(strings.Count(cueOutput, "dependsOn.$returns.err != _|_")).To(Equal(4))
+			Expect(strings.Count(cueOutput, "dependsOn.$returns.err == _|_")).To(Equal(1))
 		})
 	})
 })

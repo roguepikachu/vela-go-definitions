@@ -26,16 +26,10 @@ import (
 )
 
 var _ = Describe("CollectServiceEndpoints WorkflowStep", func() {
-	Describe("Metadata", func() {
-		It("should have the correct name", func() {
-			step := workflowsteps.CollectServiceEndpoints()
-			Expect(step.GetName()).To(Equal("collect-service-endpoints"))
-		})
-
-		It("should have the correct description", func() {
-			step := workflowsteps.CollectServiceEndpoints()
-			Expect(step.GetDescription()).To(Equal("Collect service endpoints for the application."))
-		})
+	It("should have the correct name and description", func() {
+		step := workflowsteps.CollectServiceEndpoints()
+		Expect(step.GetName()).To(Equal("collect-service-endpoints"))
+		Expect(step.GetDescription()).To(Equal("Collect service endpoints for the application."))
 	})
 
 	Describe("CUE Generation", func() {
@@ -47,189 +41,96 @@ var _ = Describe("CollectServiceEndpoints WorkflowStep", func() {
 			Expect(cueOutput).NotTo(BeEmpty())
 		})
 
-		Describe("Step header", func() {
-			It("should generate workflow-step type", func() {
-				Expect(cueOutput).To(ContainSubstring(`type: "workflow-step"`))
-			})
-
-			It("should generate correct category", func() {
-				Expect(cueOutput).To(ContainSubstring(`"category": "Application Delivery"`))
-			})
-
-			It("should quote the hyphenated name", func() {
-				Expect(cueOutput).To(ContainSubstring(`"collect-service-endpoints": {`))
-			})
+		It("should generate correct step header with type, category, and quoted name", func() {
+			Expect(cueOutput).To(ContainSubstring(`type: "workflow-step"`))
+			Expect(cueOutput).To(ContainSubstring(`"category": "Application Delivery"`))
+			Expect(cueOutput).To(ContainSubstring(`"collect-service-endpoints": {`))
 		})
 
-		Describe("Imports", func() {
-			It("should import vela/builtin", func() {
-				Expect(cueOutput).To(ContainSubstring(`"vela/builtin"`))
-			})
-
-			It("should import vela/query", func() {
-				Expect(cueOutput).To(ContainSubstring(`"vela/query"`))
-			})
-
-			It("should import strconv", func() {
-				Expect(cueOutput).To(ContainSubstring(`"strconv"`))
-			})
+		It("should import vela/builtin, vela/query, and strconv", func() {
+			Expect(cueOutput).To(ContainSubstring(`"vela/builtin"`))
+			Expect(cueOutput).To(ContainSubstring(`"vela/query"`))
+			Expect(cueOutput).To(ContainSubstring(`"strconv"`))
 		})
 
-		Describe("Parameters", func() {
-			It("should have name with context.name default", func() {
-				Expect(cueOutput).To(ContainSubstring("name: *context.name | string"))
-			})
-
-			It("should have namespace with context.namespace default", func() {
-				Expect(cueOutput).To(ContainSubstring("namespace: *context.namespace | string"))
-			})
-
-			It("should have optional components list", func() {
-				Expect(cueOutput).To(ContainSubstring("components?: [...string]"))
-			})
-
-			It("should have optional port", func() {
-				Expect(cueOutput).To(ContainSubstring("port?: int"))
-			})
-
-			It("should have optional portName", func() {
-				Expect(cueOutput).To(ContainSubstring("portName?: string"))
-			})
-
-			It("should have optional outer", func() {
-				Expect(cueOutput).To(ContainSubstring("outer?: bool"))
-			})
-
-			It("should have protocal with http default", func() {
-				Expect(cueOutput).To(ContainSubstring(`protocal: *"http" | "https"`))
-			})
+		It("should declare all parameter fields with correct types and defaults", func() {
+			Expect(cueOutput).To(ContainSubstring("name: *context.name | string"))
+			Expect(cueOutput).To(ContainSubstring("namespace: *context.namespace | string"))
+			Expect(cueOutput).To(ContainSubstring("components?: [...string]"))
+			Expect(cueOutput).To(ContainSubstring("port?: int"))
+			Expect(cueOutput).To(ContainSubstring("portName?: string"))
+			Expect(cueOutput).To(ContainSubstring("outer?: bool"))
+			Expect(cueOutput).To(ContainSubstring(`protocal: *"http" | "https"`))
 		})
 
-		Describe("Template: collect action", func() {
-			It("should use query.#CollectServiceEndpoints", func() {
-				Expect(cueOutput).To(ContainSubstring("query.#CollectServiceEndpoints & {"))
-			})
-
-			It("should pass name directly to app", func() {
-				Expect(cueOutput).To(ContainSubstring("name: parameter.name"))
-			})
-
-			It("should pass namespace directly to app", func() {
-				Expect(cueOutput).To(ContainSubstring("namespace: parameter.namespace"))
-			})
-
-			It("should conditionally pass components in filter", func() {
-				Expect(cueOutput).To(ContainSubstring(`parameter["components"] != _|_`))
-				Expect(cueOutput).To(ContainSubstring("components: parameter.components"))
-			})
+		It("should invoke query.#CollectServiceEndpoints with app params and conditional components filter", func() {
+			Expect(cueOutput).To(ContainSubstring("query.#CollectServiceEndpoints & {"))
+			Expect(cueOutput).To(ContainSubstring("name: parameter.name"))
+			Expect(cueOutput).To(ContainSubstring("namespace: parameter.namespace"))
+			Expect(cueOutput).To(ContainSubstring(`parameter["components"] != _|_`))
+			Expect(cueOutput).To(ContainSubstring("components: parameter.components"))
 		})
 
-		Describe("Template: outputs filtering", func() {
-			It("should define eps_port_name_filtered with empty default", func() {
-				Expect(cueOutput).To(ContainSubstring("eps_port_name_filtered: *[] | [...]"))
-			})
-
-			It("should filter by portName when set", func() {
-				Expect(cueOutput).To(ContainSubstring(`parameter["portName"] != _|_`))
-				Expect(cueOutput).To(ContainSubstring("parameter.portName == ep.endpoint.portName"))
-			})
-
-			It("should use collect.$returns.list when portName not set", func() {
-				Expect(cueOutput).To(ContainSubstring(`parameter["portName"] == _|_`))
-				Expect(cueOutput).To(ContainSubstring("collect.$returns.list"))
-			})
-
-			It("should define eps_port_filtered with empty default", func() {
-				Expect(cueOutput).To(ContainSubstring("eps_port_filtered: *[] | [...]"))
-			})
-
-			It("should filter by port when set", func() {
-				Expect(cueOutput).To(ContainSubstring(`parameter["port"] != _|_`))
-				Expect(cueOutput).To(ContainSubstring("parameter.port == ep.endpoint.port"))
-			})
-
-			It("should alias eps to eps_port_filtered", func() {
-				Expect(cueOutput).To(ContainSubstring("eps: eps_port_filtered"))
-			})
-
-			It("should define endpoints with empty default", func() {
-				Expect(cueOutput).To(ContainSubstring("endpoints: *[] | [...]"))
-			})
-
-			It("should compute tmps with outer flag when outer is set", func() {
-				Expect(cueOutput).To(ContainSubstring(`parameter["outer"] != _|_`))
-				Expect(cueOutput).To(ContainSubstring("tmps:"))
-				Expect(cueOutput).To(ContainSubstring("ep.endpoint.inner == _|_"))
-				Expect(cueOutput).To(ContainSubstring("outer: true"))
-				Expect(cueOutput).To(ContainSubstring("outer: !ep.endpoint.inner"))
-			})
-
-			It("should filter endpoints by outer flag", func() {
-				Expect(cueOutput).To(ContainSubstring("!parameter.outer || ep.outer"))
-			})
-
-			It("should use eps_port_filtered when outer not set", func() {
-				Expect(cueOutput).To(ContainSubstring(`parameter["outer"] == _|_`))
-			})
+		It("should filter by portName when set, falling back to full list", func() {
+			Expect(cueOutput).To(ContainSubstring("eps_port_name_filtered: *[] | [...]"))
+			Expect(cueOutput).To(ContainSubstring(`parameter["portName"] != _|_`))
+			Expect(cueOutput).To(ContainSubstring("parameter.portName == ep.endpoint.portName"))
+			Expect(cueOutput).To(ContainSubstring(`parameter["portName"] == _|_`))
+			Expect(cueOutput).To(ContainSubstring("collect.$returns.list"))
 		})
 
-		Describe("Template: wait action", func() {
-			It("should use builtin.#ConditionalWait", func() {
-				Expect(cueOutput).To(ContainSubstring("builtin.#ConditionalWait & {"))
-			})
-
-			It("should wait for endpoints length > 0", func() {
-				Expect(cueOutput).To(ContainSubstring("len(outputs.endpoints) > 0"))
-			})
+		It("should filter by port when set and alias result to eps", func() {
+			Expect(cueOutput).To(ContainSubstring("eps_port_filtered: *[] | [...]"))
+			Expect(cueOutput).To(ContainSubstring(`parameter["port"] != _|_`))
+			Expect(cueOutput).To(ContainSubstring("parameter.port == ep.endpoint.port"))
+			Expect(cueOutput).To(ContainSubstring("eps: eps_port_filtered"))
 		})
 
-		Describe("Template: value block", func() {
-			It("should extract first endpoint", func() {
-				Expect(cueOutput).To(ContainSubstring("endpoint: outputs.endpoints[0].endpoint"))
-			})
-
-			It("should format port as string", func() {
-				Expect(cueOutput).To(ContainSubstring("strconv.FormatInt(endpoint.port, 10)"))
-			})
-
-			It("should build URL with protocal interpolation", func() {
-				Expect(cueOutput).To(ContainSubstring(`\(parameter.protocal)`))
-				Expect(cueOutput).To(ContainSubstring(`\(endpoint.host)`))
-				Expect(cueOutput).To(ContainSubstring(`\(_portStr)`))
-			})
+		It("should filter endpoints by outer flag when set, passing through otherwise", func() {
+			Expect(cueOutput).To(ContainSubstring("endpoints: *[] | [...]"))
+			Expect(cueOutput).To(ContainSubstring(`parameter["outer"] != _|_`))
+			Expect(cueOutput).To(ContainSubstring("tmps:"))
+			Expect(cueOutput).To(ContainSubstring("ep.endpoint.inner == _|_"))
+			Expect(cueOutput).To(ContainSubstring("outer: true"))
+			Expect(cueOutput).To(ContainSubstring("outer: !ep.endpoint.inner"))
+			Expect(cueOutput).To(ContainSubstring("!parameter.outer || ep.outer"))
+			Expect(cueOutput).To(ContainSubstring(`parameter["outer"] == _|_`))
 		})
 
-		Describe("Template: structural correctness", func() {
-			It("should have exactly one query.#CollectServiceEndpoints", func() {
-				count := strings.Count(cueOutput, "query.#CollectServiceEndpoints & {")
-				Expect(count).To(Equal(1))
-			})
+		It("should use builtin.#ConditionalWait until endpoints are available", func() {
+			Expect(cueOutput).To(ContainSubstring("builtin.#ConditionalWait & {"))
+			Expect(cueOutput).To(ContainSubstring("len(outputs.endpoints) > 0"))
+		})
 
-			It("should have exactly one builtin.#ConditionalWait", func() {
-				count := strings.Count(cueOutput, "builtin.#ConditionalWait & {")
-				Expect(count).To(Equal(1))
-			})
+		It("should extract first endpoint and build URL with protocal interpolation", func() {
+			Expect(cueOutput).To(ContainSubstring("endpoint: outputs.endpoints[0].endpoint"))
+			Expect(cueOutput).To(ContainSubstring("strconv.FormatInt(endpoint.port, 10)"))
+			Expect(cueOutput).To(ContainSubstring(`\(parameter.protocal)`))
+			Expect(cueOutput).To(ContainSubstring(`\(endpoint.host)`))
+			Expect(cueOutput).To(ContainSubstring(`\(_portStr)`))
+		})
 
-			It("should NOT have conditional name/namespace in app params", func() {
-				// name and namespace have defaults, so no guards needed in app
-				lines := strings.Split(cueOutput, "\n")
-				inApp := false
-				for _, line := range lines {
-					trimmed := strings.TrimSpace(line)
-					if trimmed == "app: {" {
-						inApp = true
-					}
-					if inApp && trimmed == "}" {
-						break
-					}
-					if inApp {
-						Expect(trimmed).NotTo(ContainSubstring(`parameter["name"] != _|_`))
-						Expect(trimmed).NotTo(ContainSubstring(`parameter["name"] == _|_`))
-						Expect(trimmed).NotTo(ContainSubstring(`parameter["namespace"] != _|_`))
-						Expect(trimmed).NotTo(ContainSubstring(`parameter["namespace"] == _|_`))
-					}
+		It("should be structurally correct with one collect and one wait action", func() {
+			Expect(strings.Count(cueOutput, "query.#CollectServiceEndpoints & {")).To(Equal(1))
+			Expect(strings.Count(cueOutput, "builtin.#ConditionalWait & {")).To(Equal(1))
+
+			lines := strings.Split(cueOutput, "\n")
+			inApp := false
+			for _, line := range lines {
+				trimmed := strings.TrimSpace(line)
+				if trimmed == "app: {" {
+					inApp = true
 				}
-			})
+				if inApp && trimmed == "}" {
+					break
+				}
+				if inApp {
+					Expect(trimmed).NotTo(ContainSubstring(`parameter["name"] != _|_`))
+					Expect(trimmed).NotTo(ContainSubstring(`parameter["name"] == _|_`))
+					Expect(trimmed).NotTo(ContainSubstring(`parameter["namespace"] != _|_`))
+					Expect(trimmed).NotTo(ContainSubstring(`parameter["namespace"] == _|_`))
+				}
+			}
 		})
 	})
 })

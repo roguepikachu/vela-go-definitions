@@ -24,17 +24,11 @@ import (
 )
 
 var _ = Describe("StepGroup WorkflowStep", func() {
-	Describe("Metadata", func() {
-		It("should have the correct name", func() {
-			step := workflowsteps.StepGroup()
-			Expect(step.GetName()).To(Equal("step-group"))
-		})
-
-		It("should have the correct description", func() {
-			step := workflowsteps.StepGroup()
-			Expect(step.GetDescription()).To(ContainSubstring("subSteps"))
-			Expect(step.GetDescription()).To(ContainSubstring("executed in parallel"))
-		})
+	It("should have the correct name and description", func() {
+		step := workflowsteps.StepGroup()
+		Expect(step.GetName()).To(Equal("step-group"))
+		Expect(step.GetDescription()).To(ContainSubstring("subSteps"))
+		Expect(step.GetDescription()).To(ContainSubstring("executed in parallel"))
 	})
 
 	Describe("CUE Generation", func() {
@@ -46,32 +40,16 @@ var _ = Describe("StepGroup WorkflowStep", func() {
 			Expect(cueOutput).NotTo(BeEmpty())
 		})
 
-		Describe("Step header", func() {
-			It("should generate workflow-step type", func() {
-				Expect(cueOutput).To(ContainSubstring(`type: "workflow-step"`))
-			})
-
-			It("should generate correct category", func() {
-				Expect(cueOutput).To(ContainSubstring(`"category": "Process Control"`))
-			})
+		It("should generate correct step header with type and category", func() {
+			Expect(cueOutput).To(ContainSubstring(`type: "workflow-step"`))
+			Expect(cueOutput).To(ContainSubstring(`"category": "Process Control"`))
 		})
 
-		Describe("Template body", func() {
-			It("should contain nop placeholder", func() {
-				Expect(cueOutput).To(ContainSubstring("nop: {}"))
-			})
-
-			It("should contain the comment explaining nop", func() {
-				Expect(cueOutput).To(ContainSubstring("// no parameters, the nop only to make the template not empty"))
-			})
-
-			It("should not contain a parameter block", func() {
-				Expect(cueOutput).NotTo(ContainSubstring("parameter:"))
-			})
-
-			It("should not contain any import statements", func() {
-				Expect(cueOutput).NotTo(ContainSubstring("import"))
-			})
+		It("should have nop placeholder with no parameters or imports", func() {
+			Expect(cueOutput).To(ContainSubstring("nop: {}"))
+			Expect(cueOutput).To(ContainSubstring("// no parameters, the nop only to make the template not empty"))
+			Expect(cueOutput).NotTo(ContainSubstring("parameter:"))
+			Expect(cueOutput).NotTo(ContainSubstring("import"))
 		})
 	})
 })

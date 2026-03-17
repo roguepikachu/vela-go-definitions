@@ -26,16 +26,10 @@ import (
 )
 
 var _ = Describe("DeployCloudResource WorkflowStep", func() {
-	Describe("Metadata", func() {
-		It("should have the correct name", func() {
-			step := workflowsteps.DeployCloudResource()
-			Expect(step.GetName()).To(Equal("deploy-cloud-resource"))
-		})
-
-		It("should have the correct description", func() {
-			step := workflowsteps.DeployCloudResource()
-			Expect(step.GetDescription()).To(Equal("Deploy cloud resource and deliver secret to multi clusters."))
-		})
+	It("should have the correct name and description", func() {
+		step := workflowsteps.DeployCloudResource()
+		Expect(step.GetName()).To(Equal("deploy-cloud-resource"))
+		Expect(step.GetDescription()).To(Equal("Deploy cloud resource and deliver secret to multi clusters."))
 	})
 
 	Describe("CUE Generation", func() {
@@ -47,71 +41,34 @@ var _ = Describe("DeployCloudResource WorkflowStep", func() {
 			Expect(cueOutput).NotTo(BeEmpty())
 		})
 
-		Describe("Step header", func() {
-			It("should generate workflow-step type", func() {
-				Expect(cueOutput).To(ContainSubstring(`type: "workflow-step"`))
-			})
-
-			It("should generate correct category", func() {
-				Expect(cueOutput).To(ContainSubstring(`"category": "Application Delivery"`))
-			})
-
-			It("should have Application scope label", func() {
-				Expect(cueOutput).To(ContainSubstring(`"scope": "Application"`))
-			})
-
-			It("should quote the hyphenated name", func() {
-				Expect(cueOutput).To(ContainSubstring(`"deploy-cloud-resource": {`))
-			})
+		It("should generate correct type, category, scope, and quoted name", func() {
+			Expect(cueOutput).To(ContainSubstring(`type: "workflow-step"`))
+			Expect(cueOutput).To(ContainSubstring(`"category": "Application Delivery"`))
+			Expect(cueOutput).To(ContainSubstring(`"scope": "Application"`))
+			Expect(cueOutput).To(ContainSubstring(`"deploy-cloud-resource": {`))
 		})
 
-		Describe("Imports", func() {
-			It("should import vela/op", func() {
-				Expect(cueOutput).To(ContainSubstring(`"vela/op"`))
-			})
+		It("should import vela/op", func() {
+			Expect(cueOutput).To(ContainSubstring(`"vela/op"`))
 		})
 
-		Describe("Parameters", func() {
-			It("should have policy with empty default", func() {
-				Expect(cueOutput).To(ContainSubstring(`policy: *"" | string`))
-			})
-
-			It("should have required env", func() {
-				Expect(cueOutput).To(ContainSubstring("env: string"))
-			})
+		It("should declare policy with empty default and required env", func() {
+			Expect(cueOutput).To(ContainSubstring(`policy: *"" | string`))
+			Expect(cueOutput).To(ContainSubstring("env: string"))
 		})
 
-		Describe("Template: op.#DeployCloudResource", func() {
-			It("should use op.#DeployCloudResource with app action name", func() {
-				Expect(cueOutput).To(ContainSubstring("app: op.#DeployCloudResource & {"))
-			})
-
-			It("should pass env parameter", func() {
-				Expect(cueOutput).To(ContainSubstring("env: parameter.env"))
-			})
-
-			It("should pass policy parameter", func() {
-				Expect(cueOutput).To(ContainSubstring("policy: parameter.policy"))
-			})
-
-			It("should pass context namespace", func() {
-				Expect(cueOutput).To(ContainSubstring("namespace: context.namespace"))
-			})
-
-			It("should pass context name", func() {
-				Expect(cueOutput).To(ContainSubstring("name: context.name"))
-			})
-
-			It("should NOT wrap fields under $params", func() {
-				Expect(cueOutput).NotTo(ContainSubstring("$params"))
-			})
+		It("should invoke op.#DeployCloudResource with correct field bindings", func() {
+			Expect(cueOutput).To(ContainSubstring("app: op.#DeployCloudResource & {"))
+			Expect(cueOutput).To(ContainSubstring("env: parameter.env"))
+			Expect(cueOutput).To(ContainSubstring("policy: parameter.policy"))
+			Expect(cueOutput).To(ContainSubstring("namespace: context.namespace"))
+			Expect(cueOutput).To(ContainSubstring("name: context.name"))
+			Expect(cueOutput).NotTo(ContainSubstring("$params"))
 		})
 
-		Describe("Template: structural correctness", func() {
-			It("should have exactly one op.#DeployCloudResource", func() {
-				count := strings.Count(cueOutput, "op.#DeployCloudResource & {")
-				Expect(count).To(Equal(1))
-			})
+		It("should have exactly one op.#DeployCloudResource invocation", func() {
+			count := strings.Count(cueOutput, "op.#DeployCloudResource & {")
+			Expect(count).To(Equal(1))
 		})
 	})
 })

@@ -26,16 +26,10 @@ import (
 )
 
 var _ = Describe("PrintMessageInStatus WorkflowStep", func() {
-	Describe("Metadata", func() {
-		It("should have the correct name", func() {
-			step := workflowsteps.PrintMessageInStatus()
-			Expect(step.GetName()).To(Equal("print-message-in-status"))
-		})
-
-		It("should have the correct description", func() {
-			step := workflowsteps.PrintMessageInStatus()
-			Expect(step.GetDescription()).To(Equal("print message in workflow step status"))
-		})
+	It("should have the correct name and description", func() {
+		step := workflowsteps.PrintMessageInStatus()
+		Expect(step.GetName()).To(Equal("print-message-in-status"))
+		Expect(step.GetDescription()).To(Equal("print message in workflow step status"))
 	})
 
 	Describe("CUE Generation", func() {
@@ -47,45 +41,24 @@ var _ = Describe("PrintMessageInStatus WorkflowStep", func() {
 			Expect(cueOutput).NotTo(BeEmpty())
 		})
 
-		Describe("Step header", func() {
-			It("should generate workflow-step type", func() {
-				Expect(cueOutput).To(ContainSubstring(`type: "workflow-step"`))
-			})
-
-			It("should generate correct category", func() {
-				Expect(cueOutput).To(ContainSubstring(`"category": "Process Control"`))
-			})
+		It("should generate correct step header with type and category", func() {
+			Expect(cueOutput).To(ContainSubstring(`type: "workflow-step"`))
+			Expect(cueOutput).To(ContainSubstring(`"category": "Process Control"`))
 		})
 
-		Describe("Imports", func() {
-			It("should import vela/builtin", func() {
-				Expect(cueOutput).To(ContainSubstring(`"vela/builtin"`))
-			})
+		It("should import vela/builtin", func() {
+			Expect(cueOutput).To(ContainSubstring(`"vela/builtin"`))
 		})
 
-		Describe("Parameters", func() {
-			It("should have required message parameter", func() {
-				Expect(cueOutput).To(ContainSubstring("message: string"))
-			})
+		It("should declare required message parameter", func() {
+			Expect(cueOutput).To(ContainSubstring("message: string"))
 		})
 
-		Describe("Template", func() {
-			It("should use builtin.#Message", func() {
-				Expect(cueOutput).To(ContainSubstring("builtin.#Message & {"))
-			})
-
-			It("should pass full parameter directly", func() {
-				Expect(cueOutput).To(ContainSubstring("$params: parameter"))
-			})
-
-			It("should not map individual fields in $params", func() {
-				Expect(cueOutput).NotTo(MatchRegexp(`\$params:\s*\{`))
-			})
-
-			It("should have exactly one builtin.#Message", func() {
-				count := strings.Count(cueOutput, "builtin.#Message & {")
-				Expect(count).To(Equal(1))
-			})
+		It("should generate template with a single builtin.#Message call passing full parameter", func() {
+			Expect(cueOutput).To(ContainSubstring("builtin.#Message & {"))
+			Expect(cueOutput).To(ContainSubstring("$params: parameter"))
+			Expect(cueOutput).NotTo(MatchRegexp(`\$params:\s*\{`))
+			Expect(strings.Count(cueOutput, "builtin.#Message & {")).To(Equal(1))
 		})
 	})
 })

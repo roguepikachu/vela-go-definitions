@@ -26,16 +26,10 @@ import (
 )
 
 var _ = Describe("ApplyDeployment WorkflowStep", func() {
-	Describe("Metadata", func() {
-		It("should have the correct name", func() {
-			step := workflowsteps.ApplyDeployment()
-			Expect(step.GetName()).To(Equal("apply-deployment"))
-		})
-
-		It("should have the correct description", func() {
-			step := workflowsteps.ApplyDeployment()
-			Expect(step.GetDescription()).To(Equal("Apply deployment with specified image and cmd."))
-		})
+	It("should have correct name and description", func() {
+		step := workflowsteps.ApplyDeployment()
+		Expect(step.GetName()).To(Equal("apply-deployment"))
+		Expect(step.GetDescription()).To(Equal("Apply deployment with specified image and cmd."))
 	})
 
 	Describe("CUE Generation", func() {
@@ -47,115 +41,51 @@ var _ = Describe("ApplyDeployment WorkflowStep", func() {
 			Expect(cueOutput).NotTo(BeEmpty())
 		})
 
-		Describe("Step header", func() {
-			It("should generate workflow-step type", func() {
-				Expect(cueOutput).To(ContainSubstring(`type: "workflow-step"`))
-			})
-
-			It("should generate correct category", func() {
-				Expect(cueOutput).To(ContainSubstring(`"category": "Resource Management"`))
-			})
-
-			It("should quote the hyphenated name", func() {
-				Expect(cueOutput).To(ContainSubstring(`"apply-deployment": {`))
-			})
+		It("should generate correct step header with type, category, and quoted name", func() {
+			Expect(cueOutput).To(ContainSubstring(`type: "workflow-step"`))
+			Expect(cueOutput).To(ContainSubstring(`"category": "Resource Management"`))
+			Expect(cueOutput).To(ContainSubstring(`"apply-deployment": {`))
 		})
 
-		Describe("Imports", func() {
-			It("should import vela/kube", func() {
-				Expect(cueOutput).To(ContainSubstring(`"vela/kube"`))
-			})
-
-			It("should import vela/builtin", func() {
-				Expect(cueOutput).To(ContainSubstring(`"vela/builtin"`))
-			})
+		It("should import vela/kube and vela/builtin", func() {
+			Expect(cueOutput).To(ContainSubstring(`"vela/kube"`))
+			Expect(cueOutput).To(ContainSubstring(`"vela/builtin"`))
 		})
 
-		Describe("Parameters", func() {
-			It("should have required image", func() {
-				Expect(cueOutput).To(ContainSubstring("image: string"))
-			})
-
-			It("should have replicas with default 1", func() {
-				Expect(cueOutput).To(ContainSubstring("replicas: *1 | int"))
-			})
-
-			It("should have cluster with empty default", func() {
-				Expect(cueOutput).To(ContainSubstring(`cluster: *"" | string`))
-			})
-
-			It("should have optional cmd list", func() {
-				Expect(cueOutput).To(ContainSubstring("cmd?: [...string]"))
-			})
+		It("should declare image, replicas, cluster, and cmd parameters with correct types and defaults", func() {
+			Expect(cueOutput).To(ContainSubstring("image: string"))
+			Expect(cueOutput).To(ContainSubstring("replicas: *1 | int"))
+			Expect(cueOutput).To(ContainSubstring(`cluster: *"" | string`))
+			Expect(cueOutput).To(ContainSubstring("cmd?: [...string]"))
 		})
 
-		Describe("Template: Deployment resource", func() {
-			It("should create apps/v1 Deployment", func() {
-				Expect(cueOutput).To(ContainSubstring(`apiVersion: "apps/v1"`))
-				Expect(cueOutput).To(ContainSubstring(`kind: "Deployment"`))
-			})
+		It("should build the Deployment resource with correct metadata, selector, pod spec, and conditional cmd", func() {
+			Expect(cueOutput).To(ContainSubstring(`apiVersion: "apps/v1"`))
+			Expect(cueOutput).To(ContainSubstring(`kind: "Deployment"`))
+			Expect(cueOutput).To(ContainSubstring("name: context.stepName"))
+			Expect(cueOutput).To(ContainSubstring("namespace: context.namespace"))
+			Expect(cueOutput).To(ContainSubstring("replicas: parameter.replicas"))
+			Expect(cueOutput).To(ContainSubstring("image: parameter.image"))
+			Expect(cueOutput).To(ContainSubstring(`parameter["cmd"] != _|_`))
+			Expect(cueOutput).To(ContainSubstring("command: parameter.cmd"))
 
-			It("should set metadata name from context.stepName", func() {
-				Expect(cueOutput).To(ContainSubstring("name: context.stepName"))
-			})
-
-			It("should set metadata namespace from context", func() {
-				Expect(cueOutput).To(ContainSubstring("namespace: context.namespace"))
-			})
-
-			It("should use step label for selector and pod labels", func() {
-				count := strings.Count(cueOutput, `"workflow.oam.dev/step-name": "\(context.name)-\(context.stepName)"`)
-				Expect(count).To(Equal(2))
-			})
-
-			It("should set replicas from parameter", func() {
-				Expect(cueOutput).To(ContainSubstring("replicas: parameter.replicas"))
-			})
-
-			It("should set container name from stepName", func() {
-				Expect(cueOutput).To(ContainSubstring("name: context.stepName"))
-			})
-
-			It("should set container image from parameter", func() {
-				Expect(cueOutput).To(ContainSubstring("image: parameter.image"))
-			})
-
-			It("should conditionally set command when cmd is set", func() {
-				Expect(cueOutput).To(ContainSubstring(`parameter["cmd"] != _|_`))
-				Expect(cueOutput).To(ContainSubstring("command: parameter.cmd"))
-			})
+			count := strings.Count(cueOutput, `"workflow.oam.dev/step-name": "\(context.name)-\(context.stepName)"`)
+			Expect(count).To(Equal(2))
 		})
 
-		Describe("Template: kube.#Apply", func() {
-			It("should use kube.#Apply", func() {
-				Expect(cueOutput).To(ContainSubstring("kube.#Apply & {"))
-			})
-
-			It("should pass cluster parameter", func() {
-				Expect(cueOutput).To(ContainSubstring("cluster: parameter.cluster"))
-			})
+		It("should apply the resource via kube.#Apply with cluster parameter", func() {
+			Expect(cueOutput).To(ContainSubstring("kube.#Apply & {"))
+			Expect(cueOutput).To(ContainSubstring("cluster: parameter.cluster"))
 		})
 
-		Describe("Template: wait action", func() {
-			It("should use builtin.#ConditionalWait", func() {
-				Expect(cueOutput).To(ContainSubstring("builtin.#ConditionalWait & {"))
-			})
-
-			It("should wait for readyReplicas to match parameter", func() {
-				Expect(cueOutput).To(ContainSubstring("output.$returns.value.status.readyReplicas == parameter.replicas"))
-			})
+		It("should wait for readyReplicas via builtin.#ConditionalWait", func() {
+			Expect(cueOutput).To(ContainSubstring("builtin.#ConditionalWait & {"))
+			Expect(cueOutput).To(ContainSubstring("output.$returns.value.status.readyReplicas == parameter.replicas"))
 		})
 
-		Describe("Template: structural correctness", func() {
-			It("should have exactly one kube.#Apply", func() {
-				count := strings.Count(cueOutput, "kube.#Apply & {")
-				Expect(count).To(Equal(1))
-			})
-
-			It("should have exactly one builtin.#ConditionalWait", func() {
-				count := strings.Count(cueOutput, "builtin.#ConditionalWait & {")
-				Expect(count).To(Equal(1))
-			})
+		It("should have exactly one kube.#Apply and one builtin.#ConditionalWait", func() {
+			Expect(strings.Count(cueOutput, "kube.#Apply & {")).To(Equal(1))
+			Expect(strings.Count(cueOutput, "builtin.#ConditionalWait & {")).To(Equal(1))
 		})
 	})
 })

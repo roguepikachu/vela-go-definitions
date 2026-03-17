@@ -26,16 +26,10 @@ import (
 )
 
 var _ = Describe("Suspend WorkflowStep", func() {
-	Describe("Metadata", func() {
-		It("should have the correct name", func() {
-			step := workflowsteps.Suspend()
-			Expect(step.GetName()).To(Equal("suspend"))
-		})
-
-		It("should have the correct description", func() {
-			step := workflowsteps.Suspend()
-			Expect(step.GetDescription()).To(Equal("Suspend the current workflow, it can be resumed by 'vela workflow resume' command."))
-		})
+	It("should have correct name and description", func() {
+		step := workflowsteps.Suspend()
+		Expect(step.GetName()).To(Equal("suspend"))
+		Expect(step.GetDescription()).To(Equal("Suspend the current workflow, it can be resumed by 'vela workflow resume' command."))
 	})
 
 	Describe("CUE Generation", func() {
@@ -47,53 +41,27 @@ var _ = Describe("Suspend WorkflowStep", func() {
 			Expect(cueOutput).NotTo(BeEmpty())
 		})
 
-		Describe("Step header", func() {
-			It("should generate workflow-step type", func() {
-				Expect(cueOutput).To(ContainSubstring(`type: "workflow-step"`))
-			})
-
-			It("should generate correct category", func() {
-				Expect(cueOutput).To(ContainSubstring(`"category": "Process Control"`))
-			})
+		It("should generate correct step header with type and category", func() {
+			Expect(cueOutput).To(ContainSubstring(`type: "workflow-step"`))
+			Expect(cueOutput).To(ContainSubstring(`"category": "Process Control"`))
 		})
 
-		Describe("Imports", func() {
-			It("should import vela/builtin", func() {
-				Expect(cueOutput).To(ContainSubstring(`"vela/builtin"`))
-			})
+		It("should import vela/builtin", func() {
+			Expect(cueOutput).To(ContainSubstring(`"vela/builtin"`))
 		})
 
-		Describe("Parameters", func() {
-			It("should have optional duration parameter as string", func() {
-				Expect(cueOutput).To(ContainSubstring("duration?: string"))
-			})
-
-			It("should have optional message parameter as string", func() {
-				Expect(cueOutput).To(ContainSubstring("message?: string"))
-			})
-
-			It("should have description for duration", func() {
-				Expect(cueOutput).To(ContainSubstring("wait duration"))
-			})
-
-			It("should have description for message", func() {
-				Expect(cueOutput).To(ContainSubstring("suspend message"))
-			})
+		It("should declare duration and message as optional string parameters with descriptions", func() {
+			Expect(cueOutput).To(ContainSubstring("duration?: string"))
+			Expect(cueOutput).To(ContainSubstring("message?: string"))
+			Expect(cueOutput).To(ContainSubstring("wait duration"))
+			Expect(cueOutput).To(ContainSubstring("suspend message"))
 		})
 
-		Describe("Template", func() {
-			It("should use builtin.#Suspend", func() {
-				Expect(cueOutput).To(ContainSubstring("builtin.#Suspend & {"))
-			})
-
-			It("should pass full parameter", func() {
-				Expect(cueOutput).To(ContainSubstring("$params: parameter"))
-			})
-
-			It("should have exactly one builtin.#Suspend", func() {
-				count := strings.Count(cueOutput, "builtin.#Suspend & {")
-				Expect(count).To(Equal(1))
-			})
+		It("should generate template that passes parameters to a single builtin.#Suspend call", func() {
+			Expect(cueOutput).To(ContainSubstring("builtin.#Suspend & {"))
+			Expect(cueOutput).To(ContainSubstring("$params: parameter"))
+			count := strings.Count(cueOutput, "builtin.#Suspend & {")
+			Expect(count).To(Equal(1))
 		})
 	})
 })

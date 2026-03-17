@@ -26,16 +26,10 @@ import (
 )
 
 var _ = Describe("ReadObject WorkflowStep", func() {
-	Describe("Metadata", func() {
-		It("should have the correct name", func() {
-			step := workflowsteps.ReadObject()
-			Expect(step.GetName()).To(Equal("read-object"))
-		})
-
-		It("should have the correct description", func() {
-			step := workflowsteps.ReadObject()
-			Expect(step.GetDescription()).To(Equal("Read Kubernetes objects from cluster for your workflow steps"))
-		})
+	It("should have correct name and description", func() {
+		step := workflowsteps.ReadObject()
+		Expect(step.GetName()).To(Equal("read-object"))
+		Expect(step.GetDescription()).To(Equal("Read Kubernetes objects from cluster for your workflow steps"))
 	})
 
 	Describe("CUE Generation", func() {
@@ -47,89 +41,38 @@ var _ = Describe("ReadObject WorkflowStep", func() {
 			Expect(cueOutput).NotTo(BeEmpty())
 		})
 
-		Describe("Step header", func() {
-			It("should generate workflow-step type", func() {
-				Expect(cueOutput).To(ContainSubstring(`type: "workflow-step"`))
-			})
-
-			It("should generate correct category", func() {
-				Expect(cueOutput).To(ContainSubstring(`"category": "Resource Management"`))
-			})
+		It("should generate correct step header with type and category", func() {
+			Expect(cueOutput).To(ContainSubstring(`type: "workflow-step"`))
+			Expect(cueOutput).To(ContainSubstring(`"category": "Resource Management"`))
 		})
 
-		Describe("Imports", func() {
-			It("should import vela/kube", func() {
-				Expect(cueOutput).To(ContainSubstring(`"vela/kube"`))
-			})
+		It("should import vela/kube", func() {
+			Expect(cueOutput).To(ContainSubstring(`"vela/kube"`))
 		})
 
-		Describe("Parameters", func() {
-			It("should have apiVersion with default", func() {
-				Expect(cueOutput).To(ContainSubstring(`apiVersion: *"core.oam.dev/v1beta1"`))
-			})
+		It("should declare all parameters with correct types, defaults, and descriptions", func() {
+			Expect(cueOutput).To(ContainSubstring(`apiVersion: *"core.oam.dev/v1beta1"`))
+			Expect(cueOutput).To(ContainSubstring(`kind: *"Application"`))
+			Expect(cueOutput).To(ContainSubstring("name: string"))
+			Expect(cueOutput).To(ContainSubstring(`namespace: *"default"`))
+			Expect(cueOutput).To(ContainSubstring(`cluster: *""`))
 
-			It("should have kind with default", func() {
-				Expect(cueOutput).To(ContainSubstring(`kind: *"Application"`))
-			})
-
-			It("should have required name parameter", func() {
-				Expect(cueOutput).To(ContainSubstring("name: string"))
-			})
-
-			It("should have namespace with default", func() {
-				Expect(cueOutput).To(ContainSubstring(`namespace: *"default"`))
-			})
-
-			It("should have cluster with empty default", func() {
-				Expect(cueOutput).To(ContainSubstring(`cluster: *""`))
-			})
-
-			It("should have description for apiVersion", func() {
-				Expect(cueOutput).To(ContainSubstring("apiVersion of the object"))
-			})
-
-			It("should have description for name", func() {
-				Expect(cueOutput).To(ContainSubstring("name of the object"))
-			})
-
-			It("should have description for namespace", func() {
-				Expect(cueOutput).To(ContainSubstring("namespace of the resource"))
-			})
-
-			It("should have description for cluster", func() {
-				Expect(cueOutput).To(ContainSubstring("cluster you want to apply"))
-			})
+			Expect(cueOutput).To(ContainSubstring("apiVersion of the object"))
+			Expect(cueOutput).To(ContainSubstring("name of the object"))
+			Expect(cueOutput).To(ContainSubstring("namespace of the resource"))
+			Expect(cueOutput).To(ContainSubstring("cluster you want to apply"))
 		})
 
-		Describe("Template", func() {
-			It("should use kube.#Read", func() {
-				Expect(cueOutput).To(ContainSubstring("kube.#Read & {"))
-			})
+		It("should generate a single kube.#Read template that passes all parameters", func() {
+			Expect(cueOutput).To(ContainSubstring("kube.#Read & {"))
+			Expect(cueOutput).To(ContainSubstring("cluster: parameter.cluster"))
+			Expect(cueOutput).To(ContainSubstring("apiVersion: parameter.apiVersion"))
+			Expect(cueOutput).To(ContainSubstring("kind: parameter.kind"))
+			Expect(cueOutput).To(ContainSubstring("name: parameter.name"))
+			Expect(cueOutput).To(ContainSubstring("namespace: parameter.namespace"))
 
-			It("should pass cluster from parameter", func() {
-				Expect(cueOutput).To(ContainSubstring("cluster: parameter.cluster"))
-			})
-
-			It("should pass apiVersion from parameter in value", func() {
-				Expect(cueOutput).To(ContainSubstring("apiVersion: parameter.apiVersion"))
-			})
-
-			It("should pass kind from parameter in value", func() {
-				Expect(cueOutput).To(ContainSubstring("kind: parameter.kind"))
-			})
-
-			It("should pass name from parameter in metadata", func() {
-				Expect(cueOutput).To(ContainSubstring("name: parameter.name"))
-			})
-
-			It("should pass namespace from parameter in metadata", func() {
-				Expect(cueOutput).To(ContainSubstring("namespace: parameter.namespace"))
-			})
-
-			It("should have exactly one kube.#Read", func() {
-				count := strings.Count(cueOutput, "kube.#Read & {")
-				Expect(count).To(Equal(1))
-			})
+			count := strings.Count(cueOutput, "kube.#Read & {")
+			Expect(count).To(Equal(1))
 		})
 	})
 })

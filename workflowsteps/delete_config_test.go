@@ -26,16 +26,10 @@ import (
 )
 
 var _ = Describe("DeleteConfig WorkflowStep", func() {
-	Describe("Metadata", func() {
-		It("should have the correct name", func() {
-			step := workflowsteps.DeleteConfig()
-			Expect(step.GetName()).To(Equal("delete-config"))
-		})
-
-		It("should have the correct description", func() {
-			step := workflowsteps.DeleteConfig()
-			Expect(step.GetDescription()).To(Equal("Delete a config"))
-		})
+	It("should have the correct name and description", func() {
+		step := workflowsteps.DeleteConfig()
+		Expect(step.GetName()).To(Equal("delete-config"))
+		Expect(step.GetDescription()).To(Equal("Delete a config"))
 	})
 
 	Describe("CUE Generation", func() {
@@ -47,51 +41,26 @@ var _ = Describe("DeleteConfig WorkflowStep", func() {
 			Expect(cueOutput).NotTo(BeEmpty())
 		})
 
-		Describe("Step header", func() {
-			It("should generate workflow-step type", func() {
-				Expect(cueOutput).To(ContainSubstring(`type: "workflow-step"`))
-			})
-
-			It("should generate correct category", func() {
-				Expect(cueOutput).To(ContainSubstring(`"category": "Config Management"`))
-			})
-
-			It("should quote the hyphenated name", func() {
-				Expect(cueOutput).To(ContainSubstring(`"delete-config": {`))
-			})
+		It("should generate the correct step header", func() {
+			Expect(cueOutput).To(ContainSubstring(`type: "workflow-step"`))
+			Expect(cueOutput).To(ContainSubstring(`"category": "Config Management"`))
+			Expect(cueOutput).To(ContainSubstring(`"delete-config": {`))
 		})
 
-		Describe("Imports", func() {
-			It("should import vela/config", func() {
-				Expect(cueOutput).To(ContainSubstring(`"vela/config"`))
-			})
+		It("should import vela/config", func() {
+			Expect(cueOutput).To(ContainSubstring(`"vela/config"`))
 		})
 
-		Describe("Parameters", func() {
-			It("should have required name", func() {
-				Expect(cueOutput).To(ContainSubstring("name: string"))
-			})
-
-			It("should have namespace with default context.namespace", func() {
-				Expect(cueOutput).To(ContainSubstring("*context.namespace | string"))
-			})
+		It("should declare all parameters with correct types and defaults", func() {
+			Expect(cueOutput).To(ContainSubstring("name: string"))
+			Expect(cueOutput).To(ContainSubstring("*context.namespace | string"))
 		})
 
-		Describe("Template", func() {
-			It("should call config.#DeleteConfig", func() {
-				Expect(cueOutput).To(ContainSubstring("config.#DeleteConfig & {"))
-			})
-
-			It("should pass full parameter object", func() {
-				Expect(cueOutput).To(ContainSubstring("$params: parameter"))
-			})
-		})
-
-		Describe("Template: structural correctness", func() {
-			It("should have exactly one config.#DeleteConfig", func() {
-				count := strings.Count(cueOutput, "config.#DeleteConfig & {")
-				Expect(count).To(Equal(1))
-			})
+		It("should generate the template with a single config.#DeleteConfig call", func() {
+			Expect(cueOutput).To(ContainSubstring("config.#DeleteConfig & {"))
+			Expect(cueOutput).To(ContainSubstring("$params: parameter"))
+			count := strings.Count(cueOutput, "config.#DeleteConfig & {")
+			Expect(count).To(Equal(1))
 		})
 	})
 })

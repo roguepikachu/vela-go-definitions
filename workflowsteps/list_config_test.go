@@ -26,16 +26,10 @@ import (
 )
 
 var _ = Describe("ListConfig WorkflowStep", func() {
-	Describe("Metadata", func() {
-		It("should have the correct name", func() {
-			step := workflowsteps.ListConfig()
-			Expect(step.GetName()).To(Equal("list-config"))
-		})
-
-		It("should have the correct description", func() {
-			step := workflowsteps.ListConfig()
-			Expect(step.GetDescription()).To(Equal("List the configs"))
-		})
+	It("should have the correct name and description", func() {
+		step := workflowsteps.ListConfig()
+		Expect(step.GetName()).To(Equal("list-config"))
+		Expect(step.GetDescription()).To(Equal("List the configs"))
 	})
 
 	Describe("CUE Generation", func() {
@@ -47,57 +41,27 @@ var _ = Describe("ListConfig WorkflowStep", func() {
 			Expect(cueOutput).NotTo(BeEmpty())
 		})
 
-		Describe("Step header", func() {
-			It("should generate workflow-step type", func() {
-				Expect(cueOutput).To(ContainSubstring(`type: "workflow-step"`))
-			})
-
-			It("should generate correct category", func() {
-				Expect(cueOutput).To(ContainSubstring(`"category": "Config Management"`))
-			})
-
-			It("should quote the hyphenated name", func() {
-				Expect(cueOutput).To(ContainSubstring(`"list-config": {`))
-			})
+		It("should generate correct step header with type, category, and quoted name", func() {
+			Expect(cueOutput).To(ContainSubstring(`type: "workflow-step"`))
+			Expect(cueOutput).To(ContainSubstring(`"category": "Config Management"`))
+			Expect(cueOutput).To(ContainSubstring(`"list-config": {`))
 		})
 
-		Describe("Imports", func() {
-			It("should import vela/config", func() {
-				Expect(cueOutput).To(ContainSubstring(`"vela/config"`))
-			})
+		It("should import vela/config", func() {
+			Expect(cueOutput).To(ContainSubstring(`"vela/config"`))
 		})
 
-		Describe("Parameters", func() {
-			It("should have required template parameter", func() {
-				Expect(cueOutput).To(ContainSubstring("template: string"))
-			})
-
-			It("should have description for template", func() {
-				Expect(cueOutput).To(ContainSubstring("// +usage=Specify the template of the config."))
-			})
-
-			It("should have namespace with default context.namespace", func() {
-				Expect(cueOutput).To(ContainSubstring("*context.namespace | string"))
-			})
-
-			It("should have description for namespace", func() {
-				Expect(cueOutput).To(ContainSubstring("// +usage=Specify the namespace of the config."))
-			})
+		It("should declare template and namespace parameters with descriptions", func() {
+			Expect(cueOutput).To(ContainSubstring("template: string"))
+			Expect(cueOutput).To(ContainSubstring("// +usage=Specify the template of the config."))
+			Expect(cueOutput).To(ContainSubstring("*context.namespace | string"))
+			Expect(cueOutput).To(ContainSubstring("// +usage=Specify the namespace of the config."))
 		})
 
-		Describe("Template", func() {
-			It("should call config.#ListConfig", func() {
-				Expect(cueOutput).To(ContainSubstring("config.#ListConfig & {"))
-			})
-
-			It("should pass full parameter object", func() {
-				Expect(cueOutput).To(ContainSubstring("$params: parameter"))
-			})
-
-			It("should have exactly one config.#ListConfig", func() {
-				count := strings.Count(cueOutput, "config.#ListConfig & {")
-				Expect(count).To(Equal(1))
-			})
+		It("should generate template with a single config.#ListConfig call", func() {
+			Expect(cueOutput).To(ContainSubstring("config.#ListConfig & {"))
+			Expect(cueOutput).To(ContainSubstring("$params: parameter"))
+			Expect(strings.Count(cueOutput, "config.#ListConfig & {")).To(Equal(1))
 		})
 	})
 })

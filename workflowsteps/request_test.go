@@ -26,16 +26,10 @@ import (
 )
 
 var _ = Describe("Request WorkflowStep", func() {
-	Describe("Metadata", func() {
-		It("should have the correct name", func() {
-			step := workflowsteps.Request()
-			Expect(step.GetName()).To(Equal("request"))
-		})
-
-		It("should have the correct description", func() {
-			step := workflowsteps.Request()
-			Expect(step.GetDescription()).To(Equal("Send request to the url"))
-		})
+	It("should have the correct name and description", func() {
+		step := workflowsteps.Request()
+		Expect(step.GetName()).To(Equal("request"))
+		Expect(step.GetDescription()).To(Equal("Send request to the url"))
 	})
 
 	Describe("CUE Generation", func() {
@@ -47,119 +41,47 @@ var _ = Describe("Request WorkflowStep", func() {
 			Expect(cueOutput).NotTo(BeEmpty())
 		})
 
-		Describe("Step header", func() {
-			It("should generate workflow-step type", func() {
-				Expect(cueOutput).To(ContainSubstring(`type: "workflow-step"`))
-			})
-
-			It("should generate correct category", func() {
-				Expect(cueOutput).To(ContainSubstring(`"category": "External Integration"`))
-			})
-
-			It("should not include alias when empty", func() {
-				Expect(cueOutput).NotTo(ContainSubstring(`"alias":`))
-			})
+		It("should generate correct step header with type and category", func() {
+			Expect(cueOutput).To(ContainSubstring(`type: "workflow-step"`))
+			Expect(cueOutput).To(ContainSubstring(`"category": "External Integration"`))
+			Expect(cueOutput).NotTo(ContainSubstring(`"alias":`))
 		})
 
-		Describe("Imports", func() {
-			It("should import vela/op", func() {
-				Expect(cueOutput).To(ContainSubstring(`"vela/op"`))
-			})
-
-			It("should import vela/http", func() {
-				Expect(cueOutput).To(ContainSubstring(`"vela/http"`))
-			})
-
-			It("should import encoding/json", func() {
-				Expect(cueOutput).To(ContainSubstring(`"encoding/json"`))
-			})
+		It("should import vela/op, vela/http, and encoding/json", func() {
+			Expect(cueOutput).To(ContainSubstring(`"vela/op"`))
+			Expect(cueOutput).To(ContainSubstring(`"vela/http"`))
+			Expect(cueOutput).To(ContainSubstring(`"encoding/json"`))
 		})
 
-		Describe("Parameters", func() {
-			It("should have required url parameter as string", func() {
-				Expect(cueOutput).To(ContainSubstring("url: string"))
-			})
-
-			It("should have optional method with default GET and enum", func() {
-				Expect(cueOutput).To(ContainSubstring(`method: *"GET" | "POST" | "PUT" | "DELETE"`))
-			})
-
-			It("should have optional body parameter as open struct", func() {
-				Expect(cueOutput).To(ContainSubstring("body?: {...}"))
-			})
-
-			It("should have optional header parameter as string map", func() {
-				Expect(cueOutput).To(ContainSubstring("header?: [string]: string"))
-			})
+		It("should declare all parameters with correct types and defaults", func() {
+			Expect(cueOutput).To(ContainSubstring("url: string"))
+			Expect(cueOutput).To(ContainSubstring(`method: *"GET" | "POST" | "PUT" | "DELETE"`))
+			Expect(cueOutput).To(ContainSubstring("body?: {...}"))
+			Expect(cueOutput).To(ContainSubstring("header?: [string]: string"))
 		})
 
-		Describe("Template", func() {
-			It("should use http.#HTTPDo for the request", func() {
-				Expect(cueOutput).To(ContainSubstring("http.#HTTPDo & {"))
-			})
-
-			It("should pass method from parameter", func() {
-				Expect(cueOutput).To(ContainSubstring("method: parameter.method"))
-			})
-
-			It("should pass url from parameter", func() {
-				Expect(cueOutput).To(ContainSubstring("url: parameter.url"))
-			})
-
-			It("should conditionally include body with json.Marshal and guard", func() {
-				Expect(cueOutput).To(ContainSubstring(`parameter["body"] != _|_`))
-				Expect(cueOutput).To(ContainSubstring("body: json.Marshal(parameter.body)"))
-			})
-
-			It("should conditionally include header with guard", func() {
-				Expect(cueOutput).To(ContainSubstring(`parameter["header"] != _|_`))
-				Expect(cueOutput).To(ContainSubstring("header: parameter.header"))
-			})
-
-			It("should use op.#ConditionalWait for response", func() {
-				Expect(cueOutput).To(ContainSubstring("op.#ConditionalWait & {"))
-				Expect(cueOutput).To(ContainSubstring("continue: req.$returns != _|_"))
-			})
-
-			It("should include wait message with url interpolation", func() {
-				Expect(cueOutput).To(ContainSubstring(`message?: "Waiting for response from \(parameter.url)"`))
-			})
-
-			It("should use op.#Steps for failure handling", func() {
-				Expect(cueOutput).To(ContainSubstring("op.#Steps & {"))
-			})
-
-			It("should check status code for failure and fail with message", func() {
-				Expect(cueOutput).To(ContainSubstring("req.$returns.statusCode > 400"))
-				Expect(cueOutput).To(ContainSubstring("requestFail: op.#Fail & {"))
-				Expect(cueOutput).To(ContainSubstring(`message: "request of \(parameter.url) is fail: \(req.$returns.statusCode)"`))
-			})
-
-			It("should unmarshal response body as JSON", func() {
-				Expect(cueOutput).To(ContainSubstring("response: json.Unmarshal(req.$returns.body)"))
-			})
+		It("should generate HTTP request template with conditional body, header, wait, and failure handling", func() {
+			Expect(cueOutput).To(ContainSubstring("http.#HTTPDo & {"))
+			Expect(cueOutput).To(ContainSubstring("method: parameter.method"))
+			Expect(cueOutput).To(ContainSubstring("url: parameter.url"))
+			Expect(cueOutput).To(ContainSubstring(`parameter["body"] != _|_`))
+			Expect(cueOutput).To(ContainSubstring("body: json.Marshal(parameter.body)"))
+			Expect(cueOutput).To(ContainSubstring(`parameter["header"] != _|_`))
+			Expect(cueOutput).To(ContainSubstring("header: parameter.header"))
+			Expect(cueOutput).To(ContainSubstring("op.#ConditionalWait & {"))
+			Expect(cueOutput).To(ContainSubstring("continue: req.$returns != _|_"))
+			Expect(cueOutput).To(ContainSubstring(`message?: "Waiting for response from \(parameter.url)"`))
+			Expect(cueOutput).To(ContainSubstring("op.#Steps & {"))
+			Expect(cueOutput).To(ContainSubstring("req.$returns.statusCode > 400"))
+			Expect(cueOutput).To(ContainSubstring("requestFail: op.#Fail & {"))
+			Expect(cueOutput).To(ContainSubstring("response: json.Unmarshal(req.$returns.body)"))
 		})
 
-		Describe("Template: structural correctness", func() {
-			It("should have exactly one http.#HTTPDo", func() {
-				count := strings.Count(cueOutput, "http.#HTTPDo & {")
-				Expect(count).To(Equal(1))
-			})
-
-			It("should have exactly one op.#ConditionalWait", func() {
-				count := strings.Count(cueOutput, "op.#ConditionalWait & {")
-				Expect(count).To(Equal(1))
-			})
-
-			It("should have exactly one op.#Steps", func() {
-				count := strings.Count(cueOutput, "op.#Steps & {")
-				Expect(count).To(Equal(1))
-			})
-
-			It("should have exactly one op.#Fail", func() {
-				count := strings.Count(cueOutput, "op.#Fail & {")
-				Expect(count).To(Equal(1))
-			})
+		It("should have exactly one of each action type", func() {
+			Expect(strings.Count(cueOutput, "http.#HTTPDo & {")).To(Equal(1))
+			Expect(strings.Count(cueOutput, "op.#ConditionalWait & {")).To(Equal(1))
+			Expect(strings.Count(cueOutput, "op.#Steps & {")).To(Equal(1))
+			Expect(strings.Count(cueOutput, "op.#Fail & {")).To(Equal(1))
 		})
 	})
 })

@@ -26,16 +26,10 @@ import (
 )
 
 var _ = Describe("ApplyTerraformConfig WorkflowStep", func() {
-	Describe("Metadata", func() {
-		It("should have the correct name", func() {
-			step := workflowsteps.ApplyTerraformConfig()
-			Expect(step.GetName()).To(Equal("apply-terraform-config"))
-		})
-
-		It("should have the correct description", func() {
-			step := workflowsteps.ApplyTerraformConfig()
-			Expect(step.GetDescription()).To(Equal("Apply terraform configuration in the step"))
-		})
+	It("should have the correct name and description", func() {
+		step := workflowsteps.ApplyTerraformConfig()
+		Expect(step.GetName()).To(Equal("apply-terraform-config"))
+		Expect(step.GetDescription()).To(Equal("Apply terraform configuration in the step"))
 	})
 
 	Describe("CUE Generation", func() {
@@ -47,143 +41,67 @@ var _ = Describe("ApplyTerraformConfig WorkflowStep", func() {
 			Expect(cueOutput).NotTo(BeEmpty())
 		})
 
-		Describe("Step header", func() {
-			It("should generate workflow-step type", func() {
-				Expect(cueOutput).To(ContainSubstring(`type: "workflow-step"`))
-			})
-
-			It("should generate correct category", func() {
-				Expect(cueOutput).To(ContainSubstring(`"category": "Terraform"`))
-			})
-
-			It("should have empty alias", func() {
-				Expect(cueOutput).To(ContainSubstring(`alias: ""`))
-			})
-
-			It("should quote the hyphenated name", func() {
-				Expect(cueOutput).To(ContainSubstring(`"apply-terraform-config": {`))
-			})
+		It("should generate correct step header with type, category, alias, and quoted name", func() {
+			Expect(cueOutput).To(ContainSubstring(`type: "workflow-step"`))
+			Expect(cueOutput).To(ContainSubstring(`"category": "Terraform"`))
+			Expect(cueOutput).To(ContainSubstring(`alias: ""`))
+			Expect(cueOutput).To(ContainSubstring(`"apply-terraform-config": {`))
 		})
 
-		Describe("Imports", func() {
-			It("should import vela/kube", func() {
-				Expect(cueOutput).To(ContainSubstring(`"vela/kube"`))
-			})
-
-			It("should import vela/builtin", func() {
-				Expect(cueOutput).To(ContainSubstring(`"vela/builtin"`))
-			})
+		It("should import vela/kube and vela/builtin", func() {
+			Expect(cueOutput).To(ContainSubstring(`"vela/kube"`))
+			Expect(cueOutput).To(ContainSubstring(`"vela/builtin"`))
 		})
 
-		Describe("Parameters", func() {
-			It("should have source with close union schema", func() {
-				Expect(cueOutput).To(ContainSubstring("source: close({"))
-				Expect(cueOutput).To(ContainSubstring("hcl: string"))
-				Expect(cueOutput).To(ContainSubstring(`remote: *"https://github.com/kubevela-contrib/terraform-modules.git" | string`))
-				Expect(cueOutput).To(ContainSubstring("path?: string"))
-			})
-
-			It("should have deleteResource with true default", func() {
-				Expect(cueOutput).To(ContainSubstring("deleteResource: *true | bool"))
-			})
-
-			It("should have variable as open struct", func() {
-				Expect(cueOutput).To(ContainSubstring("variable: {...}"))
-			})
-
-			It("should have optional writeConnectionSecretToRef", func() {
-				Expect(cueOutput).To(ContainSubstring("writeConnectionSecretToRef?: {"))
-			})
-
-			It("should have optional providerRef", func() {
-				Expect(cueOutput).To(ContainSubstring("providerRef?: {"))
-			})
-
-			It("should have optional region", func() {
-				Expect(cueOutput).To(ContainSubstring("region?: string"))
-			})
-
-			It("should have optional jobEnv as open struct", func() {
-				Expect(cueOutput).To(ContainSubstring("jobEnv?: {...}"))
-			})
-
-			It("should have forceDelete with false default", func() {
-				Expect(cueOutput).To(ContainSubstring("forceDelete: *false | bool"))
-			})
+		It("should declare all parameters with correct types and defaults", func() {
+			Expect(cueOutput).To(ContainSubstring("source: close({"))
+			Expect(cueOutput).To(ContainSubstring("hcl: string"))
+			Expect(cueOutput).To(ContainSubstring(`remote: *"https://github.com/kubevela-contrib/terraform-modules.git" | string`))
+			Expect(cueOutput).To(ContainSubstring("path?: string"))
+			Expect(cueOutput).To(ContainSubstring("deleteResource: *true | bool"))
+			Expect(cueOutput).To(ContainSubstring("forceDelete: *false | bool"))
+			Expect(cueOutput).To(ContainSubstring("variable: {...}"))
+			Expect(cueOutput).To(ContainSubstring("jobEnv?: {...}"))
+			Expect(cueOutput).To(ContainSubstring("writeConnectionSecretToRef?: {"))
+			Expect(cueOutput).To(ContainSubstring("providerRef?: {"))
+			Expect(cueOutput).To(ContainSubstring("region?: string"))
 		})
 
-		Describe("Template: Configuration resource", func() {
-			It("should create terraform Configuration", func() {
-				Expect(cueOutput).To(ContainSubstring(`apiVersion: "terraform.core.oam.dev/v1beta2"`))
-				Expect(cueOutput).To(ContainSubstring(`kind: "Configuration"`))
-			})
-
-			It("should set name from context name and stepName", func() {
-				Expect(cueOutput).To(ContainSubstring(`\(context.name)-\(context.stepName)`))
-			})
-
-			It("should set namespace from context", func() {
-				Expect(cueOutput).To(ContainSubstring("namespace: context.namespace"))
-			})
-
-			It("should set unconditional spec fields", func() {
-				Expect(cueOutput).To(ContainSubstring("deleteResource: parameter.deleteResource"))
-				Expect(cueOutput).To(ContainSubstring("variable: parameter.variable"))
-				Expect(cueOutput).To(ContainSubstring("forceDelete: parameter.forceDelete"))
-			})
-
-			It("should conditionally pass source fields", func() {
-				Expect(cueOutput).To(ContainSubstring("parameter.source.path != _|_"))
-				Expect(cueOutput).To(ContainSubstring("path: parameter.source.path"))
-				Expect(cueOutput).To(ContainSubstring("parameter.source.remote != _|_"))
-				Expect(cueOutput).To(ContainSubstring("remote: parameter.source.remote"))
-				Expect(cueOutput).To(ContainSubstring("parameter.source.hcl != _|_"))
-				Expect(cueOutput).To(ContainSubstring("hcl: parameter.source.hcl"))
-			})
-
-			It("should conditionally pass optional spec fields", func() {
-				Expect(cueOutput).To(ContainSubstring("parameter.providerRef != _|_"))
-				Expect(cueOutput).To(ContainSubstring("providerRef: parameter.providerRef"))
-				Expect(cueOutput).To(ContainSubstring("parameter.jobEnv != _|_"))
-				Expect(cueOutput).To(ContainSubstring("jobEnv: parameter.jobEnv"))
-				Expect(cueOutput).To(ContainSubstring("parameter.writeConnectionSecretToRef != _|_"))
-				Expect(cueOutput).To(ContainSubstring("writeConnectionSecretToRef: parameter.writeConnectionSecretToRef"))
-				Expect(cueOutput).To(ContainSubstring("parameter.region != _|_"))
-				Expect(cueOutput).To(ContainSubstring("region: parameter.region"))
-			})
+		It("should create a terraform Configuration resource with correct metadata and spec", func() {
+			Expect(cueOutput).To(ContainSubstring(`apiVersion: "terraform.core.oam.dev/v1beta2"`))
+			Expect(cueOutput).To(ContainSubstring(`kind: "Configuration"`))
+			Expect(cueOutput).To(ContainSubstring(`\(context.name)-\(context.stepName)`))
+			Expect(cueOutput).To(ContainSubstring("namespace: context.namespace"))
+			Expect(cueOutput).To(ContainSubstring("deleteResource: parameter.deleteResource"))
+			Expect(cueOutput).To(ContainSubstring("variable: parameter.variable"))
+			Expect(cueOutput).To(ContainSubstring("forceDelete: parameter.forceDelete"))
+			Expect(cueOutput).To(ContainSubstring("parameter.source.path != _|_"))
+			Expect(cueOutput).To(ContainSubstring("path: parameter.source.path"))
+			Expect(cueOutput).To(ContainSubstring("parameter.source.remote != _|_"))
+			Expect(cueOutput).To(ContainSubstring("remote: parameter.source.remote"))
+			Expect(cueOutput).To(ContainSubstring("parameter.source.hcl != _|_"))
+			Expect(cueOutput).To(ContainSubstring("hcl: parameter.source.hcl"))
+			Expect(cueOutput).To(ContainSubstring("parameter.providerRef != _|_"))
+			Expect(cueOutput).To(ContainSubstring("providerRef: parameter.providerRef"))
+			Expect(cueOutput).To(ContainSubstring("parameter.jobEnv != _|_"))
+			Expect(cueOutput).To(ContainSubstring("jobEnv: parameter.jobEnv"))
+			Expect(cueOutput).To(ContainSubstring("parameter.writeConnectionSecretToRef != _|_"))
+			Expect(cueOutput).To(ContainSubstring("writeConnectionSecretToRef: parameter.writeConnectionSecretToRef"))
+			Expect(cueOutput).To(ContainSubstring("parameter.region != _|_"))
+			Expect(cueOutput).To(ContainSubstring("region: parameter.region"))
 		})
 
-		Describe("Template: kube.#Apply", func() {
-			It("should use kube.#Apply", func() {
-				Expect(cueOutput).To(ContainSubstring("kube.#Apply & {"))
-			})
+		It("should apply the resource with kube.#Apply and wait for Available state", func() {
+			Expect(cueOutput).To(ContainSubstring("kube.#Apply & {"))
+			Expect(cueOutput).To(ContainSubstring("builtin.#ConditionalWait & {"))
+			Expect(cueOutput).To(ContainSubstring("apply.$returns.value.status != _|_"))
+			Expect(cueOutput).To(ContainSubstring("apply.$returns.value.status.apply != _|_"))
+			Expect(cueOutput).To(ContainSubstring(`apply.$returns.value.status.apply.state == "Available"`))
 		})
 
-		Describe("Template: check wait", func() {
-			It("should use builtin.#ConditionalWait", func() {
-				Expect(cueOutput).To(ContainSubstring("builtin.#ConditionalWait & {"))
-			})
-
-			It("should guard on status and status.apply existence", func() {
-				Expect(cueOutput).To(ContainSubstring("apply.$returns.value.status != _|_"))
-				Expect(cueOutput).To(ContainSubstring("apply.$returns.value.status.apply != _|_"))
-			})
-
-			It("should wait for Available state", func() {
-				Expect(cueOutput).To(ContainSubstring(`apply.$returns.value.status.apply.state == "Available"`))
-			})
-		})
-
-		Describe("Template: structural correctness", func() {
-			It("should have exactly one kube.#Apply", func() {
-				count := strings.Count(cueOutput, "kube.#Apply & {")
-				Expect(count).To(Equal(1))
-			})
-
-			It("should have exactly one builtin.#ConditionalWait", func() {
-				count := strings.Count(cueOutput, "builtin.#ConditionalWait & {")
-				Expect(count).To(Equal(1))
-			})
+		It("should have exactly one kube.#Apply and one builtin.#ConditionalWait", func() {
+			Expect(strings.Count(cueOutput, "kube.#Apply & {")).To(Equal(1))
+			Expect(strings.Count(cueOutput, "builtin.#ConditionalWait & {")).To(Equal(1))
 		})
 	})
 })

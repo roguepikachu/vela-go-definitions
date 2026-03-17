@@ -26,16 +26,10 @@ import (
 )
 
 var _ = Describe("CleanJobs WorkflowStep", func() {
-	Describe("Metadata", func() {
-		It("should have the correct name", func() {
-			step := workflowsteps.CleanJobs()
-			Expect(step.GetName()).To(Equal("clean-jobs"))
-		})
-
-		It("should have the correct description", func() {
-			step := workflowsteps.CleanJobs()
-			Expect(step.GetDescription()).To(Equal("clean applied jobs in the cluster"))
-		})
+	It("should have the correct name and description", func() {
+		step := workflowsteps.CleanJobs()
+		Expect(step.GetName()).To(Equal("clean-jobs"))
+		Expect(step.GetDescription()).To(Equal("clean applied jobs in the cluster"))
 	})
 
 	Describe("CUE Generation", func() {
@@ -47,107 +41,49 @@ var _ = Describe("CleanJobs WorkflowStep", func() {
 			Expect(cueOutput).NotTo(BeEmpty())
 		})
 
-		Describe("Step header", func() {
-			It("should generate workflow-step type", func() {
-				Expect(cueOutput).To(ContainSubstring(`type: "workflow-step"`))
-			})
-
-			It("should generate correct category", func() {
-				Expect(cueOutput).To(ContainSubstring(`"category": "Resource Management"`))
-			})
-
-			It("should quote the hyphenated name", func() {
-				Expect(cueOutput).To(ContainSubstring(`"clean-jobs": {`))
-			})
+		It("should generate the correct step header", func() {
+			Expect(cueOutput).To(ContainSubstring(`type: "workflow-step"`))
+			Expect(cueOutput).To(ContainSubstring(`"category": "Resource Management"`))
+			Expect(cueOutput).To(ContainSubstring(`"clean-jobs": {`))
 		})
 
-		Describe("Imports", func() {
-			It("should import vela/kube", func() {
-				Expect(cueOutput).To(ContainSubstring(`"vela/kube"`))
-			})
+		It("should import vela/kube", func() {
+			Expect(cueOutput).To(ContainSubstring(`"vela/kube"`))
 		})
 
-		Describe("Parameters", func() {
-			It("should have optional labelselector as open struct", func() {
-				Expect(cueOutput).To(ContainSubstring("labelselector?: {...}"))
-			})
-
-			It("should have namespace with context.namespace default", func() {
-				Expect(cueOutput).To(ContainSubstring("namespace: *context.namespace | string"))
-			})
+		It("should declare the expected parameters", func() {
+			Expect(cueOutput).To(ContainSubstring("labelselector?: {...}"))
+			Expect(cueOutput).To(ContainSubstring("namespace: *context.namespace | string"))
 		})
 
-		Describe("Template: cleanJobs action", func() {
-			It("should use kube.#Delete for cleanJobs", func() {
-				Expect(cueOutput).To(ContainSubstring("cleanJobs: kube.#Delete & {"))
-			})
-
-			It("should target batch/v1 Job", func() {
-				Expect(cueOutput).To(ContainSubstring(`apiVersion: "batch/v1"`))
-				Expect(cueOutput).To(ContainSubstring(`kind: "Job"`))
-			})
-
-			It("should set metadata name from context", func() {
-				Expect(cueOutput).To(ContainSubstring("name: context.name"))
-			})
-
-			It("should set metadata namespace from parameter", func() {
-				Expect(cueOutput).To(ContainSubstring("namespace: parameter.namespace"))
-			})
-
-			It("should use labelselector when set", func() {
-				Expect(cueOutput).To(ContainSubstring(`parameter["labelselector"] != _|_`))
-				Expect(cueOutput).To(ContainSubstring("matchingLabels: parameter.labelselector"))
-			})
-
-			It("should default matchingLabels to workflow name", func() {
-				Expect(cueOutput).To(ContainSubstring(`parameter["labelselector"] == _|_`))
-				Expect(cueOutput).To(ContainSubstring(`"workflow.oam.dev/name": context.name`))
-			})
+		It("should generate the cleanJobs kube.#Delete action", func() {
+			Expect(cueOutput).To(ContainSubstring("cleanJobs: kube.#Delete & {"))
+			Expect(cueOutput).To(ContainSubstring(`apiVersion: "batch/v1"`))
+			Expect(cueOutput).To(ContainSubstring(`kind: "Job"`))
+			Expect(cueOutput).To(ContainSubstring("name: context.name"))
+			Expect(cueOutput).To(ContainSubstring("namespace: parameter.namespace"))
+			Expect(cueOutput).To(ContainSubstring(`parameter["labelselector"] != _|_`))
+			Expect(cueOutput).To(ContainSubstring("matchingLabels: parameter.labelselector"))
+			Expect(cueOutput).To(ContainSubstring(`parameter["labelselector"] == _|_`))
+			Expect(cueOutput).To(ContainSubstring(`"workflow.oam.dev/name": context.name`))
 		})
 
-		Describe("Template: cleanPods action", func() {
-			It("should use kube.#Delete for cleanPods", func() {
-				Expect(cueOutput).To(ContainSubstring("cleanPods: kube.#Delete & {"))
-			})
+		It("should generate the cleanPods kube.#Delete action", func() {
+			Expect(cueOutput).To(ContainSubstring("cleanPods: kube.#Delete & {"))
+			Expect(cueOutput).To(ContainSubstring(`apiVersion: "v1"`))
+			Expect(cueOutput).To(ContainSubstring(`kind: "pod"`))
 
-			It("should target v1 pod", func() {
-				Expect(cueOutput).To(ContainSubstring(`apiVersion: "v1"`))
-				Expect(cueOutput).To(ContainSubstring(`kind: "pod"`))
-			})
-
-			It("should use labelselector when set for cleanPods", func() {
-				cleanPodsIdx := strings.Index(cueOutput, "cleanPods: kube.#Delete & {")
-				Expect(cleanPodsIdx).To(BeNumerically(">", 0))
-				cleanPodsBlock := cueOutput[cleanPodsIdx:]
-				Expect(cleanPodsBlock).To(ContainSubstring(`parameter["labelselector"] != _|_`))
-				Expect(cleanPodsBlock).To(ContainSubstring("matchingLabels: parameter.labelselector"))
-			})
-
-			It("should default matchingLabels to workflow name for cleanPods", func() {
-				cleanPodsIdx := strings.Index(cueOutput, "cleanPods: kube.#Delete & {")
-				Expect(cleanPodsIdx).To(BeNumerically(">", 0))
-				cleanPodsBlock := cueOutput[cleanPodsIdx:]
-				Expect(cleanPodsBlock).To(ContainSubstring(`parameter["labelselector"] == _|_`))
-				Expect(cleanPodsBlock).To(ContainSubstring(`"workflow.oam.dev/name": context.name`))
-			})
+			cleanPodsBlock := cueOutput[strings.Index(cueOutput, "cleanPods: kube.#Delete & {"):]
+			Expect(cleanPodsBlock).To(ContainSubstring(`parameter["labelselector"] != _|_`))
+			Expect(cleanPodsBlock).To(ContainSubstring("matchingLabels: parameter.labelselector"))
+			Expect(cleanPodsBlock).To(ContainSubstring(`parameter["labelselector"] == _|_`))
+			Expect(cleanPodsBlock).To(ContainSubstring(`"workflow.oam.dev/name": context.name`))
 		})
 
-		Describe("Template: structural correctness", func() {
-			It("should have exactly two kube.#Delete actions", func() {
-				count := strings.Count(cueOutput, "kube.#Delete & {")
-				Expect(count).To(Equal(2))
-			})
-
-			It("should have filter blocks for both actions", func() {
-				count := strings.Count(cueOutput, "filter: {")
-				Expect(count).To(Equal(2))
-			})
-
-			It("should reference workflow.oam.dev/name in both filters", func() {
-				count := strings.Count(cueOutput, `"workflow.oam.dev/name": context.name`)
-				Expect(count).To(Equal(2))
-			})
+		It("should be structurally correct with two delete actions and filters", func() {
+			Expect(strings.Count(cueOutput, "kube.#Delete & {")).To(Equal(2))
+			Expect(strings.Count(cueOutput, "filter: {")).To(Equal(2))
+			Expect(strings.Count(cueOutput, `"workflow.oam.dev/name": context.name`)).To(Equal(2))
 		})
 	})
 })

@@ -26,16 +26,10 @@ import (
 )
 
 var _ = Describe("ApplyObject WorkflowStep", func() {
-	Describe("Metadata", func() {
-		It("should have the correct name", func() {
-			step := workflowsteps.ApplyObject()
-			Expect(step.GetName()).To(Equal("apply-object"))
-		})
-
-		It("should have the correct description", func() {
-			step := workflowsteps.ApplyObject()
-			Expect(step.GetDescription()).To(Equal("Apply raw kubernetes objects for your workflow steps"))
-		})
+	It("should have correct name and description", func() {
+		step := workflowsteps.ApplyObject()
+		Expect(step.GetName()).To(Equal("apply-object"))
+		Expect(step.GetDescription()).To(Equal("Apply raw kubernetes objects for your workflow steps"))
 	})
 
 	Describe("CUE Generation", func() {
@@ -47,51 +41,26 @@ var _ = Describe("ApplyObject WorkflowStep", func() {
 			Expect(cueOutput).NotTo(BeEmpty())
 		})
 
-		Describe("Step header", func() {
-			It("should generate workflow-step type", func() {
-				Expect(cueOutput).To(ContainSubstring(`type: "workflow-step"`))
-			})
-
-			It("should generate correct category", func() {
-				Expect(cueOutput).To(ContainSubstring(`"category": "Resource Management"`))
-			})
-
-			It("should quote the hyphenated name", func() {
-				Expect(cueOutput).To(ContainSubstring(`"apply-object": {`))
-			})
+		It("should generate correct step header with type, category, and quoted name", func() {
+			Expect(cueOutput).To(ContainSubstring(`type: "workflow-step"`))
+			Expect(cueOutput).To(ContainSubstring(`"category": "Resource Management"`))
+			Expect(cueOutput).To(ContainSubstring(`"apply-object": {`))
 		})
 
-		Describe("Imports", func() {
-			It("should import vela/kube", func() {
-				Expect(cueOutput).To(ContainSubstring(`"vela/kube"`))
-			})
+		It("should import vela/kube", func() {
+			Expect(cueOutput).To(ContainSubstring(`"vela/kube"`))
 		})
 
-		Describe("Parameters", func() {
-			It("should have required value as open struct", func() {
-				Expect(cueOutput).To(ContainSubstring("value: {...}"))
-			})
-
-			It("should have cluster with empty default", func() {
-				Expect(cueOutput).To(ContainSubstring(`cluster: *"" | string`))
-			})
+		It("should declare value and cluster parameters", func() {
+			Expect(cueOutput).To(ContainSubstring("value: {...}"))
+			Expect(cueOutput).To(ContainSubstring(`cluster: *"" | string`))
 		})
 
-		Describe("Template", func() {
-			It("should use kube.#Apply", func() {
-				Expect(cueOutput).To(ContainSubstring("kube.#Apply & {"))
-			})
-
-			It("should pass full parameter object", func() {
-				Expect(cueOutput).To(ContainSubstring("$params: parameter"))
-			})
-		})
-
-		Describe("Template: structural correctness", func() {
-			It("should have exactly one kube.#Apply", func() {
-				count := strings.Count(cueOutput, "kube.#Apply & {")
-				Expect(count).To(Equal(1))
-			})
+		It("should generate template with exactly one kube.#Apply passing full parameter object", func() {
+			Expect(cueOutput).To(ContainSubstring("kube.#Apply & {"))
+			Expect(cueOutput).To(ContainSubstring("$params: parameter"))
+			count := strings.Count(cueOutput, "kube.#Apply & {")
+			Expect(count).To(Equal(1))
 		})
 	})
 })

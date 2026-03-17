@@ -26,16 +26,10 @@ import (
 )
 
 var _ = Describe("ExportData WorkflowStep", func() {
-	Describe("Metadata", func() {
-		It("should have the correct name", func() {
-			step := workflowsteps.ExportData()
-			Expect(step.GetName()).To(Equal("export-data"))
-		})
-
-		It("should have the correct description", func() {
-			step := workflowsteps.ExportData()
-			Expect(step.GetDescription()).To(Equal("Export data to clusters specified by topology."))
-		})
+	It("should have the correct name and description", func() {
+		step := workflowsteps.ExportData()
+		Expect(step.GetName()).To(Equal("export-data"))
+		Expect(step.GetDescription()).To(Equal("Export data to clusters specified by topology."))
 	})
 
 	Describe("CUE Generation", func() {
@@ -47,147 +41,57 @@ var _ = Describe("ExportData WorkflowStep", func() {
 			Expect(cueOutput).NotTo(BeEmpty())
 		})
 
-		Describe("Step header", func() {
-			It("should generate workflow-step type", func() {
-				Expect(cueOutput).To(ContainSubstring(`type: "workflow-step"`))
-			})
-
-			It("should generate correct category", func() {
-				Expect(cueOutput).To(ContainSubstring(`"category": "Application Delivery"`))
-			})
-
-			It("should have Application scope label", func() {
-				Expect(cueOutput).To(ContainSubstring(`"scope": "Application"`))
-			})
-
-			It("should quote the hyphenated name", func() {
-				Expect(cueOutput).To(ContainSubstring(`"export-data": {`))
-			})
+		It("should generate correct step header with type, category, scope, and quoted name", func() {
+			Expect(cueOutput).To(ContainSubstring(`type: "workflow-step"`))
+			Expect(cueOutput).To(ContainSubstring(`"category": "Application Delivery"`))
+			Expect(cueOutput).To(ContainSubstring(`"scope": "Application"`))
+			Expect(cueOutput).To(ContainSubstring(`"export-data": {`))
 		})
 
-		Describe("Imports", func() {
-			It("should import vela/op", func() {
-				Expect(cueOutput).To(ContainSubstring(`"vela/op"`))
-			})
-
-			It("should import vela/kube", func() {
-				Expect(cueOutput).To(ContainSubstring(`"vela/kube"`))
-			})
+		It("should import vela/op and vela/kube", func() {
+			Expect(cueOutput).To(ContainSubstring(`"vela/op"`))
+			Expect(cueOutput).To(ContainSubstring(`"vela/kube"`))
 		})
 
-		Describe("Parameters", func() {
-			It("should have optional name", func() {
-				Expect(cueOutput).To(ContainSubstring("name?: string"))
-			})
-
-			It("should have optional namespace", func() {
-				Expect(cueOutput).To(ContainSubstring("namespace?: string"))
-			})
-
-			It("should have kind with ConfigMap default and enum", func() {
-				Expect(cueOutput).To(ContainSubstring(`kind: *"ConfigMap" | "Secret"`))
-			})
-
-			It("should have required data as open struct", func() {
-				Expect(cueOutput).To(ContainSubstring("data: {}"))
-			})
-
-			It("should have optional topology", func() {
-				Expect(cueOutput).To(ContainSubstring("topology?: string"))
-			})
+		It("should declare all parameters with correct types and defaults", func() {
+			Expect(cueOutput).To(ContainSubstring("name?: string"))
+			Expect(cueOutput).To(ContainSubstring("namespace?: string"))
+			Expect(cueOutput).To(ContainSubstring(`kind: *"ConfigMap" | "Secret"`))
+			Expect(cueOutput).To(ContainSubstring("data: {}"))
+			Expect(cueOutput).To(ContainSubstring("topology?: string"))
 		})
 
-		Describe("Template: object block", func() {
-			It("should create a v1 resource", func() {
-				Expect(cueOutput).To(ContainSubstring(`apiVersion: "v1"`))
-			})
-
-			It("should set kind from parameter", func() {
-				Expect(cueOutput).To(ContainSubstring("kind: parameter.kind"))
-			})
-
-			Describe("metadata", func() {
-				It("should have name with context default", func() {
-					Expect(cueOutput).To(ContainSubstring("name: *context.name | string"))
-				})
-
-				It("should have namespace with context default", func() {
-					Expect(cueOutput).To(ContainSubstring("namespace: *context.namespace | string"))
-				})
-
-				It("should conditionally override name when set", func() {
-					Expect(cueOutput).To(ContainSubstring(`parameter["name"] != _|_`))
-					Expect(cueOutput).To(ContainSubstring("name: parameter.name"))
-				})
-
-				It("should conditionally override namespace when set", func() {
-					Expect(cueOutput).To(ContainSubstring(`parameter["namespace"] != _|_`))
-					Expect(cueOutput).To(ContainSubstring("namespace: parameter.namespace"))
-				})
-			})
-
-			Describe("conditional data fields", func() {
-				It("should set data when kind is ConfigMap", func() {
-					Expect(cueOutput).To(ContainSubstring(`parameter.kind == "ConfigMap"`))
-					Expect(cueOutput).To(ContainSubstring("data: parameter.data"))
-				})
-
-				It("should set stringData when kind is Secret", func() {
-					Expect(cueOutput).To(ContainSubstring(`parameter.kind == "Secret"`))
-					Expect(cueOutput).To(ContainSubstring("stringData: parameter.data"))
-				})
-			})
+		It("should build object block with v1 resource, conditional metadata, and conditional data fields", func() {
+			Expect(cueOutput).To(ContainSubstring(`apiVersion: "v1"`))
+			Expect(cueOutput).To(ContainSubstring("kind: parameter.kind"))
+			Expect(cueOutput).To(ContainSubstring("name: *context.name | string"))
+			Expect(cueOutput).To(ContainSubstring("namespace: *context.namespace | string"))
+			Expect(cueOutput).To(ContainSubstring(`parameter["name"] != _|_`))
+			Expect(cueOutput).To(ContainSubstring("name: parameter.name"))
+			Expect(cueOutput).To(ContainSubstring(`parameter["namespace"] != _|_`))
+			Expect(cueOutput).To(ContainSubstring("namespace: parameter.namespace"))
+			Expect(cueOutput).To(ContainSubstring(`parameter.kind == "ConfigMap"`))
+			Expect(cueOutput).To(ContainSubstring("data: parameter.data"))
+			Expect(cueOutput).To(ContainSubstring(`parameter.kind == "Secret"`))
+			Expect(cueOutput).To(ContainSubstring("stringData: parameter.data"))
 		})
 
-		Describe("Template: getPlacements", func() {
-			It("should use op.#GetPlacementsFromTopologyPolicies", func() {
-				Expect(cueOutput).To(ContainSubstring("op.#GetPlacementsFromTopologyPolicies & {"))
-			})
-
-			It("should have policies with empty default", func() {
-				Expect(cueOutput).To(ContainSubstring("policies: *[] | [...string]"))
-			})
-
-			It("should conditionally set policies from topology parameter", func() {
-				Expect(cueOutput).To(ContainSubstring("parameter.topology != _|_"))
-				Expect(cueOutput).To(ContainSubstring("policies: [parameter.topology]"))
-			})
+		It("should get placements from topology policies and apply via comprehension", func() {
+			Expect(cueOutput).To(ContainSubstring("op.#GetPlacementsFromTopologyPolicies & {"))
+			Expect(cueOutput).To(ContainSubstring("policies: *[] | [...string]"))
+			Expect(cueOutput).To(ContainSubstring("parameter.topology != _|_"))
+			Expect(cueOutput).To(ContainSubstring("policies: [parameter.topology]"))
+			Expect(cueOutput).To(ContainSubstring("for p in getPlacements.placements"))
+			Expect(cueOutput).To(ContainSubstring("(p.cluster):"))
+			Expect(cueOutput).To(ContainSubstring("kube.#Apply & {"))
+			Expect(cueOutput).To(ContainSubstring("value:   object"))
+			Expect(cueOutput).To(ContainSubstring("cluster: p.cluster"))
 		})
 
-		Describe("Template: apply comprehension", func() {
-			It("should iterate over getPlacements.placements", func() {
-				Expect(cueOutput).To(ContainSubstring("for p in getPlacements.placements"))
-			})
-
-			It("should use dynamic key with cluster", func() {
-				Expect(cueOutput).To(ContainSubstring("(p.cluster):"))
-			})
-
-			It("should use kube.#Apply inside the comprehension", func() {
-				Expect(cueOutput).To(ContainSubstring("kube.#Apply & {"))
-			})
-
-			It("should pass object value and cluster", func() {
-				Expect(cueOutput).To(ContainSubstring("value:   object"))
-				Expect(cueOutput).To(ContainSubstring("cluster: p.cluster"))
-			})
-		})
-
-		Describe("Template: structural correctness", func() {
-			It("should have exactly one kube.#Apply", func() {
-				count := strings.Count(cueOutput, "kube.#Apply & {")
-				Expect(count).To(Equal(1))
-			})
-
-			It("should have exactly one getPlacements block", func() {
-				count := strings.Count(cueOutput, "getPlacements:")
-				Expect(count).To(Equal(1))
-			})
-
-			It("should have exactly one object block", func() {
-				count := strings.Count(cueOutput, "\tobject: {")
-				Expect(count).To(Equal(1))
-			})
+		It("should be structurally correct with one of each action type", func() {
+			Expect(strings.Count(cueOutput, "kube.#Apply & {")).To(Equal(1))
+			Expect(strings.Count(cueOutput, "getPlacements:")).To(Equal(1))
+			Expect(strings.Count(cueOutput, "\tobject: {")).To(Equal(1))
 		})
 	})
 })

@@ -26,16 +26,10 @@ import (
 )
 
 var _ = Describe("ReadConfig WorkflowStep", func() {
-	Describe("Metadata", func() {
-		It("should have the correct name", func() {
-			step := workflowsteps.ReadConfig()
-			Expect(step.GetName()).To(Equal("read-config"))
-		})
-
-		It("should have the correct description", func() {
-			step := workflowsteps.ReadConfig()
-			Expect(step.GetDescription()).To(Equal("Read a config"))
-		})
+	It("should have the correct name and description", func() {
+		step := workflowsteps.ReadConfig()
+		Expect(step.GetName()).To(Equal("read-config"))
+		Expect(step.GetDescription()).To(Equal("Read a config"))
 	})
 
 	Describe("CUE Generation", func() {
@@ -47,57 +41,27 @@ var _ = Describe("ReadConfig WorkflowStep", func() {
 			Expect(cueOutput).NotTo(BeEmpty())
 		})
 
-		Describe("Step header", func() {
-			It("should generate workflow-step type", func() {
-				Expect(cueOutput).To(ContainSubstring(`type: "workflow-step"`))
-			})
-
-			It("should generate correct category", func() {
-				Expect(cueOutput).To(ContainSubstring(`"category": "Config Management"`))
-			})
+		It("should generate correct step header with type and category", func() {
+			Expect(cueOutput).To(ContainSubstring(`type: "workflow-step"`))
+			Expect(cueOutput).To(ContainSubstring(`"category": "Config Management"`))
 		})
 
-		Describe("Imports", func() {
-			It("should import vela/config", func() {
-				Expect(cueOutput).To(ContainSubstring(`"vela/config"`))
-			})
+		It("should import vela/config", func() {
+			Expect(cueOutput).To(ContainSubstring(`"vela/config"`))
 		})
 
-		Describe("Parameters", func() {
-			It("should have required name parameter", func() {
-				Expect(cueOutput).To(ContainSubstring("name: string"))
-			})
-
-			It("should have namespace with default context.namespace", func() {
-				Expect(cueOutput).To(ContainSubstring("*context.namespace | string"))
-			})
-
-			It("should have description for name", func() {
-				Expect(cueOutput).To(ContainSubstring("name of the config"))
-			})
-
-			It("should have description for namespace", func() {
-				Expect(cueOutput).To(ContainSubstring("namespace of the config"))
-			})
+		It("should declare name and namespace parameters with descriptions", func() {
+			Expect(cueOutput).To(ContainSubstring("name: string"))
+			Expect(cueOutput).To(ContainSubstring("*context.namespace | string"))
+			Expect(cueOutput).To(ContainSubstring("name of the config"))
+			Expect(cueOutput).To(ContainSubstring("namespace of the config"))
 		})
 
-		Describe("Template", func() {
-			It("should use config.#ReadConfig with struct unification", func() {
-				Expect(cueOutput).To(ContainSubstring("config.#ReadConfig & {"))
-			})
-
-			It("should pass full parameter directly", func() {
-				Expect(cueOutput).To(ContainSubstring("$params: parameter"))
-			})
-
-			It("should not map individual fields in $params", func() {
-				Expect(cueOutput).NotTo(MatchRegexp(`\$params:\s*\{`))
-			})
-
-			It("should have exactly one config.#ReadConfig", func() {
-				count := strings.Count(cueOutput, "config.#ReadConfig & {")
-				Expect(count).To(Equal(1))
-			})
+		It("should generate template with a single config.#ReadConfig call passing full parameter", func() {
+			Expect(cueOutput).To(ContainSubstring("config.#ReadConfig & {"))
+			Expect(cueOutput).To(ContainSubstring("$params: parameter"))
+			Expect(cueOutput).NotTo(MatchRegexp(`\$params:\s*\{`))
+			Expect(strings.Count(cueOutput, "config.#ReadConfig & {")).To(Equal(1))
 		})
 	})
 })

@@ -26,16 +26,10 @@ import (
 )
 
 var _ = Describe("Webhook WorkflowStep", func() {
-	Describe("Metadata", func() {
-		It("should have the correct name", func() {
-			step := workflowsteps.Webhook()
-			Expect(step.GetName()).To(Equal("webhook"))
-		})
-
-		It("should have the correct description", func() {
-			step := workflowsteps.Webhook()
-			Expect(step.GetDescription()).To(ContainSubstring("Send a POST request to the specified Webhook URL"))
-		})
+	It("should have the correct name and description", func() {
+		step := workflowsteps.Webhook()
+		Expect(step.GetName()).To(Equal("webhook"))
+		Expect(step.GetDescription()).To(ContainSubstring("Send a POST request to the specified Webhook URL"))
 	})
 
 	Describe("CUE Generation", func() {
@@ -47,168 +41,72 @@ var _ = Describe("Webhook WorkflowStep", func() {
 			Expect(cueOutput).NotTo(BeEmpty())
 		})
 
-		Describe("Step header", func() {
-			It("should generate workflow-step type", func() {
-				Expect(cueOutput).To(ContainSubstring(`type: "workflow-step"`))
-			})
-
-			It("should generate correct category", func() {
-				Expect(cueOutput).To(ContainSubstring(`"category": "External Intergration"`))
-			})
+		It("should generate correct step header with type and category", func() {
+			Expect(cueOutput).To(ContainSubstring(`type: "workflow-step"`))
+			Expect(cueOutput).To(ContainSubstring(`"category": "External Intergration"`))
 		})
 
-		Describe("Imports", func() {
-			It("should import vela/http", func() {
-				Expect(cueOutput).To(ContainSubstring(`"vela/http"`))
-			})
-
-			It("should import vela/kube", func() {
-				Expect(cueOutput).To(ContainSubstring(`"vela/kube"`))
-			})
-
-			It("should import vela/util", func() {
-				Expect(cueOutput).To(ContainSubstring(`"vela/util"`))
-			})
-
-			It("should import encoding/json", func() {
-				Expect(cueOutput).To(ContainSubstring(`"encoding/json"`))
-			})
-
-			It("should import encoding/base64", func() {
-				Expect(cueOutput).To(ContainSubstring(`"encoding/base64"`))
-			})
+		It("should import all required packages", func() {
+			Expect(cueOutput).To(ContainSubstring(`"vela/http"`))
+			Expect(cueOutput).To(ContainSubstring(`"vela/kube"`))
+			Expect(cueOutput).To(ContainSubstring(`"vela/util"`))
+			Expect(cueOutput).To(ContainSubstring(`"encoding/json"`))
+			Expect(cueOutput).To(ContainSubstring(`"encoding/base64"`))
 		})
 
-		Describe("Parameter: url (ClosedUnion)", func() {
-			It("should generate url as a closed struct disjunction", func() {
-				Expect(cueOutput).To(ContainSubstring("url: close({"))
-			})
-
-			It("should have value: string in the first option", func() {
-				Expect(cueOutput).To(ContainSubstring("value: string"))
-			})
-
-			It("should have secretRef struct in the second option", func() {
-				Expect(cueOutput).To(ContainSubstring("}) | close({"))
-				Expect(cueOutput).To(ContainSubstring("secretRef: {"))
-			})
-
-			It("should have name and key fields inside secretRef", func() {
-				Expect(cueOutput).To(ContainSubstring("name: string"))
-				Expect(cueOutput).To(ContainSubstring("key: string"))
-			})
-
-			It("should have descriptions for secretRef fields", func() {
-				Expect(cueOutput).To(ContainSubstring("// +usage=name is the name of the secret"))
-				Expect(cueOutput).To(ContainSubstring("// +usage=key is the key in the secret"))
-			})
-
-			It("should have description for url parameter", func() {
-				Expect(cueOutput).To(ContainSubstring("// +usage=Specify the webhook url"))
-			})
+		It("should declare url as ClosedUnion with value and secretRef options", func() {
+			Expect(cueOutput).To(ContainSubstring("url: close({"))
+			Expect(cueOutput).To(ContainSubstring("value: string"))
+			Expect(cueOutput).To(ContainSubstring("}) | close({"))
+			Expect(cueOutput).To(ContainSubstring("secretRef: {"))
+			Expect(cueOutput).To(ContainSubstring("name: string"))
+			Expect(cueOutput).To(ContainSubstring("key: string"))
+			Expect(cueOutput).To(ContainSubstring("// +usage=name is the name of the secret"))
+			Expect(cueOutput).To(ContainSubstring("// +usage=key is the key in the secret"))
+			Expect(cueOutput).To(ContainSubstring("// +usage=Specify the webhook url"))
 		})
 
-		Describe("Parameter: data", func() {
-			It("should generate data as optional parameter", func() {
-				Expect(cueOutput).To(ContainSubstring("data?: {...}"))
-			})
-
-			It("should have description for data parameter", func() {
-				Expect(cueOutput).To(ContainSubstring("// +usage=Specify the data you want to send"))
-			})
+		It("should declare optional data parameter", func() {
+			Expect(cueOutput).To(ContainSubstring("data?: {...}"))
+			Expect(cueOutput).To(ContainSubstring("// +usage=Specify the data you want to send"))
 		})
 
-		Describe("Template: data block", func() {
-			It("should read Application when no data provided", func() {
-				Expect(cueOutput).To(ContainSubstring("kube.#Read & {"))
-				Expect(cueOutput).To(ContainSubstring(`apiVersion: "core.oam.dev/v1beta1"`))
-				Expect(cueOutput).To(ContainSubstring(`kind:       "Application"`))
-			})
-
-			It("should use context.name and context.namespace for Application read", func() {
-				Expect(cueOutput).To(ContainSubstring("name:      context.name"))
-				Expect(cueOutput).To(ContainSubstring("namespace: context.namespace"))
-			})
-
-			It("should marshal Application when no data", func() {
-				Expect(cueOutput).To(ContainSubstring("json.Marshal(read.$returns.value)"))
-			})
-
-			It("should marshal parameter.data when data is provided", func() {
-				Expect(cueOutput).To(ContainSubstring("json.Marshal(parameter.data)"))
-			})
-
-			It("should have conditional checks for data existence", func() {
-				Expect(cueOutput).To(ContainSubstring("parameter.data == _|_"))
-				Expect(cueOutput).To(ContainSubstring("parameter.data != _|_"))
-			})
+		It("should read Application when no data provided and marshal accordingly", func() {
+			Expect(cueOutput).To(ContainSubstring("kube.#Read & {"))
+			Expect(cueOutput).To(ContainSubstring(`apiVersion: "core.oam.dev/v1beta1"`))
+			Expect(cueOutput).To(ContainSubstring(`kind:       "Application"`))
+			Expect(cueOutput).To(ContainSubstring("name:      context.name"))
+			Expect(cueOutput).To(ContainSubstring("namespace: context.namespace"))
+			Expect(cueOutput).To(ContainSubstring("json.Marshal(read.$returns.value)"))
+			Expect(cueOutput).To(ContainSubstring("json.Marshal(parameter.data)"))
+			Expect(cueOutput).To(ContainSubstring("parameter.data == _|_"))
+			Expect(cueOutput).To(ContainSubstring("parameter.data != _|_"))
 		})
 
-		Describe("Template: webhook block with URL value", func() {
-			It("should make HTTP POST when url.value is set", func() {
-				Expect(cueOutput).To(ContainSubstring("parameter.url.value != _|_"))
-				Expect(cueOutput).To(ContainSubstring("http.#HTTPDo & {"))
-				Expect(cueOutput).To(ContainSubstring(`method: "POST"`))
-			})
-
-			It("should use parameter.url.value as the request URL", func() {
-				Expect(cueOutput).To(ContainSubstring("url:    parameter.url.value"))
-			})
-
-			It("should set Content-Type header to application/json", func() {
-				Expect(cueOutput).To(ContainSubstring(`header: "Content-Type": "application/json"`))
-			})
-
-			It("should use data.value as the request body", func() {
-				Expect(cueOutput).To(ContainSubstring("body: data.value"))
-			})
+		It("should POST via http.#HTTPDo when url.value is set", func() {
+			Expect(cueOutput).To(ContainSubstring("parameter.url.value != _|_"))
+			Expect(cueOutput).To(ContainSubstring("http.#HTTPDo & {"))
+			Expect(cueOutput).To(ContainSubstring(`method: "POST"`))
+			Expect(cueOutput).To(ContainSubstring("url:    parameter.url.value"))
+			Expect(cueOutput).To(ContainSubstring(`header: "Content-Type": "application/json"`))
+			Expect(cueOutput).To(ContainSubstring("body: data.value"))
 		})
 
-		Describe("Template: webhook block with secretRef URL", func() {
-			It("should read Secret when using secretRef", func() {
-				Expect(cueOutput).To(ContainSubstring("parameter.url.secretRef != _|_"))
-				Expect(cueOutput).To(ContainSubstring(`apiVersion: "v1"`))
-				Expect(cueOutput).To(ContainSubstring(`kind:       "Secret"`))
-			})
-
-			It("should use secretRef.name for Secret metadata", func() {
-				Expect(cueOutput).To(ContainSubstring("name:      parameter.url.secretRef.name"))
-			})
-
-			It("should convert Secret data using base64.Decode and ConvertString", func() {
-				Expect(cueOutput).To(ContainSubstring("util.#ConvertString & {"))
-				Expect(cueOutput).To(ContainSubstring("base64.Decode(null, read.$returns.value.data[parameter.url.secretRef.key])"))
-			})
-
-			It("should use converted string as URL for HTTP POST", func() {
-				Expect(cueOutput).To(ContainSubstring("url:    stringValue.$returns.str"))
-			})
-
-			It("should guard secretRef with value not set condition", func() {
-				Expect(cueOutput).To(ContainSubstring("parameter.url.secretRef != _|_ && parameter.url.value == _|_"))
-			})
+		It("should read Secret and POST via resolved URL when secretRef is set", func() {
+			Expect(cueOutput).To(ContainSubstring("parameter.url.secretRef != _|_ && parameter.url.value == _|_"))
+			Expect(cueOutput).To(ContainSubstring(`apiVersion: "v1"`))
+			Expect(cueOutput).To(ContainSubstring(`kind:       "Secret"`))
+			Expect(cueOutput).To(ContainSubstring("name:      parameter.url.secretRef.name"))
+			Expect(cueOutput).To(ContainSubstring("util.#ConvertString & {"))
+			Expect(cueOutput).To(ContainSubstring("base64.Decode(null, read.$returns.value.data[parameter.url.secretRef.key])"))
+			Expect(cueOutput).To(ContainSubstring("url:    stringValue.$returns.str"))
 		})
 
-		Describe("Template: structural correctness", func() {
-			It("should have two HTTP POST operations", func() {
-				count := strings.Count(cueOutput, "http.#HTTPDo & {")
-				Expect(count).To(Equal(2))
-			})
-
-			It("should have two kube.#Read operations", func() {
-				count := strings.Count(cueOutput, "kube.#Read & {")
-				Expect(count).To(Equal(2))
-			})
-
-			It("should have one ConvertString operation", func() {
-				count := strings.Count(cueOutput, "util.#ConvertString & {")
-				Expect(count).To(Equal(1))
-			})
-
-			It("should have exactly two json.Marshal calls", func() {
-				count := strings.Count(cueOutput, "json.Marshal(")
-				Expect(count).To(Equal(2))
-			})
+		It("should have correct structural counts", func() {
+			Expect(strings.Count(cueOutput, "http.#HTTPDo & {")).To(Equal(2))
+			Expect(strings.Count(cueOutput, "kube.#Read & {")).To(Equal(2))
+			Expect(strings.Count(cueOutput, "util.#ConvertString & {")).To(Equal(1))
+			Expect(strings.Count(cueOutput, "json.Marshal(")).To(Equal(2))
 		})
 	})
 })

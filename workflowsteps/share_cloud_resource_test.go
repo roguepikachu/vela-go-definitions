@@ -26,16 +26,10 @@ import (
 )
 
 var _ = Describe("ShareCloudResource WorkflowStep", func() {
-	Describe("Metadata", func() {
-		It("should have the correct name", func() {
-			step := workflowsteps.ShareCloudResource()
-			Expect(step.GetName()).To(Equal("share-cloud-resource"))
-		})
-
-		It("should have the correct description", func() {
-			step := workflowsteps.ShareCloudResource()
-			Expect(step.GetDescription()).To(ContainSubstring("Sync secrets created by terraform component"))
-		})
+	It("should have the correct name and description", func() {
+		step := workflowsteps.ShareCloudResource()
+		Expect(step.GetName()).To(Equal("share-cloud-resource"))
+		Expect(step.GetDescription()).To(ContainSubstring("Sync secrets created by terraform component"))
 	})
 
 	Describe("CUE Generation", func() {
@@ -47,83 +41,40 @@ var _ = Describe("ShareCloudResource WorkflowStep", func() {
 			Expect(cueOutput).NotTo(BeEmpty())
 		})
 
-		Describe("Step header", func() {
-			It("should generate workflow-step type", func() {
-				Expect(cueOutput).To(ContainSubstring(`type: "workflow-step"`))
-			})
-
-			It("should generate correct category", func() {
-				Expect(cueOutput).To(ContainSubstring(`"category": "Application Delivery"`))
-			})
-
-			It("should generate Application scope", func() {
-				Expect(cueOutput).To(ContainSubstring(`"scope": "Application"`))
-			})
+		It("should generate correct step header with type, category, and scope", func() {
+			Expect(cueOutput).To(ContainSubstring(`type: "workflow-step"`))
+			Expect(cueOutput).To(ContainSubstring(`"category": "Application Delivery"`))
+			Expect(cueOutput).To(ContainSubstring(`"scope": "Application"`))
 		})
 
-		Describe("Imports", func() {
-			It("should import vela/op", func() {
-				Expect(cueOutput).To(ContainSubstring(`"vela/op"`))
-			})
+		It("should import vela/op", func() {
+			Expect(cueOutput).To(ContainSubstring(`"vela/op"`))
 		})
 
-		Describe("Parameters", func() {
-			It("should have required placements array of structs", func() {
-				Expect(cueOutput).To(ContainSubstring("placements: [...{"))
-				Expect(cueOutput).To(ContainSubstring("// +usage=Declare the location to bind"))
-			})
+		It("should declare placements, policy, and env parameters", func() {
+			Expect(cueOutput).To(ContainSubstring("placements: [...{"))
+			Expect(cueOutput).To(ContainSubstring("// +usage=Declare the location to bind"))
 
-			It("should have optional namespace and cluster in placements", func() {
-				placementsIdx := strings.Index(cueOutput, "placements: [...{")
-				Expect(placementsIdx).To(BeNumerically(">", 0))
-				placementsBlock := cueOutput[placementsIdx:]
-				Expect(placementsBlock).To(ContainSubstring("namespace?: string"))
-				Expect(placementsBlock).To(ContainSubstring("cluster?:"))
-			})
+			placementsIdx := strings.Index(cueOutput, "placements: [...{")
+			Expect(placementsIdx).To(BeNumerically(">", 0))
+			placementsBlock := cueOutput[placementsIdx:]
+			Expect(placementsBlock).To(ContainSubstring("namespace?: string"))
+			Expect(placementsBlock).To(ContainSubstring("cluster?:"))
 
-			It("should have policy with empty default", func() {
-				Expect(cueOutput).To(ContainSubstring(`policy: *"" | string`))
-			})
-
-			It("should have required env", func() {
-				Expect(cueOutput).To(ContainSubstring("env: string"))
-				Expect(cueOutput).To(ContainSubstring("// +usage=Declare the name of the env in policy"))
-			})
+			Expect(cueOutput).To(ContainSubstring(`policy: *"" | string`))
+			Expect(cueOutput).To(ContainSubstring("env: string"))
+			Expect(cueOutput).To(ContainSubstring("// +usage=Declare the name of the env in policy"))
 		})
 
-		Describe("Template: app (op.#ShareCloudResource)", func() {
-			It("should use op.#ShareCloudResource", func() {
-				Expect(cueOutput).To(ContainSubstring("app: op.#ShareCloudResource & {"))
-			})
-
-			It("should pass env as direct field", func() {
-				Expect(cueOutput).To(ContainSubstring("env: parameter.env"))
-			})
-
-			It("should pass policy as direct field", func() {
-				Expect(cueOutput).To(ContainSubstring("policy: parameter.policy"))
-			})
-
-			It("should pass placements as direct field", func() {
-				Expect(cueOutput).To(ContainSubstring("placements: parameter.placements"))
-			})
-
-			It("should pass namespace from context", func() {
-				Expect(cueOutput).To(ContainSubstring("namespace: context.namespace"))
-			})
-
-			It("should pass name from context", func() {
-				Expect(cueOutput).To(ContainSubstring("name: context.name"))
-			})
-
-			It("should NOT wrap fields in $params", func() {
-				Expect(cueOutput).NotTo(ContainSubstring("$params:"))
-			})
-
-			It("should have exactly one op.#ShareCloudResource", func() {
-				count := strings.Count(cueOutput, "op.#ShareCloudResource & {")
-				Expect(count).To(Equal(1))
-			})
+		It("should invoke a single op.#ShareCloudResource with direct field bindings", func() {
+			Expect(cueOutput).To(ContainSubstring("app: op.#ShareCloudResource & {"))
+			Expect(cueOutput).To(ContainSubstring("env: parameter.env"))
+			Expect(cueOutput).To(ContainSubstring("policy: parameter.policy"))
+			Expect(cueOutput).To(ContainSubstring("placements: parameter.placements"))
+			Expect(cueOutput).To(ContainSubstring("namespace: context.namespace"))
+			Expect(cueOutput).To(ContainSubstring("name: context.name"))
+			Expect(cueOutput).NotTo(ContainSubstring("$params:"))
+			Expect(strings.Count(cueOutput, "op.#ShareCloudResource & {")).To(Equal(1))
 		})
 	})
 })

@@ -24,16 +24,10 @@ import (
 )
 
 var _ = Describe("ApplyComponent WorkflowStep", func() {
-	Describe("Metadata", func() {
-		It("should have the correct name", func() {
-			step := workflowsteps.ApplyComponent()
-			Expect(step.GetName()).To(Equal("apply-component"))
-		})
-
-		It("should have the correct description", func() {
-			step := workflowsteps.ApplyComponent()
-			Expect(step.GetDescription()).To(Equal("Apply a specific component and its corresponding traits in application"))
-		})
+	It("should have correct name and description", func() {
+		step := workflowsteps.ApplyComponent()
+		Expect(step.GetName()).To(Equal("apply-component"))
+		Expect(step.GetDescription()).To(Equal("Apply a specific component and its corresponding traits in application"))
 	})
 
 	Describe("CUE Generation", func() {
@@ -45,48 +39,23 @@ var _ = Describe("ApplyComponent WorkflowStep", func() {
 			Expect(cueOutput).NotTo(BeEmpty())
 		})
 
-		Describe("Step header", func() {
-			It("should generate workflow-step type", func() {
-				Expect(cueOutput).To(ContainSubstring(`type: "workflow-step"`))
-			})
-
-			It("should generate correct category", func() {
-				Expect(cueOutput).To(ContainSubstring(`"category": "Application Delivery"`))
-			})
-
-			It("should have Application scope label", func() {
-				Expect(cueOutput).To(ContainSubstring(`"scope": "Application"`))
-			})
-
-			It("should quote the hyphenated name", func() {
-				Expect(cueOutput).To(ContainSubstring(`"apply-component": {`))
-			})
+		It("should generate correct step header with type, category, scope, and quoted name", func() {
+			Expect(cueOutput).To(ContainSubstring(`type: "workflow-step"`))
+			Expect(cueOutput).To(ContainSubstring(`"category": "Application Delivery"`))
+			Expect(cueOutput).To(ContainSubstring(`"scope": "Application"`))
+			Expect(cueOutput).To(ContainSubstring(`"apply-component": {`))
 		})
 
-		Describe("Parameters", func() {
-			It("should have required component", func() {
-				Expect(cueOutput).To(ContainSubstring("component: string"))
-			})
-
-			It("should have cluster with empty default", func() {
-				Expect(cueOutput).To(ContainSubstring(`cluster: *"" | string`))
-			})
-
-			It("should have namespace with empty default", func() {
-				Expect(cueOutput).To(ContainSubstring(`namespace: *"" | string`))
-			})
+		It("should declare component, cluster, and namespace parameters", func() {
+			Expect(cueOutput).To(ContainSubstring("component: string"))
+			Expect(cueOutput).To(ContainSubstring(`cluster: *"" | string`))
+			Expect(cueOutput).To(ContainSubstring(`namespace: *"" | string`))
 		})
 
-		Describe("Template", func() {
-			It("should have no imports", func() {
-				Expect(cueOutput).NotTo(ContainSubstring("import"))
-			})
-
-			It("should have no template actions", func() {
-				// This step has only parameters, no template actions
-				Expect(cueOutput).NotTo(ContainSubstring("kube."))
-				Expect(cueOutput).NotTo(ContainSubstring("builtin."))
-			})
+		It("should have no imports or template actions", func() {
+			Expect(cueOutput).NotTo(ContainSubstring("import"))
+			Expect(cueOutput).NotTo(ContainSubstring("kube."))
+			Expect(cueOutput).NotTo(ContainSubstring("builtin."))
 		})
 	})
 })

@@ -26,16 +26,10 @@ import (
 )
 
 var _ = Describe("Notification WorkflowStep", func() {
-	Describe("Metadata", func() {
-		It("should have the correct name", func() {
-			step := workflowsteps.Notification()
-			Expect(step.GetName()).To(Equal("notification"))
-		})
-
-		It("should have the correct description", func() {
-			step := workflowsteps.Notification()
-			Expect(step.GetDescription()).To(ContainSubstring("Send notifications to Email, DingTalk, Slack, Lark"))
-		})
+	It("should have correct metadata", func() {
+		step := workflowsteps.Notification()
+		Expect(step.GetName()).To(Equal("notification"))
+		Expect(step.GetDescription()).To(ContainSubstring("Send notifications to Email, DingTalk, Slack, Lark"))
 	})
 
 	Describe("CUE Generation", func() {
@@ -47,374 +41,208 @@ var _ = Describe("Notification WorkflowStep", func() {
 			Expect(cueOutput).NotTo(BeEmpty())
 		})
 
-		Describe("Step header", func() {
-			It("should generate workflow-step type", func() {
-				Expect(cueOutput).To(ContainSubstring(`type: "workflow-step"`))
-			})
-
-			It("should generate correct category", func() {
-				Expect(cueOutput).To(ContainSubstring(`"category": "External Integration"`))
-			})
+		It("should generate step header with type and category", func() {
+			Expect(cueOutput).To(ContainSubstring(`type: "workflow-step"`))
+			Expect(cueOutput).To(ContainSubstring(`"category": "External Integration"`))
 		})
 
-		Describe("Imports", func() {
-			It("should import vela/http", func() {
-				Expect(cueOutput).To(ContainSubstring(`"vela/http"`))
-			})
-
-			It("should import vela/email", func() {
-				Expect(cueOutput).To(ContainSubstring(`"vela/email"`))
-			})
-
-			It("should import vela/kube", func() {
-				Expect(cueOutput).To(ContainSubstring(`"vela/kube"`))
-			})
-
-			It("should import vela/util", func() {
-				Expect(cueOutput).To(ContainSubstring(`"vela/util"`))
-			})
-
-			It("should import encoding/base64", func() {
-				Expect(cueOutput).To(ContainSubstring(`"encoding/base64"`))
-			})
-
-			It("should import encoding/json", func() {
-				Expect(cueOutput).To(ContainSubstring(`"encoding/json"`))
-			})
+		It("should import all required packages", func() {
+			Expect(cueOutput).To(ContainSubstring(`"vela/http"`))
+			Expect(cueOutput).To(ContainSubstring(`"vela/email"`))
+			Expect(cueOutput).To(ContainSubstring(`"vela/kube"`))
+			Expect(cueOutput).To(ContainSubstring(`"vela/util"`))
+			Expect(cueOutput).To(ContainSubstring(`"encoding/base64"`))
+			Expect(cueOutput).To(ContainSubstring(`"encoding/json"`))
 		})
 
-		Describe("Helper definitions", func() {
-			It("should define #TextType helper", func() {
-				Expect(cueOutput).To(ContainSubstring("#TextType: {"))
-				Expect(cueOutput).To(ContainSubstring("type: string"))
-				Expect(cueOutput).To(ContainSubstring("text: string"))
-				Expect(cueOutput).To(ContainSubstring("emoji?: bool"))
-				Expect(cueOutput).To(ContainSubstring("verbatim?: bool"))
-			})
+		It("should define all helper types with correct fields and cross-references", func() {
+			// #TextType
+			Expect(cueOutput).To(ContainSubstring("#TextType: {"))
+			Expect(cueOutput).To(ContainSubstring("type: string"))
+			Expect(cueOutput).To(ContainSubstring("text: string"))
+			Expect(cueOutput).To(ContainSubstring("emoji?: bool"))
+			Expect(cueOutput).To(ContainSubstring("verbatim?: bool"))
 
-			It("should define #Option helper referencing #TextType", func() {
-				Expect(cueOutput).To(ContainSubstring("#Option: {"))
-				Expect(cueOutput).To(ContainSubstring("text: #TextType"))
-				Expect(cueOutput).To(ContainSubstring("description?: #TextType"))
-			})
+			// #Option referencing #TextType
+			Expect(cueOutput).To(ContainSubstring("#Option: {"))
+			Expect(cueOutput).To(ContainSubstring("text: #TextType"))
+			Expect(cueOutput).To(ContainSubstring("description?: #TextType"))
 
-			It("should define #DingLink helper", func() {
-				Expect(cueOutput).To(ContainSubstring("#DingLink: {"))
-				Expect(cueOutput).To(ContainSubstring("messageUrl?: string"))
-				Expect(cueOutput).To(ContainSubstring("picUrl?: string"))
-			})
+			// #DingLink
+			Expect(cueOutput).To(ContainSubstring("#DingLink: {"))
+			Expect(cueOutput).To(ContainSubstring("messageUrl?: string"))
+			Expect(cueOutput).To(ContainSubstring("picUrl?: string"))
 
-			It("should define #DingBtn helper", func() {
-				Expect(cueOutput).To(ContainSubstring("#DingBtn: {"))
-				Expect(cueOutput).To(ContainSubstring("title: string"))
-				Expect(cueOutput).To(ContainSubstring("actionURL: string"))
-			})
+			// #DingBtn
+			Expect(cueOutput).To(ContainSubstring("#DingBtn: {"))
+			Expect(cueOutput).To(ContainSubstring("title: string"))
+			Expect(cueOutput).To(ContainSubstring("actionURL: string"))
 
-			It("should define #Block helper", func() {
-				Expect(cueOutput).To(ContainSubstring("#Block: {"))
-				Expect(cueOutput).To(ContainSubstring("block_id?: string"))
-				Expect(cueOutput).To(ContainSubstring("elements?: [...{"))
-			})
-
-			It("should reference #TextType within #Block elements", func() {
-				Expect(cueOutput).To(ContainSubstring("text?: #TextType"))
-				Expect(cueOutput).To(ContainSubstring("placeholder?: #TextType"))
-			})
-
-			It("should reference #Option within #Block elements", func() {
-				Expect(cueOutput).To(ContainSubstring("options?: [...#Option]"))
-				Expect(cueOutput).To(ContainSubstring("initial_options?: [...#Option]"))
-				Expect(cueOutput).To(ContainSubstring("option_groups?: [...#Option]"))
-			})
+			// #Block with element references to #TextType and #Option
+			Expect(cueOutput).To(ContainSubstring("#Block: {"))
+			Expect(cueOutput).To(ContainSubstring("block_id?: string"))
+			Expect(cueOutput).To(ContainSubstring("elements?: [...{"))
+			Expect(cueOutput).To(ContainSubstring("text?: #TextType"))
+			Expect(cueOutput).To(ContainSubstring("placeholder?: #TextType"))
+			Expect(cueOutput).To(ContainSubstring("options?: [...#Option]"))
+			Expect(cueOutput).To(ContainSubstring("initial_options?: [...#Option]"))
+			Expect(cueOutput).To(ContainSubstring("option_groups?: [...#Option]"))
 		})
 
-		Describe("Parameter: lark", func() {
-			It("should be optional", func() {
-				Expect(cueOutput).To(ContainSubstring("lark?: {"))
-			})
+		It("should define lark parameter with url ClosedUnion and message fields", func() {
+			Expect(cueOutput).To(ContainSubstring("lark?: {"))
 
-			It("should have url as ClosedUnion with value or secretRef", func() {
-				larkIdx := strings.Index(cueOutput, "lark?: {")
-				Expect(larkIdx).To(BeNumerically(">", 0))
-				larkBlock := cueOutput[larkIdx:]
-				Expect(larkBlock).To(ContainSubstring("url: close({"))
-				Expect(larkBlock).To(ContainSubstring("value: string"))
-				Expect(larkBlock).To(ContainSubstring("}) | close({"))
-				Expect(larkBlock).To(ContainSubstring("secretRef: {"))
-			})
+			larkIdx := strings.Index(cueOutput, "lark?: {")
+			Expect(larkIdx).To(BeNumerically(">", 0))
+			larkBlock := cueOutput[larkIdx:]
+			Expect(larkBlock).To(ContainSubstring("url: close({"))
+			Expect(larkBlock).To(ContainSubstring("value: string"))
+			Expect(larkBlock).To(ContainSubstring("}) | close({"))
+			Expect(larkBlock).To(ContainSubstring("secretRef: {"))
 
-			It("should have message with msg_type and content", func() {
-				Expect(cueOutput).To(ContainSubstring("msg_type: string"))
-				Expect(cueOutput).To(ContainSubstring("// +usage=content should be json encode string"))
-			})
+			Expect(cueOutput).To(ContainSubstring("msg_type: string"))
+			Expect(cueOutput).To(ContainSubstring("// +usage=content should be json encode string"))
 		})
 
-		Describe("Parameter: dingding", func() {
-			It("should be optional", func() {
-				Expect(cueOutput).To(ContainSubstring("dingding?: {"))
-			})
+		It("should define dingding parameter with all message types and helpers", func() {
+			Expect(cueOutput).To(ContainSubstring("dingding?: {"))
 
-			It("should have url as ClosedUnion", func() {
-				dingIdx := strings.Index(cueOutput, "dingding?: {")
-				Expect(dingIdx).To(BeNumerically(">", 0))
-				dingBlock := cueOutput[dingIdx:]
-				Expect(dingBlock).To(ContainSubstring("url: close({"))
-				Expect(dingBlock).To(ContainSubstring("value: string"))
-				Expect(dingBlock).To(ContainSubstring("}) | close({"))
-			})
+			// url as ClosedUnion
+			dingIdx := strings.Index(cueOutput, "dingding?: {")
+			Expect(dingIdx).To(BeNumerically(">", 0))
+			dingBlock := cueOutput[dingIdx:]
+			Expect(dingBlock).To(ContainSubstring("url: close({"))
+			Expect(dingBlock).To(ContainSubstring("value: string"))
+			Expect(dingBlock).To(ContainSubstring("}) | close({"))
 
-			It("should have message with msgtype enum and default", func() {
-				Expect(cueOutput).To(ContainSubstring(`msgtype: *"text" | "link" | "markdown" | "actionCard" | "feedCard"`))
-			})
+			// message with msgtype enum
+			Expect(cueOutput).To(ContainSubstring(`msgtype: *"text" | "link" | "markdown" | "actionCard" | "feedCard"`))
 
-			It("should have text as closed union", func() {
-				Expect(cueOutput).To(ContainSubstring("text?: close({"))
-				Expect(cueOutput).To(ContainSubstring("content: string"))
-			})
-
-			It("should reference #DingLink for link field", func() {
-				Expect(cueOutput).To(ContainSubstring("link?: #DingLink"))
-			})
-
-			It("should have markdown as closed union", func() {
-				Expect(cueOutput).To(ContainSubstring("markdown?: close({"))
-				Expect(cueOutput).To(ContainSubstring("text: string"))
-				Expect(cueOutput).To(ContainSubstring("title: string"))
-			})
-
-			It("should have at with atMobiles and isAtAll", func() {
-				Expect(cueOutput).To(ContainSubstring("at?: close({"))
-				Expect(cueOutput).To(ContainSubstring("atMobiles?: [...string]"))
-				Expect(cueOutput).To(ContainSubstring("isAtAll?: bool"))
-			})
-
-			It("should have actionCard with all required fields", func() {
-				Expect(cueOutput).To(ContainSubstring("actionCard?: close({"))
-				Expect(cueOutput).To(ContainSubstring("hideAvatar: string"))
-				Expect(cueOutput).To(ContainSubstring("btnOrientation: string"))
-				Expect(cueOutput).To(ContainSubstring("singleTitle: string"))
-				Expect(cueOutput).To(ContainSubstring("singleURL: string"))
-			})
-
-			It("should reference #DingBtn for btns", func() {
-				// btns is inside a ClosedUnion (actionCard) which now generates _ (top type)
-				// The #DingBtn helper is still defined; btns reference is inside the ClosedUnion schema
-				Expect(cueOutput).To(ContainSubstring("#DingBtn"))
-			})
-
-			It("should have feedCard referencing #DingLink", func() {
-				Expect(cueOutput).To(ContainSubstring("feedCard?: close({"))
-				Expect(cueOutput).To(ContainSubstring("links: [...#DingLink]"))
-			})
+			// text, link, markdown, at, actionCard, feedCard
+			Expect(cueOutput).To(ContainSubstring("text?: close({"))
+			Expect(cueOutput).To(ContainSubstring("content: string"))
+			Expect(cueOutput).To(ContainSubstring("link?: #DingLink"))
+			Expect(cueOutput).To(ContainSubstring("markdown?: close({"))
+			Expect(cueOutput).To(ContainSubstring("at?: close({"))
+			Expect(cueOutput).To(ContainSubstring("atMobiles?: [...string]"))
+			Expect(cueOutput).To(ContainSubstring("isAtAll?: bool"))
+			Expect(cueOutput).To(ContainSubstring("actionCard?: close({"))
+			Expect(cueOutput).To(ContainSubstring("hideAvatar: string"))
+			Expect(cueOutput).To(ContainSubstring("btnOrientation: string"))
+			Expect(cueOutput).To(ContainSubstring("singleTitle: string"))
+			Expect(cueOutput).To(ContainSubstring("singleURL: string"))
+			Expect(cueOutput).To(ContainSubstring("#DingBtn"))
+			Expect(cueOutput).To(ContainSubstring("feedCard?: close({"))
+			Expect(cueOutput).To(ContainSubstring("links: [...#DingLink]"))
 		})
 
-		Describe("Parameter: slack", func() {
-			It("should be optional", func() {
-				Expect(cueOutput).To(ContainSubstring("slack?: {"))
-			})
-
-			It("should have message with text, blocks, attachments", func() {
-				Expect(cueOutput).To(ContainSubstring("// +usage=Specify the message text for slack notification"))
-				Expect(cueOutput).To(ContainSubstring("blocks?: [...#Block]"))
-			})
-
-			It("should have attachments as closed union with blocks and color", func() {
-				Expect(cueOutput).To(ContainSubstring("attachments?: close({"))
-				Expect(cueOutput).To(ContainSubstring("color?: string"))
-			})
-
-			It("should have thread_ts optional", func() {
-				Expect(cueOutput).To(ContainSubstring("thread_ts?: string"))
-			})
-
-			It("should have mrkdwn with default true", func() {
-				Expect(cueOutput).To(ContainSubstring("mrkdwn?: *true | bool"))
-			})
+		It("should define slack parameter with message, blocks, attachments, and options", func() {
+			Expect(cueOutput).To(ContainSubstring("slack?: {"))
+			Expect(cueOutput).To(ContainSubstring("// +usage=Specify the message text for slack notification"))
+			Expect(cueOutput).To(ContainSubstring("blocks?: [...#Block]"))
+			Expect(cueOutput).To(ContainSubstring("attachments?: close({"))
+			Expect(cueOutput).To(ContainSubstring("color?: string"))
+			Expect(cueOutput).To(ContainSubstring("thread_ts?: string"))
+			Expect(cueOutput).To(ContainSubstring("mrkdwn?: *true | bool"))
 		})
 
-		Describe("Parameter: email", func() {
-			It("should be optional", func() {
-				Expect(cueOutput).To(ContainSubstring("email?: {"))
-			})
+		It("should define email parameter with from, password ClosedUnion, to, and content", func() {
+			Expect(cueOutput).To(ContainSubstring("email?: {"))
 
-			It("should have from with address, alias, password, host, port", func() {
-				Expect(cueOutput).To(ContainSubstring("address: string"))
-				Expect(cueOutput).To(ContainSubstring("alias?: string"))
-				Expect(cueOutput).To(ContainSubstring("host: string"))
-				Expect(cueOutput).To(ContainSubstring("port: *587 | int"))
-			})
+			// from fields
+			Expect(cueOutput).To(ContainSubstring("address: string"))
+			Expect(cueOutput).To(ContainSubstring("alias?: string"))
+			Expect(cueOutput).To(ContainSubstring("host: string"))
+			Expect(cueOutput).To(ContainSubstring("port: *587 | int"))
 
-			It("should have password as ClosedUnion with value or secretRef", func() {
-				Expect(cueOutput).To(ContainSubstring("// +usage=Specify the password of the email"))
-				emailIdx := strings.Index(cueOutput, "email?: {")
-				Expect(emailIdx).To(BeNumerically(">", 0))
-				emailBlock := cueOutput[emailIdx:]
-				Expect(emailBlock).To(ContainSubstring("password: close({"))
-				Expect(emailBlock).To(ContainSubstring("}) | close({"))
-			})
+			// password as ClosedUnion
+			Expect(cueOutput).To(ContainSubstring("// +usage=Specify the password of the email"))
+			emailIdx := strings.Index(cueOutput, "email?: {")
+			Expect(emailIdx).To(BeNumerically(">", 0))
+			emailBlock := cueOutput[emailIdx:]
+			Expect(emailBlock).To(ContainSubstring("password: close({"))
+			Expect(emailBlock).To(ContainSubstring("}) | close({"))
 
-			It("should have to as string list", func() {
-				Expect(cueOutput).To(ContainSubstring("to: [...string]"))
-			})
-
-			It("should have content with subject and body", func() {
-				Expect(cueOutput).To(ContainSubstring("subject: string"))
-				Expect(cueOutput).To(ContainSubstring("body: string"))
-			})
+			// to and content
+			Expect(cueOutput).To(ContainSubstring("to: [...string]"))
+			Expect(cueOutput).To(ContainSubstring("subject: string"))
+			Expect(cueOutput).To(ContainSubstring("body: string"))
 		})
 
-		Describe("Template: guarded channel blocks", func() {
-			It("should generate ding as a guarded block", func() {
-				Expect(cueOutput).To(ContainSubstring("ding: {"))
-				Expect(cueOutput).To(ContainSubstring("if parameter.dingding != _|_ {"))
-			})
+		It("should generate guarded channel blocks with guards inside field scope", func() {
+			Expect(cueOutput).To(ContainSubstring("ding: {"))
+			Expect(cueOutput).To(ContainSubstring("if parameter.dingding != _|_ {"))
+			Expect(cueOutput).To(ContainSubstring("lark: {"))
+			Expect(cueOutput).To(ContainSubstring("if parameter.lark != _|_ {"))
+			Expect(cueOutput).To(ContainSubstring("slack: {"))
+			Expect(cueOutput).To(ContainSubstring("if parameter.slack != _|_ {"))
+			Expect(cueOutput).To(ContainSubstring("email0: {"))
+			Expect(cueOutput).To(ContainSubstring("if parameter.email != _|_ {"))
 
-			It("should generate lark as a guarded block", func() {
-				Expect(cueOutput).To(ContainSubstring("lark: {"))
-				Expect(cueOutput).To(ContainSubstring("if parameter.lark != _|_ {"))
-			})
-
-			It("should generate slack as a guarded block", func() {
-				Expect(cueOutput).To(ContainSubstring("slack: {"))
-				Expect(cueOutput).To(ContainSubstring("if parameter.slack != _|_ {"))
-			})
-
-			It("should generate email0 as a guarded block", func() {
-				Expect(cueOutput).To(ContainSubstring("email0: {"))
-				Expect(cueOutput).To(ContainSubstring("if parameter.email != _|_ {"))
-			})
-
-			It("should have guard inside field not outside", func() {
-				// Verify the pattern: "ding: {\n...if parameter.dingding"
-				// NOT: "if parameter.dingding...ding: {"
-				dingFieldIdx := strings.Index(cueOutput, "ding: {")
-				dingGuardIdx := strings.Index(cueOutput, "if parameter.dingding != _|_")
-				Expect(dingFieldIdx).To(BeNumerically(">", 0))
-				Expect(dingGuardIdx).To(BeNumerically(">", dingFieldIdx))
-			})
+			// Verify guard is inside field, not outside
+			dingFieldIdx := strings.Index(cueOutput, "ding: {")
+			dingGuardIdx := strings.Index(cueOutput, "if parameter.dingding != _|_")
+			Expect(dingFieldIdx).To(BeNumerically(">", 0))
+			Expect(dingGuardIdx).To(BeNumerically(">", dingFieldIdx))
 		})
 
-		Describe("Template: dingding channel actions", func() {
-			It("should POST when url.value is set", func() {
-				Expect(cueOutput).To(ContainSubstring("parameter.dingding.url.value != _|_"))
-				Expect(cueOutput).To(ContainSubstring("url:    parameter.dingding.url.value"))
-			})
-
-			It("should read Secret when using secretRef", func() {
-				Expect(cueOutput).To(ContainSubstring("parameter.dingding.url.secretRef != _|_ && parameter.dingding.url.value == _|_"))
-				Expect(cueOutput).To(ContainSubstring("name:      parameter.dingding.url.secretRef.name"))
-			})
-
-			It("should convert secret data with base64.Decode", func() {
-				Expect(cueOutput).To(ContainSubstring("base64.Decode(null, read.$returns.value.data[parameter.dingding.url.secretRef.key])"))
-			})
-
-			It("should POST with converted string URL", func() {
-				Expect(cueOutput).To(ContainSubstring("url:    stringValue.$returns.str"))
-			})
-
-			It("should marshal dingding message as body", func() {
-				Expect(cueOutput).To(ContainSubstring("json.Marshal(parameter.dingding.message)"))
-			})
+		It("should generate dingding channel template actions with value and secretRef paths", func() {
+			Expect(cueOutput).To(ContainSubstring("parameter.dingding.url.value != _|_"))
+			Expect(cueOutput).To(ContainSubstring("url:    parameter.dingding.url.value"))
+			Expect(cueOutput).To(ContainSubstring("parameter.dingding.url.secretRef != _|_ && parameter.dingding.url.value == _|_"))
+			Expect(cueOutput).To(ContainSubstring("name:      parameter.dingding.url.secretRef.name"))
+			Expect(cueOutput).To(ContainSubstring("base64.Decode(null, read.$returns.value.data[parameter.dingding.url.secretRef.key])"))
+			Expect(cueOutput).To(ContainSubstring("url:    stringValue.$returns.str"))
+			Expect(cueOutput).To(ContainSubstring("json.Marshal(parameter.dingding.message)"))
 		})
 
-		Describe("Template: lark channel actions", func() {
-			It("should POST when url.value is set", func() {
-				Expect(cueOutput).To(ContainSubstring("parameter.lark.url.value != _|_"))
-				Expect(cueOutput).To(ContainSubstring("url:    parameter.lark.url.value"))
-			})
-
-			It("should read Secret when using secretRef", func() {
-				Expect(cueOutput).To(ContainSubstring("parameter.lark.url.secretRef != _|_ && parameter.lark.url.value == _|_"))
-			})
-
-			It("should marshal lark message as body", func() {
-				Expect(cueOutput).To(ContainSubstring("json.Marshal(parameter.lark.message)"))
-			})
+		It("should generate lark channel template actions with value and secretRef paths", func() {
+			Expect(cueOutput).To(ContainSubstring("parameter.lark.url.value != _|_"))
+			Expect(cueOutput).To(ContainSubstring("url:    parameter.lark.url.value"))
+			Expect(cueOutput).To(ContainSubstring("parameter.lark.url.secretRef != _|_ && parameter.lark.url.value == _|_"))
+			Expect(cueOutput).To(ContainSubstring("json.Marshal(parameter.lark.message)"))
 		})
 
-		Describe("Template: slack channel actions", func() {
-			It("should POST when url.value is set", func() {
-				Expect(cueOutput).To(ContainSubstring("parameter.slack.url.value != _|_"))
-				Expect(cueOutput).To(ContainSubstring("url:    parameter.slack.url.value"))
-			})
-
-			It("should read Secret when using secretRef", func() {
-				Expect(cueOutput).To(ContainSubstring("parameter.slack.url.secretRef != _|_ && parameter.slack.url.value == _|_"))
-			})
-
-			It("should marshal slack message as body", func() {
-				Expect(cueOutput).To(ContainSubstring("json.Marshal(parameter.slack.message)"))
-			})
+		It("should generate slack channel template actions with value and secretRef paths", func() {
+			Expect(cueOutput).To(ContainSubstring("parameter.slack.url.value != _|_"))
+			Expect(cueOutput).To(ContainSubstring("url:    parameter.slack.url.value"))
+			Expect(cueOutput).To(ContainSubstring("parameter.slack.url.secretRef != _|_ && parameter.slack.url.value == _|_"))
+			Expect(cueOutput).To(ContainSubstring("json.Marshal(parameter.slack.message)"))
 		})
 
-		Describe("Template: email actions", func() {
-			It("should use email.#SendEmail when password.value is set", func() {
-				Expect(cueOutput).To(ContainSubstring("parameter.email.from.password.value != _|_"))
-				Expect(cueOutput).To(ContainSubstring("email.#SendEmail"))
-			})
-
-			It("should read Secret when using password secretRef", func() {
-				Expect(cueOutput).To(ContainSubstring("parameter.email.from.password.secretRef != _|_ && parameter.email.from.password.value == _|_"))
-			})
-
-			It("should use email from address and host", func() {
-				Expect(cueOutput).To(ContainSubstring("address: parameter.email.from.address"))
-				Expect(cueOutput).To(ContainSubstring("host:     parameter.email.from.host"))
-			})
-
-			It("should conditionally include alias", func() {
-				Expect(cueOutput).To(ContainSubstring("if parameter.email.from.alias != _|_"))
-				Expect(cueOutput).To(ContainSubstring("alias: parameter.email.from.alias"))
-			})
-
-			It("should pass email to and content", func() {
-				Expect(cueOutput).To(ContainSubstring("to:      parameter.email.to"))
-				Expect(cueOutput).To(ContainSubstring("content: parameter.email.content"))
-			})
+		It("should generate email template actions with password value and secretRef paths", func() {
+			Expect(cueOutput).To(ContainSubstring("parameter.email.from.password.value != _|_"))
+			Expect(cueOutput).To(ContainSubstring("email.#SendEmail"))
+			Expect(cueOutput).To(ContainSubstring("parameter.email.from.password.secretRef != _|_ && parameter.email.from.password.value == _|_"))
+			Expect(cueOutput).To(ContainSubstring("address: parameter.email.from.address"))
+			Expect(cueOutput).To(ContainSubstring("host:     parameter.email.from.host"))
+			Expect(cueOutput).To(ContainSubstring("if parameter.email.from.alias != _|_"))
+			Expect(cueOutput).To(ContainSubstring("alias: parameter.email.from.alias"))
+			Expect(cueOutput).To(ContainSubstring("to:      parameter.email.to"))
+			Expect(cueOutput).To(ContainSubstring("content: parameter.email.content"))
 		})
 
-		Describe("Template: structural correctness", func() {
-			It("should have HTTP operations for each channel", func() {
-				count := strings.Count(cueOutput, "http.#HTTPDo & {")
-				// 2 per channel (value URL + secretRef URL) × 3 channels (ding, lark, slack)
-				Expect(count).To(Equal(6))
-			})
+		It("should have correct structural counts for operations across all channels", func() {
+			// 2 HTTP ops per channel (value URL + secretRef URL) x 3 channels (ding, lark, slack)
+			Expect(strings.Count(cueOutput, "http.#HTTPDo & {")).To(Equal(6))
 
-			It("should have kube.#Read for secret resolution", func() {
-				count := strings.Count(cueOutput, "kube.#Read & {")
-				// 1 per channel (ding, lark, slack) + 1 for email = 4
-				Expect(count).To(Equal(4))
-			})
+			// 1 kube.#Read per channel (ding, lark, slack) + 1 for email = 4
+			Expect(strings.Count(cueOutput, "kube.#Read & {")).To(Equal(4))
 
-			It("should have ConvertString for secret decoding", func() {
-				count := strings.Count(cueOutput, "util.#ConvertString & {")
-				// 1 per channel (ding, lark, slack) + 1 for email = 4
-				Expect(count).To(Equal(4))
-			})
+			// 1 ConvertString per channel (ding, lark, slack) + 1 for email = 4
+			Expect(strings.Count(cueOutput, "util.#ConvertString & {")).To(Equal(4))
 
-			It("should have email.#SendEmail operations", func() {
-				count := strings.Count(cueOutput, "email.#SendEmail")
-				// 2: one for password.value, one for password secretRef
-				Expect(count).To(Equal(2))
-			})
+			// 2 email.#SendEmail: one for password.value, one for password secretRef
+			Expect(strings.Count(cueOutput, "email.#SendEmail")).To(Equal(2))
 
-			It("should set Content-Type header on all HTTP posts", func() {
-				count := strings.Count(cueOutput, `header: "Content-Type": "application/json"`)
-				Expect(count).To(Equal(6))
-			})
+			// Content-Type header on all 6 HTTP posts
+			Expect(strings.Count(cueOutput, `header: "Content-Type": "application/json"`)).To(Equal(6))
 
-			It("should have exactly 4 guarded blocks", func() {
-				// ding, lark, slack, email0 — each field always exists with guard inside
-				dingBlock := strings.Count(cueOutput, "ding: {")
-				larkBlock := strings.Count(cueOutput, "lark: {")
-				slackBlock := strings.Count(cueOutput, "slack: {")
-				emailBlock := strings.Count(cueOutput, "email0: {")
-				Expect(dingBlock).To(Equal(1))
-				Expect(larkBlock).To(Equal(1))
-				Expect(slackBlock).To(Equal(1))
-				Expect(emailBlock).To(Equal(1))
-			})
+			// Exactly 4 guarded blocks: ding, lark, slack, email0
+			Expect(strings.Count(cueOutput, "ding: {")).To(Equal(1))
+			Expect(strings.Count(cueOutput, "lark: {")).To(Equal(1))
+			Expect(strings.Count(cueOutput, "slack: {")).To(Equal(1))
+			Expect(strings.Count(cueOutput, "email0: {")).To(Equal(1))
 		})
 	})
 })
