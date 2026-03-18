@@ -1,6 +1,9 @@
+workflowSteps:
+  - name: export-config
+    phase: succeeded
 expectations:
-  - apiVersion: apps/v1
-    kind: Deployment
-    name: export2config-demo-server
+  - apiVersion: v1
+    kind: Secret
+    name: my-configmap
     fields:
-      spec.template.spec.containers[0].image: "oamdev/hello-world"
+      metadata.labels.config.oam.dev/catalog: "velacore-config"

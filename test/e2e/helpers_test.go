@@ -488,11 +488,17 @@ func runDefinitionTest(ctx context.Context, file string, skipTests map[string]st
 		g.Expect(string(currentApp.Status.Phase)).Should(Equal("running"))
 	}, AppRunningTimeout, PollInterval).Should(Succeed())
 
-	// Validate resource expectations if companion .expect.yaml exists
-	expectations := loadExpectations(file)
-	if len(expectations) > 0 {
-		GinkgoWriter.Printf("Validating %d resource expectation(s)...\n", len(expectations))
-		validateResourceExpectations(ctx, uniqueNs, expectations)
+	// Validate expectations if companion .expect.yaml exists
+	ef := loadExpectations(file)
+	if ef != nil {
+		if len(ef.Expectations) > 0 {
+			GinkgoWriter.Printf("Validating %d resource expectation(s)...\n", len(ef.Expectations))
+			validateResourceExpectations(ctx, uniqueNs, ef.Expectations)
+		}
+		if len(ef.WorkflowSteps) > 0 {
+			GinkgoWriter.Printf("Validating %d workflow step expectation(s)...\n", len(ef.WorkflowSteps))
+			validateWorkflowStepExpectations(ctx, app.Name, uniqueNs, ef.WorkflowSteps)
+		}
 	}
 
 	testPassed = true
@@ -511,9 +517,17 @@ type ResourceExpectation struct {
 	Fields     map[string]interface{} `yaml:"fields" json:"fields"`
 }
 
+// WorkflowStepExpectation describes expected state of a workflow step in the Application status.
+type WorkflowStepExpectation struct {
+	Name    string `yaml:"name" json:"name"`
+	Phase   string `yaml:"phase,omitempty" json:"phase,omitempty"`
+	Message string `yaml:"messageContains,omitempty" json:"messageContains,omitempty"`
+}
+
 // ExpectationFile is the top-level structure of a .expect.yaml file.
 type ExpectationFile struct {
-	Expectations []ResourceExpectation `yaml:"expectations" json:"expectations"`
+	Expectations  []ResourceExpectation     `yaml:"expectations,omitempty" json:"expectations,omitempty"`
+	WorkflowSteps []WorkflowStepExpectation `yaml:"workflowSteps,omitempty" json:"workflowSteps,omitempty"`
 }
 
 // loadExpectations looks for a .expect.yaml file in the expectations/ directory
@@ -521,7 +535,7 @@ type ExpectationFile struct {
 // For example, given .../builtin-definition-example/applications/components/webservice.yaml,
 // it looks for .../builtin-definition-example/expectations/components/webservice.expect.yaml.
 // Returns nil if no expectation file exists.
-func loadExpectations(appYAMLPath string) []ResourceExpectation {
+func loadExpectations(appYAMLPath string) *ExpectationFile {
 	// appYAMLPath: .../builtin-definition-example/applications/<type>/<name>.yaml
 	// expectPath:  .../builtin-definition-example/expectations/<type>/<name>.expect.yaml
 	dir := filepath.Dir(appYAMLPath)             // .../applications/components
@@ -544,7 +558,7 @@ func loadExpectations(appYAMLPath string) []ResourceExpectation {
 		return nil
 	}
 
-	return ef.Expectations
+	return &ef
 }
 
 // parseGVK parses an apiVersion and kind into a GroupVersionKind.
@@ -583,8 +597,59 @@ func validateResourceExpectations(ctx context.Context, namespace string, expecta
 	}
 }
 
+// validateWorkflowStepExpectations checks that workflow steps in the Application status
+// match expected phase and/or contain expected message substrings.
+func validateWorkflowStepExpectations(ctx context.Context, appName, namespace string, expectations []WorkflowStepExpectation) {
+	currentApp := &v1beta1.Application{}
+	Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: namespace, Name: appName}, currentApp)).Should(Succeed())
+	Expect(currentApp.Status.Workflow).NotTo(BeNil(), "Application %s has no workflow status", appName)
+
+	for _, exp := range expectations {
+		GinkgoWriter.Printf("  Checking workflow step %q...\n", exp.Name)
+
+		// Find the step by name
+		var found bool
+		for _, step := range currentApp.Status.Workflow.Steps {
+			if step.Name == exp.Name {
+				found = true
+				if exp.Phase != "" {
+					Expect(string(step.Phase)).To(Equal(exp.Phase),
+						"Workflow step %q phase mismatch", exp.Name)
+				}
+				if exp.Message != "" {
+					Expect(step.Message).To(ContainSubstring(exp.Message),
+						"Workflow step %q message should contain %q, got %q", exp.Name, exp.Message, step.Message)
+				}
+				break
+			}
+			// Also check sub-steps (for step-group)
+			for _, sub := range step.SubStepsStatus {
+				if sub.Name == exp.Name {
+					found = true
+					if exp.Phase != "" {
+						Expect(string(sub.Phase)).To(Equal(exp.Phase),
+							"Workflow sub-step %q phase mismatch", exp.Name)
+					}
+					if exp.Message != "" {
+						Expect(sub.Message).To(ContainSubstring(exp.Message),
+							"Workflow sub-step %q message should contain %q, got %q", exp.Name, exp.Message, sub.Message)
+					}
+					break
+				}
+			}
+			if found {
+				break
+			}
+		}
+		Expect(found).To(BeTrue(), "Workflow step %q not found in Application status", exp.Name)
+	}
+}
+
 // arrayIndexPattern matches path segments like "containers[0]"
 var arrayIndexPattern = regexp.MustCompile(`^(.+)\[(\d+)\]$`)
+
+// bareIndexPattern matches standalone array indices like "[0]"
+var bareIndexPattern = regexp.MustCompile(`^\[(\d+)\]$`)
 
 // getNestedValue walks a dot-path with optional array indexing into an unstructured object.
 // Examples: "spec.replicas", "spec.template.spec.containers[0].image"
@@ -597,8 +662,30 @@ func getNestedValue(obj map[string]interface{}, path string) (interface{}, error
 			return nil, fmt.Errorf("nil value at segment %q in path %q", seg, path)
 		}
 
-		// Check for array index: "containers[0]"
-		if m := arrayIndexPattern.FindStringSubmatch(seg); m != nil {
+		// Check for bracket key: ["app.example.com/owner"]
+		if m := bracketKeyPattern.FindStringSubmatch(seg); m != nil {
+			key := m[1]
+			currentMap, ok := current.(map[string]interface{})
+			if !ok {
+				return nil, fmt.Errorf("expected map at %q, got %T", seg, current)
+			}
+			val, ok := currentMap[key]
+			if !ok {
+				return nil, fmt.Errorf("field %q not found", key)
+			}
+			current = val
+		} else if m := bareIndexPattern.FindStringSubmatch(seg); m != nil {
+			// Bare array index: [0] — current value must already be a slice
+			idx, _ := strconv.Atoi(m[1])
+			slice, ok := current.([]interface{})
+			if !ok {
+				return nil, fmt.Errorf("expected array at %q, got %T", seg, current)
+			}
+			if idx >= len(slice) {
+				return nil, fmt.Errorf("index %d out of bounds (len=%d) at %q", idx, len(slice), seg)
+			}
+			current = slice[idx]
+		} else if m := arrayIndexPattern.FindStringSubmatch(seg); m != nil {
 			fieldName := m[1]
 			idx, _ := strconv.Atoi(m[2])
 
@@ -635,10 +722,52 @@ func getNestedValue(obj map[string]interface{}, path string) (interface{}, error
 	return current, nil
 }
 
-// splitDotPath splits a dot-path while respecting array indices.
-// "spec.template.spec.containers[0].image" -> ["spec", "template", "spec", "containers[0]", "image"]
+// bracketKeyPattern matches segments like ["app.example.com/owner"]
+var bracketKeyPattern = regexp.MustCompile(`^\["([^"]+)"\]$`)
+
+// splitDotPath splits a dot-path while respecting bracket-quoted keys and array indices.
+// Examples:
+//
+//	"spec.template.spec.containers[0].image" -> ["spec", "template", "spec", "containers[0]", "image"]
+//	"metadata.annotations[\"app.example.com/owner\"]" -> ["metadata", "annotations", "[\"app.example.com/owner\"]"]
 func splitDotPath(path string) []string {
-	return strings.Split(path, ".")
+	var segments []string
+	var current strings.Builder
+	inBracket := false
+
+	for i := 0; i < len(path); i++ {
+		ch := path[i]
+		if ch == '[' {
+			// If current has content, flush it as a segment
+			if current.Len() > 0 {
+				segments = append(segments, current.String())
+				current.Reset()
+			}
+			inBracket = true
+			current.WriteByte(ch)
+		} else if ch == ']' {
+			current.WriteByte(ch)
+			inBracket = false
+			// Flush bracket segment
+			segments = append(segments, current.String())
+			current.Reset()
+			// Skip the dot after ']' if present
+			if i+1 < len(path) && path[i+1] == '.' {
+				i++
+			}
+		} else if ch == '.' && !inBracket {
+			if current.Len() > 0 {
+				segments = append(segments, current.String())
+				current.Reset()
+			}
+		} else {
+			current.WriteByte(ch)
+		}
+	}
+	if current.Len() > 0 {
+		segments = append(segments, current.String())
+	}
+	return segments
 }
 
 // assertValuesEqual compares expected and actual values with type normalization.

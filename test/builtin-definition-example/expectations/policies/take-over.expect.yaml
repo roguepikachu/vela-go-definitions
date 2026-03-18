@@ -3,4 +3,6 @@ expectations:
     kind: Deployment
     name: busybox-ref
     fields:
+      spec.replicas: 1
       spec.template.spec.containers[0].image: "busybox"
+      spec.template.spec.containers[0].command: ["sleep", "3600"]

@@ -4,3 +4,6 @@ expectations:
     name: nginx-deploy-workflowstep
     fields:
       spec.template.spec.containers[0].image: "nginx"
+workflowSteps:
+  - name: deploy-local
+    phase: succeeded

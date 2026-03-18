@@ -4,3 +4,4 @@ expectations:
     name: nginx-app
     fields:
       spec.rules[0].host: "example.com"
+      spec.rules[0].http.paths[0].path: "/"

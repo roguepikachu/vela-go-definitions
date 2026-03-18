@@ -3,4 +3,5 @@ expectations:
     kind: Deployment
     name: nginx-app
     fields:
-      spec.template.spec.containers[0].command: ["/bin/sh", "-c"]
+      spec.template.spec.containers[0].command: ["/bin/sh"]
+      spec.template.spec.containers[0].args[0]: "-c"
