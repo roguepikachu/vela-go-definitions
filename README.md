@@ -13,7 +13,9 @@ This module contains Go-based KubeVela X-Definitions that can be applied to any 
 - **policies/** - PolicyDefinitions for application policies
 - **workflowsteps/** - WorkflowStepDefinitions for delivery workflows
 - **cmd/defkit/** - CLI tool for generating CUE and exporting definitions
+- **cmd/register/** - Registry entry point used by `vela def apply-module` (fast path)
 - **vela-templates/definitions/** - Generated CUE output (do not edit manually)
+- **test/** - E2E test suite and test data
 
 ## Usage
 
@@ -85,7 +87,9 @@ make tidy        # Tidy go.mod dependencies
 
 ### CLI Tool
 
-The `cmd/defkit` CLI provides two subcommands:
+There are two entry points under `cmd/`:
+
+**`cmd/defkit`** — the main CLI (cobra-based) for local development:
 
 ```bash
 # Generate CUE files into vela-templates/definitions/
@@ -93,6 +97,13 @@ go run ./cmd/defkit generate
 
 # Export all registered definitions as JSON
 go run ./cmd/defkit register
+```
+
+**`cmd/register`** — a minimal entry point that outputs all definitions as JSON. This is the conventional path that `vela def apply-module` uses to discover definitions via the fast registry pattern. It must exist at this exact path (`cmd/register/main.go`) for `apply-module` to use the optimized loading strategy instead of falling back to slower AST-based discovery.
+
+```bash
+# Used internally by: vela def apply-module .
+go run ./cmd/register
 ```
 
 ## Adding New Definitions
@@ -149,23 +160,47 @@ make test-unit
 
 ### E2E Tests
 
-E2E tests validate definitions against a live KubeVela cluster.
+E2E tests validate definitions against a live KubeVela cluster. Each test applies an Application YAML, waits for it to reach running status, then validates:
+
+1. **Auto-derived checks** (all 77 definitions): workflow steps succeeded, component resources exist with correct image
+2. **Extra checks** (via `.expect.yaml` files): trait effects, policy side effects, workflow step outputs
+
+#### Local Setup
 
 ```bash
-# Install Ginkgo CLI
-make install-ginkgo
+# Set up a local k3d cluster with KubeVela and all defkit definitions installed
+# Prerequisites: docker, k3d, kubectl, vela CLI
+make e2e-setup
+
+# Run tests by category
+make test-e2e-components
+make test-e2e-traits
+make test-e2e-policies
+make test-e2e-workflowsteps
 
 # Run all E2E tests
 make test-e2e
 
-# Run specific test categories
-make test-e2e-components    # Component definitions
-make test-e2e-traits        # Trait definitions
-make test-e2e-policies      # Policy definitions
-make test-e2e-workflowsteps # Workflow step definitions
+# Tear down the cluster when done
+make e2e-teardown
 ```
 
-### Configuration
+#### Test Data Structure
+
+```
+test/builtin-definition-example/
+  applications/           # Application YAMLs (test inputs)
+    components/           # 8 component tests
+    trait/                # 29 trait tests
+    policies/             # 9 policy tests
+    workflowsteps/        # 31 workflow step tests
+  expectations/           # Extra validation (additive, optional)
+    trait/                # Trait-specific checks (env vars, labels, etc.)
+    policies/             # Policy-specific checks
+    workflowsteps/        # Workflow step output checks
+```
+
+#### Configuration
 
 | Variable | Default | Description |
 |----------|---------|-------------|
@@ -173,6 +208,7 @@ make test-e2e-workflowsteps # Workflow step definitions
 | `E2E_TIMEOUT` | 10m | Test timeout duration |
 | `TESTDATA_PATH` | `test/builtin-definition-example` | Path to test data |
 | `DEFINITIONS_DIR` | `vela-templates/definitions` | Output directory for generated CUE |
+| `E2E_CLUSTER` | `e2e-test` | k3d cluster name for local testing |
 
 ## CI/CD
 
@@ -180,6 +216,7 @@ GitHub Actions workflows automatically run on push and pull requests to `main`:
 
 - **Unit Tests** - Runs all unit tests
 - **Reviewable** - Runs `make generate`, `make fmt`, `make vet`, linting, and `check-diff` to ensure generated files are up-to-date
+- **E2E Tests** - Runs component, trait, policy, and workflow step e2e tests in parallel jobs against a k3d cluster with defkit definitions installed
 
 ## License
 
