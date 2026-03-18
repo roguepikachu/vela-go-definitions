@@ -184,7 +184,7 @@ func listYAMLFiles(dir string) ([]string, error) {
 }
 
 // applyApplication creates or updates a KubeVela Application.
-func applyApplication(ctx context.Context, app *v1beta1.Application) error {
+func applyApplication(ctx context.Context, app *v1beta1.Application) error { //nolint:unused // e2e utility
 	if app.Namespace == "" {
 		app.Namespace = "default"
 	}
@@ -204,7 +204,7 @@ func applyApplication(ctx context.Context, app *v1beta1.Application) error {
 }
 
 // deleteApplication deletes a KubeVela Application and waits briefly for cleanup.
-func deleteApplication(ctx context.Context, app *v1beta1.Application) error {
+func deleteApplication(ctx context.Context, app *v1beta1.Application) error { //nolint:unused // e2e utility
 	if app.Namespace == "" {
 		app.Namespace = "default"
 	}
@@ -223,7 +223,7 @@ func deleteApplication(ctx context.Context, app *v1beta1.Application) error {
 }
 
 // getApplicationStatus gets the status of a KubeVela application.
-func getApplicationStatus(ctx context.Context, appName, namespace string) (string, error) {
+func getApplicationStatus(ctx context.Context, appName, namespace string) (string, error) { //nolint:unused // e2e utility
 	if namespace == "" {
 		namespace = "default"
 	}
@@ -242,7 +242,7 @@ func getApplicationStatus(ctx context.Context, appName, namespace string) (strin
 }
 
 // waitForApplicationRunning waits for an application to reach running status.
-func waitForApplicationRunning(ctx context.Context, appName, namespace string) error {
+func waitForApplicationRunning(ctx context.Context, appName, namespace string) error { //nolint:unused // e2e utility
 	if namespace == "" {
 		namespace = "default"
 	}
