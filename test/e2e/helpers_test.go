@@ -79,33 +79,6 @@ func initK8sClient() error {
 	return nil
 }
 
-// readAppFromFile reads an Application from a YAML file (supports multi-doc YAML).
-func readAppFromFile(filename string) (*v1beta1.Application, error) {
-	bs, err := os.ReadFile(filename)
-	if err != nil {
-		return nil, err
-	}
-
-	docs := strings.Split(string(bs), "---")
-	for _, doc := range docs {
-		doc = strings.TrimSpace(doc)
-		if doc == "" {
-			continue
-		}
-
-		app := &v1beta1.Application{}
-		if err = yaml.Unmarshal([]byte(doc), app); err != nil {
-			continue
-		}
-
-		if app.Kind == "Application" {
-			return app, nil
-		}
-	}
-
-	return nil, fmt.Errorf("no Application found in file %s", filename)
-}
-
 // readAllAppsFromFile reads ALL Applications from a multi-doc YAML file.
 // Some test files (shared-resource, depends-on-app) contain multiple Applications.
 func readAllAppsFromFile(filename string) ([]*v1beta1.Application, error) {
@@ -379,56 +352,8 @@ func getAppFailureDiagnostics(ctx context.Context, appName, namespace string) st
 	return diagInfo.String()
 }
 
-// getKanikoPodLogs retrieves logs and details from kaniko pods in a namespace.
-// This is specifically used for build-push-image workflow step diagnostics.
-func getKanikoPodLogs(namespace string) string {
-	var diagInfo strings.Builder
-
-	kanikoPodCmd := exec.Command("kubectl", "get", "pods", "-n", namespace, "-o", "name", "--no-headers")
-	kanikoPodOutput, err := kanikoPodCmd.CombinedOutput()
-	if err != nil {
-		return fmt.Sprintf("Error listing pods: %v\n", err)
-	}
-
-	podNames := strings.Split(strings.TrimSpace(string(kanikoPodOutput)), "\n")
-	for _, podName := range podNames {
-		if podName == "" {
-			continue
-		}
-		// Only get logs from kaniko pods (created by build-push-image workflow step)
-		if !strings.Contains(podName, "kaniko") {
-			continue
-		}
-		// Get logs for kaniko pod
-		diagInfo.WriteString(fmt.Sprintf("\n--- Logs from %s ---\n", podName))
-		logsCmd := exec.Command("kubectl", "logs", podName, "-n", namespace, "--tail=100")
-		logsOutput, err := logsCmd.CombinedOutput()
-		if err != nil {
-			diagInfo.WriteString(fmt.Sprintf("Error getting logs: %v\n", err))
-		} else {
-			diagInfo.WriteString(string(logsOutput))
-		}
-
-		// Also describe the pod for events and status
-		diagInfo.WriteString(fmt.Sprintf("\n--- Describe %s ---\n", podName))
-		describePodCmd := exec.Command("kubectl", "describe", podName, "-n", namespace)
-		describePodOutput, err := describePodCmd.CombinedOutput()
-		if err != nil {
-			diagInfo.WriteString(fmt.Sprintf("Error describing pod: %v\n", err))
-		} else {
-			diagInfo.WriteString(string(describePodOutput))
-		}
-	}
-
-	if diagInfo.Len() == 0 {
-		return "No kaniko pods found in namespace\n"
-	}
-
-	return diagInfo.String()
-}
-
 // --------------------------------------------------------------------------
-// Shared test runner (Phase 1)
+// Shared test runner
 // --------------------------------------------------------------------------
 
 // skipWorkflowStepTests lists test files that require external infrastructure
