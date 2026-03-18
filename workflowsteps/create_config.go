@@ -29,7 +29,8 @@ func CreateConfig() *defkit.WorkflowStepDefinition {
 		Description("Specify the namespace of the config.").
 		WithSchema("*context.namespace | string")
 	template := defkit.String("template").
-		Description("Specify the template of the config.")
+		Description("Specify the template of the config.").
+		Optional()
 	config := defkit.Object("config").
 		Description("Specify the content of the config.")
 
@@ -40,17 +41,8 @@ func CreateConfig() *defkit.WorkflowStepDefinition {
 		Params(name, namespace, template, config).
 		Template(func(tpl *defkit.WorkflowStepTemplate) {
 			tpl.Builtin("deploy", "config.#CreateConfig").
-				WithParams(map[string]defkit.Value{
-					"name":      name,
-					"namespace": namespace,
-					"config":    config,
-				}).
+				WithFullParameter().
 				Build()
-			tpl.Builtin("deploy", "config.#CreateConfig").
-				WithParams(map[string]defkit.Value{
-					"template": template,
-				}).
-				If(template.IsSet())
 		})
 }
 

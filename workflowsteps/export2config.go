@@ -28,6 +28,7 @@ func Export2Config() *defkit.WorkflowStepDefinition {
 	configName := defkit.String("configName").
 		Description("Specify the name of the config map")
 	namespace := defkit.String("namespace").
+		Optional().
 		Description("Specify the namespace of the config map")
 	data := defkit.Object("data").
 		Description("Specify the data of config map").
@@ -41,8 +42,8 @@ func Export2Config() *defkit.WorkflowStepDefinition {
 		Set("kind", defkit.Lit("ConfigMap")).
 		Set("metadata", defkit.NewArrayElement().
 			Set("name", configName).
-			Set("namespace", vela.Namespace()).
-			SetIf(namespace.IsSet(), "namespace", namespace),
+			SetIf(namespace.IsSet(), "namespace", namespace).
+			SetIf(namespace.NotSet(), "namespace", vela.Namespace()),
 		).
 		Set("data", data)
 

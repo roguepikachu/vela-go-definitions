@@ -29,20 +29,24 @@ func Sidecar() *defkit.TraitDefinition {
 	args := defkit.Array("args").Of(defkit.ParamTypeString).Optional().Description("Specify the args in the sidecar")
 	env := defkit.Array("env").Optional().Description("Specify the env in the sidecar").WithFields(
 		defkit.String("name").Description("Environment variable name"),
-		defkit.String("value").Description("The value of the environment variable"),
-		defkit.Map("valueFrom").Description("Specifies a source the value of this var should come from").WithFields(
-			defkit.Map("secretKeyRef").Description("Selects a key of a secret in the pod's namespace").WithFields(
-				defkit.String("name").Description("The name of the secret in the pod's namespace to select from"),
-				defkit.String("key").Description("The key of the secret to select from. Must be a valid secret key"),
+		defkit.String("value").Optional().Description("The value of the environment variable"),
+		defkit.Object("valueFrom").Optional().Description("Specifies a source the value of this var should come from").
+			WithFields(
+				defkit.Object("secretKeyRef").Optional().Description("Selects a key of a secret in the pod's namespace").
+					WithFields(
+						defkit.String("name").Description("The name of the secret in the pod's namespace to select from"),
+						defkit.String("key").Description("The key of the secret to select from. Must be a valid secret key"),
+					),
+				defkit.Object("configMapKeyRef").Optional().Description("Selects a key of a config map in the pod's namespace").
+					WithFields(
+						defkit.String("name").Description("The name of the config map in the pod's namespace to select from"),
+						defkit.String("key").Description("The key of the config map to select from. Must be a valid secret key"),
+					),
+				defkit.Object("fieldRef").Optional().Description("Specify the field reference for env").
+					WithFields(
+						defkit.String("fieldPath").Description("Specify the field path for env"),
+					),
 			),
-			defkit.Map("configMapKeyRef").Description("Selects a key of a config map in the pod's namespace").WithFields(
-				defkit.String("name").Description("The name of the config map in the pod's namespace to select from"),
-				defkit.String("key").Description("The key of the config map to select from. Must be a valid secret key"),
-			),
-			defkit.Map("fieldRef").Description("Specify the field reference for env").WithFields(
-				defkit.String("fieldPath").Description("Specify the field path for env"),
-			),
-		),
 	)
 	volumes := defkit.Array("volumes").Optional().Description("Specify the shared volume path").WithFields(
 		defkit.String("name"),
@@ -82,12 +86,12 @@ func Sidecar() *defkit.TraitDefinition {
 // healthProbeSchema returns the #HealthProbe helper definition schema.
 func healthProbeSchema() defkit.Param {
 	return defkit.Struct("HealthProbe").WithFields(
-		defkit.Field("exec", defkit.ParamTypeStruct).
+		defkit.Field("exec", defkit.ParamTypeStruct).Optional().
 			Description("Instructions for assessing container health by executing a command. Either this attribute or the httpGet attribute or the tcpSocket attribute MUST be specified. This attribute is mutually exclusive with both the httpGet attribute and the tcpSocket attribute.").
 			Nested(defkit.Struct("exec").WithFields(
 				defkit.Field("command", defkit.ParamTypeArray).Of(defkit.ParamTypeString).Description("A command to be executed inside the container to assess its health. Each space delimited token of the command is a separate array element. Commands exiting 0 are considered to be successful probes, whilst all other exit codes are considered failures."),
 			)),
-		defkit.Field("httpGet", defkit.ParamTypeStruct).
+		defkit.Field("httpGet", defkit.ParamTypeStruct).Optional().
 			Description("Instructions for assessing container health by executing an HTTP GET request. Either this attribute or the exec attribute or the tcpSocket attribute MUST be specified. This attribute is mutually exclusive with both the exec attribute and the httpGet attribute.").
 			Nested(defkit.Struct("httpGet").WithFields(
 				defkit.Field("path", defkit.ParamTypeString).Description("The endpoint, relative to the port, to which the HTTP GET request should be directed."),
@@ -99,7 +103,7 @@ func healthProbeSchema() defkit.Param {
 					defkit.Field("value", defkit.ParamTypeString),
 				)),
 			)),
-		defkit.Field("tcpSocket", defkit.ParamTypeStruct).
+		defkit.Field("tcpSocket", defkit.ParamTypeStruct).Optional().
 			Description("Instructions for assessing container health by probing a TCP socket. Either this attribute or the exec attribute or the httpGet attribute MUST be specified. This attribute is mutually exclusive with both the exec attribute and the httpGet attribute.").
 			Nested(defkit.Struct("tcpSocket").WithFields(
 				defkit.Field("port", defkit.ParamTypeInt).Description("The TCP socket within the container that should be probed to assess container health."),

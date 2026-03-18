@@ -68,4 +68,28 @@ var _ = Describe("Sidecar Trait", func() {
 		Expect(cue).To(ContainSubstring("name:  string"))
 		Expect(cue).To(ContainSubstring("value: string"))
 	})
+
+	It("should have optional env value and valueFrom fields", func() {
+		trait := traits.Sidecar()
+		cue := trait.ToCue()
+
+		// env[].value must be optional (user can use valueFrom instead)
+		Expect(cue).To(ContainSubstring(`value?: string`))
+
+		// env[].valueFrom and its nested refs must be optional
+		Expect(cue).To(ContainSubstring(`valueFrom?: {`))
+		Expect(cue).To(ContainSubstring(`secretKeyRef?: {`))
+		Expect(cue).To(ContainSubstring(`configMapKeyRef?: {`))
+		Expect(cue).To(ContainSubstring(`fieldRef?: {`))
+	})
+
+	It("should have optional HealthProbe exec, httpGet, and tcpSocket fields", func() {
+		trait := traits.Sidecar()
+		cue := trait.ToCue()
+
+		// Each probe type is mutually exclusive, so all must be optional
+		Expect(cue).To(ContainSubstring(`exec?: {`))
+		Expect(cue).To(ContainSubstring(`httpGet?: {`))
+		Expect(cue).To(ContainSubstring(`tcpSocket?: {`))
+	})
 })

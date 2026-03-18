@@ -30,7 +30,7 @@ func K8sUpdateStrategy() *defkit.TraitDefinition {
 	// Strategy struct with nested rolling strategy
 	strategy := defkit.Struct("strategy").Description("Specify the strategy of update").WithFields(
 		defkit.Field("type", defkit.ParamTypeString).Default("RollingUpdate").Values("RollingUpdate", "Recreate", "OnDelete").Description("Specify the strategy type"),
-		defkit.Field("rollingStrategy", defkit.ParamTypeStruct).
+		defkit.Field("rollingStrategy", defkit.ParamTypeStruct).Optional().
 			Description("Specify the parameters of rolling update strategy").
 			Nested(defkit.Struct("rollingStrategy").WithFields(
 				defkit.Field("maxSurge", defkit.ParamTypeString).Default("25%"),
@@ -42,7 +42,9 @@ func K8sUpdateStrategy() *defkit.TraitDefinition {
 	return defkit.NewTrait("k8s-update-strategy").
 		Description("Set k8s update strategy for Deployment/DaemonSet/StatefulSet").
 		AppliesTo("deployments.apps", "statefulsets.apps", "daemonsets.apps").
+		ConflictsWith().
 		PodDisruptive(false).
+		WorkloadRefPath("").
 		Params(targetAPIVersion, targetKind, strategy).
 		Template(func(tpl *defkit.Template) {
 			// References to parameter fields
