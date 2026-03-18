@@ -3,7 +3,7 @@ module github.com/oam-dev/vela-go-definitions
 go 1.23.8
 
 require (
-	github.com/oam-dev/kubevela v1.10.5-0.20260317162048-401ad98a3724
+	github.com/oam-dev/kubevela v1.10.5-0.20260318160037-21640b55cdb7
 	github.com/onsi/ginkgo/v2 v2.23.3
 	github.com/onsi/gomega v1.36.2
 	github.com/spf13/cobra v1.9.1
@@ -122,5 +122,3 @@ require (
 	sigs.k8s.io/randfill v1.0.0 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.6.0 // indirect
 )
-
-replace github.com/oam-dev/kubevela => github.com/roguepikachu/kubevela v1.10.5-0.20260318092547-c5420218c498
