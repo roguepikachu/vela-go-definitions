@@ -1,0 +1,7 @@
+expectations:
+  - apiVersion: apps/v1
+    kind: Deployment
+    name: nginx-app
+    fields:
+      spec.template.spec.containers[1].name: "sidecar-logger"
+      spec.template.spec.containers[1].image: "busybox"

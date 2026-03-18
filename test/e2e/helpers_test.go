@@ -23,15 +23,20 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"reflect"
+	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -181,92 +186,6 @@ func listYAMLFiles(dir string) ([]string, error) {
 		}
 	}
 	return files, nil
-}
-
-// applyApplication creates or updates a KubeVela Application.
-func applyApplication(ctx context.Context, app *v1beta1.Application) error { //nolint:unused // e2e utility
-	if app.Namespace == "" {
-		app.Namespace = "default"
-	}
-
-	err := k8sClient.Create(ctx, app)
-	if err != nil {
-		if errors.IsAlreadyExists(err) {
-			err = k8sClient.Update(ctx, app)
-		}
-		if err != nil {
-			return fmt.Errorf("failed to apply application %s/%s: %w", app.Namespace, app.Name, err)
-		}
-	}
-
-	GinkgoWriter.Printf("Applied application %s/%s\n", app.Namespace, app.Name)
-	return nil
-}
-
-// deleteApplication deletes a KubeVela Application and waits briefly for cleanup.
-func deleteApplication(ctx context.Context, app *v1beta1.Application) error { //nolint:unused // e2e utility
-	if app.Namespace == "" {
-		app.Namespace = "default"
-	}
-
-	err := k8sClient.Delete(ctx, app, &client.DeleteOptions{PropagationPolicy: func() *metav1.DeletionPropagation {
-		p := metav1.DeletePropagationForeground
-		return &p
-	}()})
-	if err != nil && !errors.IsNotFound(err) {
-		GinkgoWriter.Printf("Warning: failed to delete application %s/%s: %v\n", app.Namespace, app.Name, err)
-	}
-
-	// Give extra time for finalizers and cascading deletion
-	time.Sleep(2 * time.Second)
-	return nil
-}
-
-// getApplicationStatus gets the status of a KubeVela application.
-func getApplicationStatus(ctx context.Context, appName, namespace string) (string, error) { //nolint:unused // e2e utility
-	if namespace == "" {
-		namespace = "default"
-	}
-
-	app := &v1beta1.Application{}
-	err := k8sClient.Get(ctx, types.NamespacedName{Namespace: namespace, Name: appName}, app)
-	if err != nil {
-		return "", fmt.Errorf("failed to get application: %w", err)
-	}
-
-	if app.Status.Workflow != nil && app.Status.Workflow.Message != "" {
-		return app.Status.Workflow.Message, nil
-	}
-
-	return string(app.Status.Phase), nil
-}
-
-// waitForApplicationRunning waits for an application to reach running status.
-func waitForApplicationRunning(ctx context.Context, appName, namespace string) error { //nolint:unused // e2e utility
-	if namespace == "" {
-		namespace = "default"
-	}
-
-	GinkgoWriter.Printf("Waiting for application %s/%s to be running...\n", namespace, appName)
-
-	Eventually(func() string {
-		status, err := getApplicationStatus(ctx, appName, namespace)
-		if err != nil {
-			GinkgoWriter.Printf("Error getting status: %v\n", err)
-			return ""
-		}
-		GinkgoWriter.Printf("Application %s status: %s\n", appName, status)
-		return strings.ToLower(status)
-	}, AppRunningTimeout, PollInterval).Should(ContainSubstring("running"),
-		fmt.Sprintf("Application %s should reach running state", appName))
-
-	status, _ := getApplicationStatus(ctx, appName, namespace)
-	statusLower := strings.ToLower(status)
-	if strings.Contains(statusLower, "failed") || strings.Contains(statusLower, "error") {
-		return fmt.Errorf("application %s failed with status: %s", appName, status)
-	}
-
-	return nil
 }
 
 // sanitizeForNamespace creates a DNS-1123 compliant name
@@ -474,4 +393,419 @@ func getKanikoPodLogs(namespace string) string {
 	}
 
 	return diagInfo.String()
+}
+
+// --------------------------------------------------------------------------
+// Shared test runner (Phase 1)
+// --------------------------------------------------------------------------
+
+// skipWorkflowStepTests lists test files that require external infrastructure
+// (cloud providers, terraform, Prometheus, container registries, webhook endpoints)
+// and cannot run in a standard CI environment.
+var skipWorkflowStepTests = map[string]string{
+	"deploy-cloud-resource.yaml":    "requires alibaba-rds component and multi-cluster setup",
+	"share-cloud-resource.yaml":     "requires alibaba-rds component and multi-cluster setup",
+	"generate-jdbc-connection.yaml": "requires alibaba-rds component",
+	"apply-terraform-config.yaml":   "requires Alibaba Cloud credentials and terraform provider",
+	"apply-terraform-provider.yaml": "requires Alibaba Cloud credentials",
+}
+
+// runDefinitionTest executes a single definition e2e test case.
+// It creates an isolated namespace, applies the application, waits for running status,
+// optionally validates resource expectations, and cleans up.
+func runDefinitionTest(ctx context.Context, file string, skipTests map[string]string) {
+	if reason, ok := skipTests[filepath.Base(file)]; ok {
+		Skip(fmt.Sprintf("Skipping: %s", reason))
+	}
+
+	app, err := readAppFromFile(file)
+	Expect(err).NotTo(HaveOccurred(), "Failed to read application from %s", file)
+
+	// Each app has unique name, so namespace based on app name is unique per test
+	appNameSanitized := sanitizeForNamespace(app.Name)
+	uniqueNs := fmt.Sprintf("e2e-%s", appNameSanitized)
+
+	app.SetNamespace(uniqueNs)
+
+	// Update namespace references inside component properties (e.g., ref-objects)
+	updateAppNamespaceReferences(app, uniqueNs)
+
+	// Track test success for cleanup diagnostics
+	testPassed := false
+
+	// DeferCleanup runs even on suite timeout - print diagnostics if test didn't pass
+	DeferCleanup(func() {
+		if !testPassed {
+			GinkgoWriter.Printf("\nTest did not complete successfully, gathering diagnostics...\n")
+			GinkgoWriter.Printf("%s\n", getAppFailureDiagnostics(ctx, app.Name, uniqueNs))
+			// Print kaniko pod logs for build-push-image workflow step
+			if filepath.Base(file) == "build-push-image.yaml" {
+				GinkgoWriter.Printf("\n--- Kaniko Pod Diagnostics ---\n")
+				GinkgoWriter.Printf("%s\n", getKanikoPodLogs(uniqueNs))
+			}
+		}
+		// Clean up namespace after test
+		GinkgoWriter.Printf("Deleting namespace %s...\n", uniqueNs)
+		ns := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: uniqueNs}}
+		_ = k8sClient.Delete(ctx, ns)
+	})
+
+	GinkgoWriter.Printf("Creating namespace %s...\n", uniqueNs)
+	ns := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: uniqueNs}}
+	err = k8sClient.Create(ctx, ns)
+	if err != nil && !errors.IsAlreadyExists(err) {
+		Expect(err).NotTo(HaveOccurred(), "Failed to create namespace")
+	}
+
+	// Ensure clean slate - delete app if exists
+	GinkgoWriter.Printf("Cleaning up any existing application %s/%s...\n", uniqueNs, app.Name)
+	_ = k8sClient.Delete(ctx, app)
+
+	// Wait for deletion
+	Eventually(func() bool {
+		err := k8sClient.Get(ctx, types.NamespacedName{Namespace: uniqueNs, Name: app.Name}, &v1beta1.Application{})
+		return errors.IsNotFound(err)
+	}, 30*time.Second, 2*time.Second).Should(BeTrue(),
+		fmt.Sprintf("Application %s should be fully deleted before test", app.Name))
+
+	// Check if this file has prerequisite resources
+	if hasPrerequisiteResources(file) {
+		GinkgoWriter.Printf("Applying prerequisite resources from %s...\n", filepath.Base(file))
+		err = applyPrerequisiteResources(ctx, file, uniqueNs)
+		Expect(err).NotTo(HaveOccurred(), "Failed to apply prerequisite resources")
+		time.Sleep(2 * time.Second)
+	}
+
+	// Apply application
+	GinkgoWriter.Printf("Applying application %s/%s...\n", uniqueNs, app.Name)
+	Expect(k8sClient.Create(ctx, app)).Should(Succeed())
+
+	// Wait for running status
+	Eventually(func(g Gomega) {
+		currentApp := &v1beta1.Application{}
+		g.Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: uniqueNs, Name: app.Name}, currentApp)).Should(Succeed())
+		GinkgoWriter.Printf("Application %s status: %s\n", app.Name, currentApp.Status.Phase)
+		g.Expect(string(currentApp.Status.Phase)).Should(Equal("running"))
+	}, AppRunningTimeout, PollInterval).Should(Succeed())
+
+	// Validate resource expectations if companion .expect.yaml exists
+	expectations := loadExpectations(file)
+	if len(expectations) > 0 {
+		GinkgoWriter.Printf("Validating %d resource expectation(s)...\n", len(expectations))
+		validateResourceExpectations(ctx, uniqueNs, expectations)
+	}
+
+	testPassed = true
+	GinkgoWriter.Printf("PASS %s\n", filepath.Base(file))
+}
+
+// --------------------------------------------------------------------------
+// Resource expectation validation (Phase 2)
+// --------------------------------------------------------------------------
+
+// ResourceExpectation describes expected state of a K8s resource after an Application is running.
+type ResourceExpectation struct {
+	APIVersion string                 `yaml:"apiVersion" json:"apiVersion"`
+	Kind       string                 `yaml:"kind" json:"kind"`
+	Name       string                 `yaml:"name" json:"name"`
+	Fields     map[string]interface{} `yaml:"fields" json:"fields"`
+}
+
+// ExpectationFile is the top-level structure of a .expect.yaml file.
+type ExpectationFile struct {
+	Expectations []ResourceExpectation `yaml:"expectations" json:"expectations"`
+}
+
+// loadExpectations looks for a .expect.yaml file in the expectations/ directory
+// that mirrors the applications/ directory structure.
+// For example, given .../builtin-definition-example/applications/components/webservice.yaml,
+// it looks for .../builtin-definition-example/expectations/components/webservice.expect.yaml.
+// Returns nil if no expectation file exists.
+func loadExpectations(appYAMLPath string) []ResourceExpectation {
+	// appYAMLPath: .../builtin-definition-example/applications/<type>/<name>.yaml
+	// expectPath:  .../builtin-definition-example/expectations/<type>/<name>.expect.yaml
+	dir := filepath.Dir(appYAMLPath)             // .../applications/components
+	subdir := filepath.Base(dir)                 // components
+	testDataRoot := filepath.Dir(filepath.Dir(dir)) // .../builtin-definition-example
+	baseName := filepath.Base(appYAMLPath)       // webservice.yaml
+	ext := filepath.Ext(baseName)                // .yaml
+	nameNoExt := strings.TrimSuffix(baseName, ext) // webservice
+
+	expectPath := filepath.Join(testDataRoot, "expectations", subdir, nameNoExt+".expect.yaml")
+
+	data, err := os.ReadFile(expectPath)
+	if err != nil {
+		return nil // No expectation file — that's fine
+	}
+
+	var ef ExpectationFile
+	if err := yaml.Unmarshal(data, &ef); err != nil {
+		GinkgoWriter.Printf("Warning: failed to parse %s: %v\n", expectPath, err)
+		return nil
+	}
+
+	return ef.Expectations
+}
+
+// parseGVK parses an apiVersion and kind into a GroupVersionKind.
+func parseGVK(apiVersion, kind string) schema.GroupVersionKind {
+	parts := strings.SplitN(apiVersion, "/", 2)
+	if len(parts) == 1 {
+		// core group, e.g. "v1"
+		return schema.GroupVersionKind{Group: "", Version: parts[0], Kind: kind}
+	}
+	return schema.GroupVersionKind{Group: parts[0], Version: parts[1], Kind: kind}
+}
+
+// validateResourceExpectations fetches each expected resource and validates its fields.
+func validateResourceExpectations(ctx context.Context, namespace string, expectations []ResourceExpectation) {
+	for _, exp := range expectations {
+		GinkgoWriter.Printf("  Checking %s/%s %s...\n", exp.APIVersion, exp.Kind, exp.Name)
+
+		obj := &unstructured.Unstructured{}
+		obj.SetGroupVersionKind(parseGVK(exp.APIVersion, exp.Kind))
+
+		// Fetch the resource — retry briefly in case of propagation delay
+		Eventually(func() error {
+			return k8sClient.Get(ctx, types.NamespacedName{Namespace: namespace, Name: exp.Name}, obj)
+		}, 30*time.Second, 2*time.Second).Should(Succeed(),
+			fmt.Sprintf("Expected %s/%s %q to exist in namespace %s", exp.APIVersion, exp.Kind, exp.Name, namespace))
+
+		// Validate each field path
+		for path, expectedValue := range exp.Fields {
+			actual, err := getNestedValue(obj.Object, path)
+			Expect(err).NotTo(HaveOccurred(), "Failed to resolve path %q in %s/%s %s", path, exp.APIVersion, exp.Kind, exp.Name)
+
+			// Normalize numbers for comparison (YAML/JSON may parse as float64 or int64)
+			assertValuesEqual(path, expectedValue, actual,
+				fmt.Sprintf("%s/%s %s", exp.APIVersion, exp.Kind, exp.Name))
+		}
+	}
+}
+
+// arrayIndexPattern matches path segments like "containers[0]"
+var arrayIndexPattern = regexp.MustCompile(`^(.+)\[(\d+)\]$`)
+
+// getNestedValue walks a dot-path with optional array indexing into an unstructured object.
+// Examples: "spec.replicas", "spec.template.spec.containers[0].image"
+func getNestedValue(obj map[string]interface{}, path string) (interface{}, error) {
+	segments := splitDotPath(path)
+	var current interface{} = obj
+
+	for _, seg := range segments {
+		if current == nil {
+			return nil, fmt.Errorf("nil value at segment %q in path %q", seg, path)
+		}
+
+		// Check for array index: "containers[0]"
+		if m := arrayIndexPattern.FindStringSubmatch(seg); m != nil {
+			fieldName := m[1]
+			idx, _ := strconv.Atoi(m[2])
+
+			currentMap, ok := current.(map[string]interface{})
+			if !ok {
+				return nil, fmt.Errorf("expected map at %q, got %T", seg, current)
+			}
+			arr, ok := currentMap[fieldName]
+			if !ok {
+				return nil, fmt.Errorf("field %q not found", fieldName)
+			}
+			slice, ok := arr.([]interface{})
+			if !ok {
+				return nil, fmt.Errorf("expected array at %q, got %T", fieldName, arr)
+			}
+			if idx >= len(slice) {
+				return nil, fmt.Errorf("index %d out of bounds (len=%d) at %q", idx, len(slice), fieldName)
+			}
+			current = slice[idx]
+		} else {
+			// Simple field access
+			currentMap, ok := current.(map[string]interface{})
+			if !ok {
+				return nil, fmt.Errorf("expected map at %q, got %T", seg, current)
+			}
+			val, ok := currentMap[seg]
+			if !ok {
+				return nil, fmt.Errorf("field %q not found", seg)
+			}
+			current = val
+		}
+	}
+
+	return current, nil
+}
+
+// splitDotPath splits a dot-path while respecting array indices.
+// "spec.template.spec.containers[0].image" -> ["spec", "template", "spec", "containers[0]", "image"]
+func splitDotPath(path string) []string {
+	return strings.Split(path, ".")
+}
+
+// assertValuesEqual compares expected and actual values with type normalization.
+func assertValuesEqual(path string, expected, actual interface{}, resourceDesc string) {
+	// Normalize both sides for comparison
+	expected = normalizeValue(expected)
+	actual = normalizeValue(actual)
+
+	Expect(reflect.DeepEqual(expected, actual)).To(BeTrue(),
+		fmt.Sprintf("Field %q in %s:\n  expected: %v (%T)\n  actual:   %v (%T)",
+			path, resourceDesc, expected, expected, actual, actual))
+}
+
+// normalizeValue normalizes a value for comparison.
+// JSON/YAML can represent numbers as float64, int64, or int — this normalizes them.
+func normalizeValue(v interface{}) interface{} {
+	switch val := v.(type) {
+	case float64:
+		// If it's a whole number, convert to int64 for comparison
+		if val == float64(int64(val)) {
+			return int64(val)
+		}
+		return val
+	case int:
+		return int64(val)
+	case int32:
+		return int64(val)
+	case []interface{}:
+		result := make([]interface{}, len(val))
+		for i, item := range val {
+			result[i] = normalizeValue(item)
+		}
+		return result
+	case map[string]interface{}:
+		result := make(map[string]interface{}, len(val))
+		for k, item := range val {
+			result[k] = normalizeValue(item)
+		}
+		return result
+	default:
+		return v
+	}
+}
+
+// --------------------------------------------------------------------------
+// Dry-run parity helpers (Phase 3)
+// --------------------------------------------------------------------------
+
+// runVelaDryRun executes `vela dry-run -f <appFile>` and returns the rendered output.
+func runVelaDryRun(appFile string) (string, error) {
+	cmd := exec.Command("vela", "dry-run", "-f", appFile)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return "", fmt.Errorf("vela dry-run failed for %s: %w\nOutput: %s", appFile, err, string(output))
+	}
+	return string(output), nil
+}
+
+// parseDryRunResources splits vela dry-run output into individual YAML documents
+// and returns them as normalized unstructured objects keyed by "Kind/Name".
+func parseDryRunResources(dryRunOutput string) (map[string]map[string]interface{}, error) {
+	resources := make(map[string]map[string]interface{})
+
+	docs := strings.Split(dryRunOutput, "---")
+	for _, doc := range docs {
+		doc = strings.TrimSpace(doc)
+		if doc == "" {
+			continue
+		}
+
+		var obj map[string]interface{}
+		if err := yaml.Unmarshal([]byte(doc), &obj); err != nil {
+			continue
+		}
+
+		kind, _ := obj["kind"].(string)
+		metadata, _ := obj["metadata"].(map[string]interface{})
+		name := ""
+		if metadata != nil {
+			name, _ = metadata["name"].(string)
+		}
+
+		if kind == "" {
+			continue
+		}
+
+		key := fmt.Sprintf("%s/%s", kind, name)
+		// Strip volatile metadata fields for comparison
+		normalizeForParity(obj)
+		resources[key] = obj
+	}
+
+	return resources, nil
+}
+
+// normalizeForParity removes fields that are expected to differ between CUE and defkit
+// but don't represent functional differences.
+func normalizeForParity(obj map[string]interface{}) {
+	// Remove volatile metadata fields
+	if metadata, ok := obj["metadata"].(map[string]interface{}); ok {
+		delete(metadata, "resourceVersion")
+		delete(metadata, "uid")
+		delete(metadata, "creationTimestamp")
+		delete(metadata, "generation")
+		delete(metadata, "managedFields")
+		delete(metadata, "selfLink")
+
+		// Remove empty annotations/labels
+		if ann, ok := metadata["annotations"].(map[string]interface{}); ok && len(ann) == 0 {
+			delete(metadata, "annotations")
+		}
+		if labels, ok := metadata["labels"].(map[string]interface{}); ok && len(labels) == 0 {
+			delete(metadata, "labels")
+		}
+	}
+
+	// Remove status (not part of rendered output comparison)
+	delete(obj, "status")
+
+	// Recursively normalize nested objects
+	for _, v := range obj {
+		switch val := v.(type) {
+		case map[string]interface{}:
+			normalizeForParity(val)
+		case []interface{}:
+			for _, item := range val {
+				if m, ok := item.(map[string]interface{}); ok {
+					normalizeForParity(m)
+				}
+			}
+		}
+	}
+}
+
+// compareResources compares two sets of parsed dry-run resources.
+// Returns a list of difference descriptions, or nil if they match.
+func compareResources(baseline, actual map[string]map[string]interface{}) []string {
+	var diffs []string
+
+	// Check for resources in baseline but missing from actual
+	for key := range baseline {
+		if _, ok := actual[key]; !ok {
+			diffs = append(diffs, fmt.Sprintf("Resource %q present in CUE baseline but missing from defkit output", key))
+		}
+	}
+
+	// Check for resources in actual but missing from baseline
+	for key := range actual {
+		if _, ok := baseline[key]; !ok {
+			diffs = append(diffs, fmt.Sprintf("Resource %q present in defkit output but missing from CUE baseline", key))
+		}
+	}
+
+	// Compare matching resources
+	for key, baseObj := range baseline {
+		actualObj, ok := actual[key]
+		if !ok {
+			continue
+		}
+
+		baseJSON, _ := json.Marshal(normalizeValue(baseObj))
+		actualJSON, _ := json.Marshal(normalizeValue(actualObj))
+
+		if string(baseJSON) != string(actualJSON) {
+			diffs = append(diffs, fmt.Sprintf("Resource %q differs between CUE baseline and defkit output", key))
+		}
+	}
+
+	return diffs
 }

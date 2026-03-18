@@ -1,0 +1,6 @@
+expectations:
+  - apiVersion: apps/v1
+    kind: Deployment
+    name: export2config-demo-server
+    fields:
+      spec.template.spec.containers[0].image: "oamdev/hello-world"

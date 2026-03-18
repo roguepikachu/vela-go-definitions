@@ -1,0 +1,7 @@
+expectations:
+  - apiVersion: apps/v1
+    kind: Deployment
+    name: nginx-app
+    fields:
+      spec.template.metadata.annotations.app.example.com/owner: "team-backend"
+      spec.template.metadata.annotations.app.example.com/version: "v1.2.3"
