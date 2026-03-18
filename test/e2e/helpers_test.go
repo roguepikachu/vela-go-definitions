@@ -368,9 +368,7 @@ var skipWorkflowStepTests = map[string]string{
 	"build-push-image.yaml":         "requires external container registry (ttl.sh) and GitHub access",
 	"check-metrics.yaml":            "requires external Prometheus endpoint (demo.promlabs.com)",
 	"restart-workflow.yaml":         "self-restarting workflow cannot be validated with single-shot test framework",
-	"read-object.yaml":              "workflow step reads from hardcoded default namespace",
-	"list-config.yaml":              "prerequisite configs in hardcoded namespace",
-	"clean-jobs.yaml":               "prerequisite jobs in hardcoded namespace",
+	"clean-jobs.yaml":               "clean-jobs requires namespace property matching prerequisite Jobs location",
 }
 
 // skipTraitTests lists trait test files that cannot run in a standard CI environment.
