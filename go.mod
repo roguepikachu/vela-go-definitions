@@ -123,4 +123,4 @@ require (
 	sigs.k8s.io/structured-merge-diff/v4 v4.6.0 // indirect
 )
 
-replace github.com/oam-dev/kubevela => ../kubevela
+replace github.com/oam-dev/kubevela => github.com/roguepikachu/kubevela v1.10.5-0.20260318092547-c5420218c498

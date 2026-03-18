@@ -156,12 +156,19 @@ e2e-setup:
 	@kubectl delete traitdefinitions --all -n vela-system 2>/dev/null || true
 	@kubectl delete workflowstepdefinitions --all -n vela-system 2>/dev/null || true
 	@kubectl delete policydefinitions --all -n vela-system 2>/dev/null || true
-	@$(MAKE) generate
-	@for dir in $(DEFINITIONS_DIR)/*/; do \
-		for f in $$dir*.cue; do \
-			[ -f "$$f" ] && vela def apply "$$f" 2>&1; \
+	@if vela def apply-module --help >/dev/null 2>&1; then \
+		echo "  Using: vela def apply-module"; \
+		$(GOMOD) tidy; \
+		vela def apply-module . --conflict=overwrite; \
+	else \
+		echo "  Using: generate + vela def apply (apply-module not available)"; \
+		$(MAKE) generate; \
+		for dir in $(DEFINITIONS_DIR)/*/; do \
+			for f in $$dir*.cue; do \
+				[ -f "$$f" ] && vela def apply "$$f" 2>&1; \
+			done; \
 		done; \
-	done
+	fi
 	@# Step 6: Install ginkgo
 	@echo "[6/6] Installing Ginkgo..."
 	@$(MAKE) install-ginkgo
